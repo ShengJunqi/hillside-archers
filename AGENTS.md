@@ -4,7 +4,7 @@
 
 ## 项目边界
 
-这是已能游玩的像素弓箭游戏。沿用原生 JavaScript + Canvas，不为了小改动重写框架或引入后端。中文界面，电脑优先，支持离线运行。运行不需要 API key、模型服务或账号。
+这是已能游玩的像素弓箭游戏。沿用原生 JavaScript + Canvas，不为了小改动重写框架或引入后端。中文界面，支持电脑和手机横竖屏，支持离线运行。运行不需要 API key、模型服务或账号。
 
 `dist/` 同时是可维护源码和可部署静态站点；目前没有另一份 `src/`。修改模块文件，使用 `npm run build` 生成 `dist/download.html`，不要直接手改生成文件。
 
@@ -23,7 +23,7 @@
 
 先检查 `git status` 与当前分支，不覆盖另一位作者的改动。默认使用 `feat/<主题>` 或 `fix/<主题>` 分支，每次 PR 围绕一个明确问题。主线分支为 `main`。没有写权限时走 fork + PR。
 
-物理和规则尽量集中在 `dist/core.mjs`；画面在 `dist/render.mjs`；输入和 UI 在 `dist/app.mjs`。同时改同一模块前，在任务或 PR 中说明范围。
+物理和规则尽量集中在 `dist/core.mjs`；画面在 `dist/render.mjs`；输入在 `dist/input.mjs`，UI 和屏幕适配在 `dist/app.mjs`；手机样式在 `dist/mobile.css`。同时改同一模块前，在任务或 PR 中说明范围。
 
 默认提交可审查的 PR，由维护者合并及统一发布线上游戏。用户明确要求合并或发布时再执行该动作。GitHub 本仓库没有线上部署凭证；不要提交密钥、`.env`、`.openai/` 或其他服务的访问令牌。
 

@@ -4,15 +4,16 @@ import {resolve} from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const read = name => readFile(resolve(root, 'dist', name), 'utf8');
-const [html, css, ...modules] = await Promise.all([
-  read('index.html'), read('style.css'),
-  read('core.mjs'), read('render.mjs'), read('app.mjs'),
+const [html, css, mobileCss, ...modules] = await Promise.all([
+  read('index.html'), read('style.css'), read('mobile.css'),
+  read('core.mjs'), read('render.mjs'), read('input.mjs'), read('app.mjs'),
 ]);
 // Keep dependency order; imports/exports are removed only for the standalone file.
 const code = modules.map(source => source
   .replace(/^import .*;\r?\n/gm, '')
   .replace(/\bexport /g, '')).join('\n');
 const standalone = html
+  .replace('<link rel="stylesheet" href="mobile.css">', '<style>' + mobileCss + '</style>')
   .replace('<link rel="stylesheet" href="style.css">', '<style>' + css + '</style>')
   .replace('<script type="module" src="app.mjs"></script>', '<script>\n' + code + '\n</script>')
   .replace('<a href="download.html" download="坡地弓手.html">下载离线版 ↓</a>', '<span>离线版 · 一箭过山河</span>');
