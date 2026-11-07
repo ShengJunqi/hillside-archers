@@ -12,7 +12,7 @@
 
 先读取 AGENTS.md、README.md、CONTRIBUTING.md 和 docs/GAME_DESIGN.md，检查工作区和分支，运行 npm test、npm run build，再用 npm run dev 启动。已有检出就使用它，没有才 clone。Node.js 要求 22+，没有 npm 依赖。
 
-这个项目使用原生 JavaScript 和 Canvas。dist/core.mjs 管规则、物理、AI、升级、存档；dist/render.mjs 管地图、角色和镜头动画；dist/input.mjs 管鼠标和触屏输入；dist/app.mjs 管 UI、屏幕适配和音效；dist/index.html、dist/style.css 与 dist/mobile.css 管页面及横竖屏布局。dist/download.html 是生成文件，请通过 npm run build 更新。
+这个项目使用原生 JavaScript 和 Canvas。dist/core.mjs 管规则、物理、AI、升级、存档；dist/render.mjs 管地图、角色和镜头动画；dist/input.mjs 管鼠标和触屏输入；dist/display.mjs 管显示模式与偏好；dist/app.mjs 管 UI、屏幕适配和音效；dist/index.html、dist/style.css 与 dist/mobile.css 管页面及横竖屏布局。dist/download.html 是生成文件，请通过 npm run build 更新。同一个网址支持「自动识别 / 电脑版 / 手机版」切换，手动选择优先，切换不能重开对局、丢存档或误射。
 
 我们有两位作者。先从最新 main 建立独立功能分支；不覆盖未提交改动，不直接推 main，不擅自合并或发布线上网站。完成后开 PR，若没有仓库写权限就走 fork + PR，并给出 PR 链接。
 

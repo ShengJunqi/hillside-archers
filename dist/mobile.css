@@ -46,167 +46,200 @@ canvas, .touch-controls { -webkit-user-select: none; user-select: none; -webkit-
   .map-choice select { font-size: 16px; }
 }
 
-@media (max-width: 900px), (max-width: 1100px) and (max-height: 600px) {
-  html, body { height: 100%; overflow: hidden; }
-  .shell {
+
+html[data-layout="mobile"], body[data-layout="mobile"] { height: 100%; overflow: hidden; }
+body[data-layout="mobile"] .shell {
     height: 100vh; height: 100dvh; max-width: none; display: flex; flex-direction: column;
     padding: env(safe-area-inset-top, 0px) max(10px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(10px, env(safe-area-inset-left, 0px));
   }
-  header { height: 58px; flex: 0 0 58px; gap: 6px; }
-  .brand { font-size: 13px; letter-spacing: 1px; gap: 5px; white-space: nowrap; }
-  .brand-mark { font-size: 25px; }
-  .brand small, .edition { display: none; }
-  nav { gap: 2px; }
-  nav button { min-width: 42px; min-height: 44px; font-size: 12px; padding: 6px 3px; }
-  nav #sound { min-width: 58px; }
-  nav #view { display: block; max-width: 56px; font-size: 11px; line-height: 1.2; }
-  nav #fullscreen { min-width: 50px; }
-  .arena { flex: 1; min-height: 0; aspect-ratio: auto; border-radius: 8px; }
-  .arena canvas { width: 100%; height: 100%; object-fit: fill; }
-  footer { height: 28px; flex: 0 0 28px; font-size: 9px; letter-spacing: 0; gap: 8px; }
-  footer i { display: none; }
-  footer > span:last-child { gap: 0; white-space: nowrap; }
-  .hud { top: 12px; left: 12px; right: 12px; }
-  .portrait { display: none; }
-  .health { width: 30%; gap: 0; }
-  .health label { font-size: 10px; gap: 3px; flex-wrap: wrap; }
-  .health label b { letter-spacing: 0; }
-  .health small { font-size: 9px; }
-  .health-track { margin-top: 6px; height: 8px; }
-  .health-track i { height: 6px; }
-  .chapter { width: 34%; gap: 5px; }
-  .chapter small { font-size: 8px; letter-spacing: 0; }
-  .chapter strong { font-size: 12px; letter-spacing: 1px; }
-  .chapter > span { font-size: 10px; }
-  .turn-banner { top: 22%; font-size: 13px; letter-spacing: 1px; max-width: 92%; padding: 10px 15px; }
-  .scene-hint { font-size: 11px; padding: 0 10px; letter-spacing: 0; }
-  .challenge-info { top: 82px; right: 14px; font-size: 12px; letter-spacing: 0; }
-  .build { max-width: 65%; left: 12px; }
-  .build span { font-size: 10px; padding: 5px 7px; }
-  .skill-button { right: 12px; min-width: 135px; padding: 10px 16px; }
-  .home { padding: 24px 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  .home-modes { overflow: visible; max-height: none; max-width: none; }
-  .eyebrow { font-size: 10px; letter-spacing: 2px; }
-  .primary { min-height: 48px; min-width: 180px; padding: 12px 20px; font-size: 14px; }
-  .quiet { min-height: 44px; padding: 12px; font-size: 13px; }
-  .save-note, .mode-note { font-size: 11px; line-height: 1.8; }
-  .mode-card b { font-size: 15px; letter-spacing: 1px; }
-  .mode-card small { display: block; font-size: 11px; line-height: 1.5; margin-top: 5px; }
-  .mode-icon { font-size: 24px; min-width: 28px; }
-  .mode-state { font-size: 11px; }
-  .home-modes .mode-card { min-height: 64px; padding: 12px 6px; gap: 12px; }
-  .map-choice { display: flex; font-size: 12px; gap: 12px; margin-top: 15px; }
-  .map-choice select { min-height: 44px; width: auto; max-width: 70%; margin: 0; padding: 8px 12px; font-size: 16px; }
-  .camp-meta { gap: 8px; flex-wrap: wrap; }
-  .camp-meta div { width: auto; }
-  .camp-meta b { font-size: 12px; }
-  .camp-meta small { font-size: 11px; }
-  .camp-meta button { min-height: 44px; padding: 8px; font-size: 11px; }
-  .story-top { top: 7%; left: 5%; right: 5%; gap: 8px; font-size: 12px; letter-spacing: 1px; }
-  .story-top button { min-height: 44px; font-size: 12px; padding: 9px 12px; }
-  .dialogue { bottom: 5%; left: 5%; right: 5%; padding: 16px; gap: 10px; }
-  .dialogue small { font-size: 12px; }
-  .dialogue p { font-size: 14px; line-height: 1.7; letter-spacing: 0; min-height: 3.4em; }
-  .dialogue button { min-height: 44px; font-size: 13px; padding: 10px; }
-  .story-dots { margin-top: 8px; }
-  .result { padding: 26px 20px; overflow: auto; }
-  .result h2 { font-size: 30px; margin: 10px 0; }
-  .result p:not(.eyebrow) { font-size: 14px; line-height: 1.8; }
-  #resultReward { font-size: 12px; line-height: 1.8; margin: 12px 0; }
-  .upgrade { padding: 24px 16px; overflow-y: auto; }
-  .upgrade h2 { font-size: 23px; line-height: 1.5; letter-spacing: 1px; margin: 10px 0; }
-  .upgrade-note { font-size: 12px; line-height: 1.7; }
-  .upgrade-cards { gap: 12px; }
-  .relic { padding: 16px 12px; }
-  .relic b { font-size: 20px; letter-spacing: 2px; }
-  .relic p { font-size: 13px; line-height: 1.6; }
-  .relic small { font-size: 10px; }
-  .relic .take, .relic .pair-badge { font-size: 11px; }
-  .pause-card { max-width: 92%; width: 430px; padding: 22px; overflow-y: auto; }
-  .pause-card h2 { font-size: 24px; }
-  .pause-card p { font-size: 13px; line-height: 1.9; }
-  .inventory { max-height: 120px; font-size: 12px; line-height: 1.8; }
-  .toast { font-size: 12px; padding: 10px 15px; width: max-content; }
-}
+body[data-layout="mobile"] header { height: 58px; flex: 0 0 58px; gap: 6px; }
+body[data-layout="mobile"] .brand { font-size: 13px; letter-spacing: 1px; gap: 5px; white-space: nowrap; }
+body[data-layout="mobile"] .brand-mark { font-size: 25px; }
+body[data-layout="mobile"] .brand small, body[data-layout="mobile"] .edition { display: none; }
+body[data-layout="mobile"] nav { gap: 2px; }
+body[data-layout="mobile"] nav button { min-width: 42px; min-height: 44px; font-size: 12px; padding: 6px 3px; }
+body[data-layout="mobile"] nav #sound { min-width: 58px; }
+body[data-layout="mobile"] nav #view { display: block; max-width: 56px; font-size: 11px; line-height: 1.2; }
+body[data-layout="mobile"] nav #fullscreen { min-width: 50px; }
+body[data-layout="mobile"] .arena { flex: 1; min-height: 0; aspect-ratio: auto; border-radius: 8px; }
+body[data-layout="mobile"] .arena canvas { width: 100%; height: 100%; object-fit: fill; }
+body[data-layout="mobile"] footer { height: 28px; flex: 0 0 28px; font-size: 9px; letter-spacing: 0; gap: 8px; }
+body[data-layout="mobile"] footer i { display: none; }
+body[data-layout="mobile"] footer > span:last-child { gap: 0; white-space: nowrap; }
+body[data-layout="mobile"] .hud { top: 12px; left: 12px; right: 12px; }
+body[data-layout="mobile"] .portrait { display: none; }
+body[data-layout="mobile"] .health { width: 30%; gap: 0; }
+body[data-layout="mobile"] .health label { font-size: 10px; gap: 3px; flex-wrap: wrap; }
+body[data-layout="mobile"] .health label b { letter-spacing: 0; }
+body[data-layout="mobile"] .health small { font-size: 9px; }
+body[data-layout="mobile"] .health-track { margin-top: 6px; height: 8px; }
+body[data-layout="mobile"] .health-track i { height: 6px; }
+body[data-layout="mobile"] .chapter { width: 34%; gap: 5px; }
+body[data-layout="mobile"] .chapter small { font-size: 8px; letter-spacing: 0; }
+body[data-layout="mobile"] .chapter strong { font-size: 12px; letter-spacing: 1px; }
+body[data-layout="mobile"] .chapter > span { font-size: 10px; }
+body[data-layout="mobile"] .turn-banner { top: 22%; font-size: 13px; letter-spacing: 1px; max-width: 92%; padding: 10px 15px; }
+body[data-layout="mobile"] .scene-hint { font-size: 11px; padding: 0 10px; letter-spacing: 0; }
+body[data-layout="mobile"] .challenge-info { top: 82px; right: 14px; font-size: 12px; letter-spacing: 0; }
+body[data-layout="mobile"] .build { max-width: 65%; left: 12px; }
+body[data-layout="mobile"] .build span { font-size: 10px; padding: 5px 7px; }
+body[data-layout="mobile"] .skill-button { right: 12px; min-width: 135px; padding: 10px 16px; }
+body[data-layout="mobile"] .home { padding: 24px 20px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+body[data-layout="mobile"] .home-modes { overflow: visible; max-height: none; max-width: none; }
+body[data-layout="mobile"] .eyebrow { font-size: 10px; letter-spacing: 2px; }
+body[data-layout="mobile"] .primary { min-height: 48px; min-width: 180px; padding: 12px 20px; font-size: 14px; }
+body[data-layout="mobile"] .quiet { min-height: 44px; padding: 12px; font-size: 13px; }
+body[data-layout="mobile"] .save-note, body[data-layout="mobile"] .mode-note { font-size: 11px; line-height: 1.8; }
+body[data-layout="mobile"] .mode-card b { font-size: 15px; letter-spacing: 1px; }
+body[data-layout="mobile"] .mode-card small { display: block; font-size: 11px; line-height: 1.5; margin-top: 5px; }
+body[data-layout="mobile"] .mode-icon { font-size: 24px; min-width: 28px; }
+body[data-layout="mobile"] .mode-state { font-size: 11px; }
+body[data-layout="mobile"] .home-modes .mode-card { min-height: 64px; padding: 12px 6px; gap: 12px; }
+body[data-layout="mobile"] .map-choice { display: flex; font-size: 12px; gap: 12px; margin-top: 15px; }
+body[data-layout="mobile"] .map-choice select { min-height: 44px; width: auto; max-width: 70%; margin: 0; padding: 8px 12px; font-size: 16px; }
+body[data-layout="mobile"] .camp-meta { gap: 8px; flex-wrap: wrap; }
+body[data-layout="mobile"] .camp-meta div { width: auto; }
+body[data-layout="mobile"] .camp-meta b { font-size: 12px; }
+body[data-layout="mobile"] .camp-meta small { font-size: 11px; }
+body[data-layout="mobile"] .camp-meta button { min-height: 44px; padding: 8px; font-size: 11px; }
+body[data-layout="mobile"] .story-top { top: 7%; left: 5%; right: 5%; gap: 8px; font-size: 12px; letter-spacing: 1px; }
+body[data-layout="mobile"] .story-top button { min-height: 44px; font-size: 12px; padding: 9px 12px; }
+body[data-layout="mobile"] .dialogue { bottom: 5%; left: 5%; right: 5%; padding: 16px; gap: 10px; }
+body[data-layout="mobile"] .dialogue small { font-size: 12px; }
+body[data-layout="mobile"] .dialogue p { font-size: 14px; line-height: 1.7; letter-spacing: 0; min-height: 3.4em; }
+body[data-layout="mobile"] .dialogue button { min-height: 44px; font-size: 13px; padding: 10px; }
+body[data-layout="mobile"] .story-dots { margin-top: 8px; }
+body[data-layout="mobile"] .result { padding: 26px 20px; overflow: auto; }
+body[data-layout="mobile"] .result h2 { font-size: 30px; margin: 10px 0; }
+body[data-layout="mobile"] .result p:not(.eyebrow) { font-size: 14px; line-height: 1.8; }
+body[data-layout="mobile"] #resultReward { font-size: 12px; line-height: 1.8; margin: 12px 0; }
+body[data-layout="mobile"] .upgrade { padding: 24px 16px; overflow-y: auto; }
+body[data-layout="mobile"] .upgrade h2 { font-size: 23px; line-height: 1.5; letter-spacing: 1px; margin: 10px 0; }
+body[data-layout="mobile"] .upgrade-note { font-size: 12px; line-height: 1.7; }
+body[data-layout="mobile"] .upgrade-cards { gap: 12px; }
+body[data-layout="mobile"] .relic { padding: 16px 12px; }
+body[data-layout="mobile"] .relic b { font-size: 20px; letter-spacing: 2px; }
+body[data-layout="mobile"] .relic p { font-size: 13px; line-height: 1.6; }
+body[data-layout="mobile"] .relic small { font-size: 10px; }
+body[data-layout="mobile"] .relic .take, body[data-layout="mobile"] .relic .pair-badge { font-size: 11px; }
+body[data-layout="mobile"] .pause-card { max-width: 92%; width: 430px; padding: 22px; overflow-y: auto; }
+body[data-layout="mobile"] .pause-card h2 { font-size: 24px; }
+body[data-layout="mobile"] .pause-card p { font-size: 13px; line-height: 1.9; }
+body[data-layout="mobile"] .inventory { max-height: 120px; font-size: 12px; line-height: 1.8; }
+body[data-layout="mobile"] .toast { font-size: 12px; padding: 10px 15px; width: max-content; }
 
-@media (max-width: 900px) and (orientation: portrait) {
-  .home { display: block; background: linear-gradient(#13252ee6, #122932ce); }
-  .home-copy { width: 100%; padding: 0; }
-  h1 { font-size: 46px; line-height: 1.15; letter-spacing: 3px; margin: 10px 0; }
-  .lead { font-size: 12px; margin: 8px 0 16px; line-height: 1.8; }
-  .home-copy .primary { width: 100%; }
-  .home-modes { width: 100%; padding: 12px 0 0; }
-  .dialogue { display: block; }
-  .dialogue button { display: block; margin: 0 0 0 auto; }
-  .result { align-items: flex-start; background: linear-gradient(#10232fe8 0%, #10232fc4 45%, transparent 80%); }
-  .result-card { width: 100%; max-width: none; }
-  .result .quiet { display: inline-block; margin-left: 8px; }
-  .upgrade-cards { display: flex; flex-direction: column; margin-top: 20px; }
-  .relic { display: grid; grid-template-columns: 46px 1fr; text-align: left; column-gap: 15px; row-gap: 4px; }
-  .relic .symbol { grid-row: 1 / 3; width: 44px; height: 44px; font-size: 28px; margin: 0; }
-  .relic small, .relic b { grid-column: 2; margin: 0; }
-  .relic p, .relic .take, .relic .pair-badge { grid-column: 1 / -1; }
-  .relic p, .loadout .relic p { min-height: 0; margin: 5px 0; }
-  .relic .take { padding-top: 4px; }
-  .relic:hover { transform: none; }
-}
 
-@media (max-width: 1100px) and (max-height: 600px) and (orientation: landscape) {
-  header { height: 46px; flex-basis: 46px; }
-  footer { height: 22px; flex-basis: 22px; }
-  .home { display: grid; grid-template-columns: .85fr 1.15fr; gap: 24px; align-items: start; padding: 14px 22px; }
-  .home-copy, .home-modes { width: 100%; padding: 0; }
-  h1 { font-size: 38px; line-height: 1.12; margin: 8px 0; letter-spacing: 2px; }
-  .lead { display: none; }
-  .save-note { margin-top: 10px; }
-  .home-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
-  .home-modes > .eyebrow, .map-choice, .camp-meta, .mode-note { grid-column: 1 / -1; margin: 2px 0; }
-  .home-modes .mode-card { min-height: 54px; padding: 8px 5px; gap: 6px; border: 1px solid #b0c2ae29; }
-  .mode-card small { display: none; }
-  .mode-card b { font-size: 13px; }
-  .mode-state { font-size: 10px; }
-  .mode-icon { font-size: 20px; min-width: 22px; }
-  .map-choice select { min-height: 40px; }
-  .hud { top: 8px; }
-  .challenge-info { top: 65px; }
-  .turn-banner { top: 25%; }
-  .touch-controls { left: auto; right: 12px; transform: none; bottom: 10px; padding: 5px; gap: 6px; }
-  .touch-controls button { min-height: 44px; min-width: 44px; }
-  .touch-ui .scene-hint { bottom: 17px; right: auto; left: 12px; max-width: 43%; text-align: left; padding: 0; }
-  .touch-ui .build { bottom: 48px; max-width: 43%; max-height: 42px; }
-  .touch-ui .skill-button { bottom: 12px; }
-  .skip-turn { left: auto; right: 12px; bottom: 12px; transform: none; }
-  .story-top { top: 5%; }
-  .dialogue { bottom: 4%; padding: 10px 14px; }
-  .dialogue p { min-height: 0; font-size: 12px; margin: 5px 0; }
-  .dialogue small { font-size: 11px; }
-  .story-dots { display: none; }
-  .result { padding: 14px 22px; }
-  .result-card { width: 55%; }
-  .result h2 { font-size: 24px; line-height: 1.3; }
-  .result p:not(.eyebrow) { font-size: 12px; }
-  .result .quiet { display: inline-block; margin-left: 8px; }
-  .upgrade { padding: 12px 20px; }
-  .upgrade > .eyebrow { margin: 3px 0; }
-  .upgrade h2 { font-size: 20px; margin: 4px 0; }
-  .upgrade-note { margin: 5px 0; }
-  .upgrade-cards { margin-top: 10px; gap: 10px; }
-  .relic { padding: 12px; }
-  .relic .symbol { width: 32px; height: 32px; font-size: 24px; margin-bottom: 6px; }
-  .relic b { font-size: 17px; margin: 5px 0; }
-  .relic p, .loadout .relic p { font-size: 12px; min-height: 0; margin: 5px 0; }
-  .relic .take { padding-top: 6px; }
-  .pause-card { padding: 14px 22px; }
-}
+
+body[data-layout="mobile"][data-orientation="portrait"] .home { display: block; background: linear-gradient(#13252ee6, #122932ce); }
+body[data-layout="mobile"][data-orientation="portrait"] .home-copy { width: 100%; padding: 0; }
+body[data-layout="mobile"][data-orientation="portrait"] h1 { font-size: 46px; line-height: 1.15; letter-spacing: 3px; margin: 10px 0; }
+body[data-layout="mobile"][data-orientation="portrait"] .lead { font-size: 12px; margin: 8px 0 16px; line-height: 1.8; }
+body[data-layout="mobile"][data-orientation="portrait"] .home-copy .primary { width: 100%; }
+body[data-layout="mobile"][data-orientation="portrait"] .home-modes { width: 100%; padding: 12px 0 0; }
+body[data-layout="mobile"][data-orientation="portrait"] .dialogue { display: block; }
+body[data-layout="mobile"][data-orientation="portrait"] .dialogue button { display: block; margin: 0 0 0 auto; }
+body[data-layout="mobile"][data-orientation="portrait"] .result { align-items: flex-start; background: linear-gradient(#10232fe8 0%, #10232fc4 45%, transparent 80%); }
+body[data-layout="mobile"][data-orientation="portrait"] .result-card { width: 100%; max-width: none; }
+body[data-layout="mobile"][data-orientation="portrait"] .result .quiet { display: inline-block; margin-left: 8px; }
+body[data-layout="mobile"][data-orientation="portrait"] .upgrade-cards { display: flex; flex-direction: column; margin-top: 20px; }
+body[data-layout="mobile"][data-orientation="portrait"] .relic { display: grid; grid-template-columns: 46px 1fr; text-align: left; column-gap: 15px; row-gap: 4px; }
+body[data-layout="mobile"][data-orientation="portrait"] .relic .symbol { grid-row: 1 / 3; width: 44px; height: 44px; font-size: 28px; margin: 0; }
+body[data-layout="mobile"][data-orientation="portrait"] .relic small, body[data-layout="mobile"][data-orientation="portrait"] .relic b { grid-column: 2; margin: 0; }
+body[data-layout="mobile"][data-orientation="portrait"] .relic p, body[data-layout="mobile"][data-orientation="portrait"] .relic .take, body[data-layout="mobile"][data-orientation="portrait"] .relic .pair-badge { grid-column: 1 / -1; }
+body[data-layout="mobile"][data-orientation="portrait"] .relic p, body[data-layout="mobile"][data-orientation="portrait"] .loadout .relic p { min-height: 0; margin: 5px 0; }
+body[data-layout="mobile"][data-orientation="portrait"] .relic .take { padding-top: 4px; }
+body[data-layout="mobile"][data-orientation="portrait"] .relic:hover { transform: none; }
+
+
+
+body[data-layout="mobile"][data-orientation="landscape"] header { height: 46px; flex-basis: 46px; }
+body[data-layout="mobile"][data-orientation="landscape"] footer { height: 22px; flex-basis: 22px; }
+body[data-layout="mobile"][data-orientation="landscape"] .home { display: grid; grid-template-columns: .85fr 1.15fr; gap: 24px; align-items: start; padding: 14px 22px; }
+body[data-layout="mobile"][data-orientation="landscape"] .home-copy, body[data-layout="mobile"][data-orientation="landscape"] .home-modes { width: 100%; padding: 0; }
+body[data-layout="mobile"][data-orientation="landscape"] h1 { font-size: 38px; line-height: 1.12; margin: 8px 0; letter-spacing: 2px; }
+body[data-layout="mobile"][data-orientation="landscape"] .lead { display: none; }
+body[data-layout="mobile"][data-orientation="landscape"] .save-note { margin-top: 10px; }
+body[data-layout="mobile"][data-orientation="landscape"] .home-modes { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+body[data-layout="mobile"][data-orientation="landscape"] .home-modes > .eyebrow, body[data-layout="mobile"][data-orientation="landscape"] .map-choice, body[data-layout="mobile"][data-orientation="landscape"] .camp-meta, body[data-layout="mobile"][data-orientation="landscape"] .mode-note { grid-column: 1 / -1; margin: 2px 0; }
+body[data-layout="mobile"][data-orientation="landscape"] .home-modes .mode-card { min-height: 54px; padding: 8px 5px; gap: 6px; border: 1px solid #b0c2ae29; }
+body[data-layout="mobile"][data-orientation="landscape"] .mode-card small { display: none; }
+body[data-layout="mobile"][data-orientation="landscape"] .mode-card b { font-size: 13px; }
+body[data-layout="mobile"][data-orientation="landscape"] .mode-state { font-size: 10px; }
+body[data-layout="mobile"][data-orientation="landscape"] .mode-icon { font-size: 20px; min-width: 22px; }
+body[data-layout="mobile"][data-orientation="landscape"] .map-choice select { min-height: 40px; }
+body[data-layout="mobile"][data-orientation="landscape"] .hud { top: 8px; }
+body[data-layout="mobile"][data-orientation="landscape"] .challenge-info { top: 65px; }
+body[data-layout="mobile"][data-orientation="landscape"] .turn-banner { top: 25%; }
+body[data-layout="mobile"][data-orientation="landscape"] .touch-controls { left: auto; right: 12px; transform: none; bottom: 10px; padding: 5px; gap: 6px; }
+body[data-layout="mobile"][data-orientation="landscape"] .touch-controls button { min-height: 44px; min-width: 44px; }
+body[data-layout="mobile"][data-orientation="landscape"].touch-ui .scene-hint { bottom: 17px; right: auto; left: 12px; max-width: 43%; text-align: left; padding: 0; }
+body[data-layout="mobile"][data-orientation="landscape"].touch-ui .build { bottom: 48px; max-width: 43%; max-height: 42px; }
+body[data-layout="mobile"][data-orientation="landscape"].touch-ui .skill-button { bottom: 12px; }
+body[data-layout="mobile"][data-orientation="landscape"] .skip-turn { left: auto; right: 12px; bottom: 12px; transform: none; }
+body[data-layout="mobile"][data-orientation="landscape"] .story-top { top: 5%; }
+body[data-layout="mobile"][data-orientation="landscape"] .dialogue { bottom: 4%; padding: 10px 14px; }
+body[data-layout="mobile"][data-orientation="landscape"] .dialogue p { min-height: 0; font-size: 12px; margin: 5px 0; }
+body[data-layout="mobile"][data-orientation="landscape"] .dialogue small { font-size: 11px; }
+body[data-layout="mobile"][data-orientation="landscape"] .story-dots { display: none; }
+body[data-layout="mobile"][data-orientation="landscape"] .result { padding: 14px 22px; }
+body[data-layout="mobile"][data-orientation="landscape"] .result-card { width: 55%; }
+body[data-layout="mobile"][data-orientation="landscape"] .result h2 { font-size: 24px; line-height: 1.3; }
+body[data-layout="mobile"][data-orientation="landscape"] .result p:not(.eyebrow) { font-size: 12px; }
+body[data-layout="mobile"][data-orientation="landscape"] .result .quiet { display: inline-block; margin-left: 8px; }
+body[data-layout="mobile"][data-orientation="landscape"] .upgrade { padding: 12px 20px; }
+body[data-layout="mobile"][data-orientation="landscape"] .upgrade > .eyebrow { margin: 3px 0; }
+body[data-layout="mobile"][data-orientation="landscape"] .upgrade h2 { font-size: 20px; margin: 4px 0; }
+body[data-layout="mobile"][data-orientation="landscape"] .upgrade-note { margin: 5px 0; }
+body[data-layout="mobile"][data-orientation="landscape"] .upgrade-cards { margin-top: 10px; gap: 10px; }
+body[data-layout="mobile"][data-orientation="landscape"] .relic { padding: 12px; }
+body[data-layout="mobile"][data-orientation="landscape"] .relic .symbol { width: 32px; height: 32px; font-size: 24px; margin-bottom: 6px; }
+body[data-layout="mobile"][data-orientation="landscape"] .relic b { font-size: 17px; margin: 5px 0; }
+body[data-layout="mobile"][data-orientation="landscape"] .relic p, body[data-layout="mobile"][data-orientation="landscape"] .loadout .relic p { font-size: 12px; min-height: 0; margin: 5px 0; }
+body[data-layout="mobile"][data-orientation="landscape"] .relic .take { padding-top: 6px; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-card { padding: 14px 22px; }
+
 
 @media (max-width: 350px) {
-  .shell { padding-left: max(6px, env(safe-area-inset-left, 0px)); padding-right: max(6px, env(safe-area-inset-right, 0px)); }
+body[data-layout="mobile"] .shell { padding-left: max(6px, env(safe-area-inset-left, 0px)); padding-right: max(6px, env(safe-area-inset-right, 0px)); }
+body[data-layout="mobile"] .brand-mark { display: none; }
+body[data-layout="mobile"] .brand { font-size: 12px; }
+body[data-layout="mobile"] .home { padding: 18px 14px; }
+body[data-layout="mobile"] .touch-controls { gap: 5px; padding: 5px; }
+body[data-layout="mobile"] .touch-controls button { min-width: 42px; padding: 8px; }
+body[data-layout="mobile"] .touch-controls #touchFire { min-width: 76px; }
+body[data-layout="mobile"] .touch-controls #cancelShot { min-width: 76px; font-size: 12px; }
+body[data-layout="mobile"] .result .quiet { display: block; margin-left: 0; }
+
+}
+
+/* One URL, two explicit layouts. Preference is independent of the game's save. */
+header { position: relative; z-index: 10; }
+.view-picker { position: relative; }
+nav #viewMode { min-width: 48px; min-height: 44px; color: var(--gold); font-size: 12px; white-space: nowrap; }
+.view-menu { position: absolute; right: 0; top: calc(100% + 6px); width: 260px; padding: 8px; z-index: 120; background: #193239fa; border: 1px solid #bfa77377; border-radius: 10px; box-shadow: 0 12px 30px #06171ec0; text-align: left; }
+.view-menu button { display: block; position: relative; width: 100%; padding: 12px 32px 12px 12px; min-height: 48px; text-align: left; color: #e7ddbd; border-radius: 6px; font-size: 14px; }
+.view-menu button:hover { background: #36544e; }
+.view-menu button[aria-pressed="true"] { background: #a8b89022; color: #f3d58d; }
+.view-menu button[aria-pressed="true"]::after { content: '✓'; position: absolute; right: 12px; top: 13px; }
+.view-menu small { display: block; margin-top: 4px; font-size: 11px; color: #a8bba9; }
+.view-menu p { margin: 6px 12px; line-height: 1.7; font-size: 11px; color: #9cae9f; letter-spacing: 0; }
+body[data-layout="desktop"] .arena { aspect-ratio: 16 / 9; }
+body[data-layout="mobile"][data-handset="true"] .shell { max-width: 520px; margin: 0 auto; box-shadow: 0 0 80px #020b1166; }
+body[data-layout="mobile"] nav { gap: 1px; }
+body[data-layout="mobile"] nav #sound { min-width: 56px; }
+body[data-layout="mobile"] nav #view { min-width: 38px; max-width: 40px; }
+body[data-layout="mobile"] nav #pause { min-width: 38px; }
+body[data-layout="mobile"] nav #fullscreen { min-width: 46px; }
+body[data-layout="mobile"] .view-menu { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 58px); left: 10px; right: 10px; width: auto; max-width: 420px; margin: auto; max-height: calc(100dvh - 90px); overflow-y: auto; }
+body[data-layout="mobile"] .view-menu button { min-height: 56px; padding: 12px 32px 12px 12px; font-size: 14px; }
+body[data-layout="mobile"][data-orientation="landscape"] .view-menu { top: calc(env(safe-area-inset-top, 0px) + 46px); }
+body[data-layout="mobile"][data-handset="true"] .brand-mark { display: none; }
+:is(.shell:fullscreen, .shell:-webkit-full-screen, .immersive .shell) .arena { aspect-ratio: auto; }
+@media (max-width: 600px) {
+  header { gap: 4px; }
   .brand-mark { display: none; }
-  .brand { font-size: 12px; }
-  .home { padding: 18px 14px; }
-  .touch-controls { gap: 5px; padding: 5px; }
-  .touch-controls button { min-width: 42px; padding: 8px; }
-  .touch-controls #touchFire { min-width: 76px; }
-  .touch-controls #cancelShot { min-width: 76px; font-size: 12px; }
-  .result .quiet { display: block; margin-left: 0; }
+  nav { gap: 1px; }
+  nav button { font-size: 10px; }
+  nav #viewMode { min-width: 44px; font-size: 11px; }
+  .view-menu { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 60px); left: 10px; right: 10px; width: auto; max-height: calc(100dvh - 90px); overflow-y: auto; }
 }

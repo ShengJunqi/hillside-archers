@@ -1,14 +1,36 @@
 import {Game,W,H,MAPS,UPGRADES,BOWS,synergies,applyUpgrade,validSave} from './core.mjs';
 import {Renderer} from './render.mjs';
 import {AimInput} from './input.mjs';
+import {readView,writeView,resolveView} from './display.mjs';
 const $=id=>document.getElementById(id),canvas=$('game'),renderer=new Renderer(canvas),SAVE_KEY='hillside-archers-save-v2';
 let saved,storageReady=true;try{saved=localStorage.getItem(SAVE_KEY);}catch{storageReady=false;}let paused=false,soundOn=false,audio=null,toastUntil=0,lastPhase='',lastBeat=-1,lastNow=0,renderDirty=true,stored=storageReady;
 const game=new Game({save:validSave(saved),onEvent:handleEvent});
-let touchMode=Boolean(window.matchMedia?.('(pointer: coarse)').matches||globalThis.navigator?.maxTouchPoints);
-const input=new AimInput(canvas,game,{isPaused:()=>paused,onChange:()=>updateTouchControls(),onTouch:enableTouch});
-function enableTouch(){touchMode=true;document.body.classList.add('touch-ui');$('footerHint').textContent='横屏视野更开阔 · 支持双人轮流操作';$('controlHelp').innerHTML='按住画面向弓手身后拉，松开射箭。<br>拉回圆圈，或点“取消拉弓”撤销。<br>用 − / ＋ 微调角度，也可直接点“射箭”。<br>远征中，箭飞行时再次点击画面或弓术按钮。';}
+let viewStorage;try{viewStorage=globalThis.localStorage;}catch{}
+let viewPreference=readView(viewStorage),touchMode=false,seenTouch=Boolean(globalThis.navigator?.maxTouchPoints),lastViewKey='';
+const desktopHelp=$('controlHelp').innerHTML,desktopFooter=$('footerHint').textContent;
+const input=new AimInput(canvas,game,{isPaused:()=>paused,onChange:()=>updateTouchControls(),onTouch:()=>{seenTouch=true;if(viewPreference==='auto')applyDisplayMode();}});
+function viewportInfo(){return {width:window.innerWidth||1280,height:window.innerHeight||720,coarse:Boolean(window.matchMedia?.('(pointer: coarse)').matches||seenTouch)};}
+function applyDisplayMode(){
+ const env=viewportInfo(),view=resolveView(viewPreference,env),key=[view.layout,view.orientation,view.handset].join(':');
+ if(key!==lastViewKey){input.cancel();lastViewKey=key;}
+ touchMode=view.layout==='mobile';
+ for(const root of [document.documentElement,document.body]){
+  root.dataset.layout=view.layout;root.dataset.orientation=view.orientation;root.dataset.handset=String(view.handset);
+ }
+ document.body.classList.toggle('touch-ui',touchMode);
+ $('footerHint').textContent=touchMode?'横屏视野更开阔 · 支持双人轮流操作':desktopFooter;
+ $('controlHelp').innerHTML=touchMode?'按住画面向弓手身后拉，松开射箭。<br>拉回圆圈，或点“取消拉弓”撤销。<br>用 − / ＋ 微调角度，也可直接点“射箭”。<br>远征中，箭飞行时再次点击画面或弓术按钮。':desktopHelp;
+ $('viewMode').textContent=(viewPreference==='auto'?'自动':touchMode?'手机':'电脑')+' ▾';
+ $('autoViewHint').textContent='当前设备：'+(resolveView('auto',env).layout==='mobile'?'手机版':'电脑版');
+ for(const [id,value] of [['chooseAuto','auto'],['chooseDesktop','desktop'],['chooseMobile','mobile']])$(id).setAttribute('aria-pressed',viewPreference===value);
+ updateTouchControls();resizeGame();
+}
+function closeViewMenu(focus=false){show('viewMenu',false);$('viewMode').setAttribute('aria-expanded',false);if(focus)$('viewMode').focus();}
+function selectView(value){input.cancel();viewPreference=value;writeView(viewStorage,value);closeViewMenu(true);applyDisplayMode();}
+$('viewMode').onclick=()=>{input.cancel();const open=$('viewMenu').hidden;show('viewMenu',open);$('viewMode').setAttribute('aria-expanded',open);};
+$('chooseAuto').onclick=()=>selectView('auto');$('chooseDesktop').onclick=()=>selectView('desktop');$('chooseMobile').onclick=()=>selectView('mobile');
+document.addEventListener('pointerdown',event=>{if(!$('viewPicker').contains(event.target))closeViewMenu();});
 function updateTouchControls(){const aim=touchMode&&game.canAim&&!paused;show('touchControls',aim);show('skipTurn',touchMode&&game.phase==='scout'&&!paused);document.body.classList.toggle('has-touch-controls',aim);$('cancelShot').disabled=!input.drag;$('touchFire').disabled=!!input.drag||!game.canAim||paused;$('angleDown').disabled=!!input.drag||game.angles[game.active]<=5||paused;$('angleUp').disabled=!!input.drag||game.angles[game.active]>=75||paused;}
-if(touchMode)enableTouch();
 const STORIES=[[
  ['青松','山顶的星灯，已经熄灭了七个夜晚。我背起旧弓，沿着唯一的山路出发。'],
  ['赤岩','一支红羽箭落在脚前。守路人从松影里走出：想去点灯，先让我看看你的本事。'],
@@ -52,11 +74,11 @@ $('cancelShot').onclick=()=>cancelDrag();
 $('skipTurn').onclick=()=>{if(!paused&&game.phase==='scout')game.skip();};
 let lastCanvasWidth=0,lastCanvasHeight=0;
 function resizeGame(){const rect=canvas.getBoundingClientRect();if(rect.width>0&&rect.height>0&&(Math.abs(rect.width-lastCanvasWidth)>.5||Math.abs(rect.height-lastCanvasHeight)>.5)){cancelDrag();lastCanvasWidth=rect.width;lastCanvasHeight=rect.height;renderer.resize(rect.width,rect.height);}}
-window.addEventListener('resize',resizeGame);
+window.addEventListener('resize',applyDisplayMode);
 if(typeof ResizeObserver!=='undefined')new ResizeObserver(resizeGame).observe($('arena'));
-window.addEventListener('orientationchange',()=>{cancelDrag();resizeGame();});
+window.addEventListener('orientationchange',()=>{cancelDrag();applyDisplayMode();});
 window.visualViewport?.addEventListener('resize',resizeGame);
-resizeGame();
+applyDisplayMode();
 function fullScreenChanged(){const active=Boolean(document.fullscreenElement||document.webkitFullscreenElement||document.body.classList.contains('immersive'));$('fullscreen').textContent=active?'退出 ↙':'全屏 ↗';$('fullscreen').setAttribute('aria-pressed',active);resizeGame();}
 function fallbackFullscreen(){document.body.classList.toggle('immersive');fullScreenChanged();}
 async function toggleFullscreen(){cancelDrag();const exit=document.exitFullscreen||document.webkitExitFullscreen,request=$('gameShell').requestFullscreen||$('gameShell').webkitRequestFullscreen;$('fullscreen').disabled=true;try{if(document.fullscreenElement||document.webkitFullscreenElement){await exit.call(document);}else if(document.body.classList.contains('immersive')){fallbackFullscreen();}else if(request){try{await request.call($('gameShell'));}catch{fallbackFullscreen();}}else fallbackFullscreen();}catch{toast('未能切换全屏，请重试。');}finally{$('fullscreen').disabled=false;fullScreenChanged();}}
@@ -64,6 +86,6 @@ document.addEventListener('fullscreenchange',fullScreenChanged);document.addEven
 function setPaused(value){cancelDrag();paused=value;show('pausePanel',value);$('pause').textContent=value?'继续':'暂停';if(value)$('resume').focus();}
 function home(){setPaused(false);game.goHome();}
 $('brand').onclick=e=>{e.preventDefault();if(game.phase==='home')return;setPaused(true);};$('campaignStart').onclick=()=>{setPaused(false);game.start('campaign',game.save.checkpoint);};$('rogueStart').onclick=()=>{if(game.save.unlocked){setPaused(false);game.setPhase('loadout');}};$('loadoutHome').onclick=home;$('targetStart').onclick=()=>{if(game.start('target',Number($('mapChoice').value)))setPaused(false);};$('skillButton').onclick=()=>{if(!paused)game.activateSkill();};$('duelStart').onclick=()=>{if(game.start('duel',Number($('mapChoice').value)))setPaused(false);};$('localStart').onclick=()=>{if(game.start('local',Number($('mapChoice').value)))setPaused(false);};$('buyBow').onclick=()=>{if(game.buy('bow'))toast('练弓完成：下次远征初始箭伤害提高。');};$('buyLife').onclick=()=>{if(game.buy('life'))toast('强身完成：下次远征初始生命提高。');};$('sound').onclick=()=>{soundOn=!soundOn;$('sound').textContent='声音：'+(soundOn?'开':'关');$('sound').setAttribute('aria-pressed',soundOn);tone(600,.1,'sine');};$('view').onclick=()=>{renderer.allView=!renderer.allView;$('view').setAttribute('aria-pressed',renderer.allView);$('view').textContent=renderer.allView?'跟随镜头':'全景';};$('pause').onclick=()=>setPaused(!paused);$('resume').onclick=()=>setPaused(false);$('pauseHome').onclick=home;$('restart').onclick=()=>{const mode=game.mode,stage=game.stage;setPaused(false);game.start(mode,stage,game.skill);};$('resultHome').onclick=home;$('resultNext').onclick=()=>game.resultNext();$('skipStory').onclick=()=>game.skip();$('nextLine').onclick=()=>game.introNext();$('fullscreen').onclick=toggleFullscreen;
-function onKey(e){if(e.repeat)return;if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if(e.key==='Escape'){e.preventDefault();if(input.drag)cancelDrag();else if(paused)setPaused(false);else if(game.phase!=='home')setPaused(true);return;}if(paused||e.target.tagName==='BUTTON')return;if([' ','ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();if(input.drag)return;if(e.key===' '){if(['scout','intro'].includes(game.phase))game.skip();else if(game.canAim)game.shoot();else if(game.canSkill)game.activateSkill();}else if(game.canAim)game.aim(game.angles[game.active]+(e.key==='ArrowRight'?1:-1),game.powers[game.active]);}}
+function onKey(e){if(e.repeat)return;if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if(e.key==='Escape'){e.preventDefault();if(!$('viewMenu').hidden){closeViewMenu(true);return;}if(input.drag)cancelDrag();else if(paused)setPaused(false);else if(game.phase!=='home')setPaused(true);return;}if(paused||e.target.tagName==='BUTTON')return;if([' ','ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();if(input.drag)return;if(e.key===' '){if(['scout','intro'].includes(game.phase))game.skip();else if(game.canAim)game.shoot();else if(game.canSkill)game.activateSkill();}else if(game.canAim)game.aim(game.angles[game.active]+(e.key==='ArrowRight'?1:-1),game.powers[game.active]);}}
 window.addEventListener('keydown',onKey);window.addEventListener('blur',()=>{cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);}});
 function frame(now){const dt=Math.min((now-lastNow)/1000||0,.05);lastNow=now;if(!paused)game.update(dt);renderer.draw(game,dt,{drag:input.drag,paused});renderUI();if(toastUntil&&now>toastUntil){show('toast',false);toastUntil=0;}requestAnimationFrame(frame);}renderUI();requestAnimationFrame(frame);

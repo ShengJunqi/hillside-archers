@@ -18,12 +18,13 @@
 - 通关三章后才解锁其他模式；保留同机双人。
 - 肉鸽升级和元素必须有真实效果；保留现有属性组合和永久成长。
 - 兼容已有 `hillside-archers-save-v2` 存档。变更格式时写迁移，不能静默清空进度。
+- 同一网址保留「自动识别 / 电脑版 / 手机版」切换；手动选择优先，切换不能重开对局或误射。显示偏好与游戏存档分开存储。
 
 ## 协作方式
 
 先检查 `git status` 与当前分支，不覆盖另一位作者的改动。默认使用 `feat/<主题>` 或 `fix/<主题>` 分支，每次 PR 围绕一个明确问题。主线分支为 `main`。没有写权限时走 fork + PR。
 
-物理和规则尽量集中在 `dist/core.mjs`；画面在 `dist/render.mjs`；输入在 `dist/input.mjs`，UI 和屏幕适配在 `dist/app.mjs`；手机样式在 `dist/mobile.css`。同时改同一模块前，在任务或 PR 中说明范围。
+物理和规则尽量集中在 `dist/core.mjs`；画面在 `dist/render.mjs`；输入在 `dist/input.mjs`，显示模式在 `dist/display.mjs`，UI 和屏幕适配在 `dist/app.mjs`；手机样式在 `dist/mobile.css`。同时改同一模块前，在任务或 PR 中说明范围。
 
 默认提交可审查的 PR，由维护者合并及统一发布线上游戏。用户明确要求合并或发布时再执行该动作。GitHub 本仓库没有线上部署凭证；不要提交密钥、`.env`、`.openai/` 或其他服务的访问令牌。
 

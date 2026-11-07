@@ -1,6 +1,6 @@
 {
   "name": "hillside-archers",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "description": "坡地弓手 · 一箭过山河 — a pixel-art archery adventure and roguelike",
   "license": "MIT",
@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "node scripts/serve.mjs",
     "build": "node scripts/build-offline.mjs",
-    "check": "node --check dist/core.mjs && node --check dist/render.mjs && node --check dist/app.mjs && node --check dist/input.mjs && node --check scripts/serve.mjs && node --check scripts/build-offline.mjs",
+    "check": "node --check dist/core.mjs && node --check dist/render.mjs && node --check dist/app.mjs && node --check dist/input.mjs && node --check dist/display.mjs && node --check scripts/serve.mjs && node --check scripts/build-offline.mjs",
     "test": "npm run check && node tests/core.test.mjs && node tests/extensions.test.mjs && node tests/mobile.test.mjs"
   }
 }

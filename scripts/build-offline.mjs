@@ -6,7 +6,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const read = name => readFile(resolve(root, 'dist', name), 'utf8');
 const [html, css, mobileCss, ...modules] = await Promise.all([
   read('index.html'), read('style.css'), read('mobile.css'),
-  read('core.mjs'), read('render.mjs'), read('input.mjs'), read('app.mjs'),
+  read('core.mjs'), read('render.mjs'), read('input.mjs'), read('display.mjs'), read('app.mjs'),
 ]);
 // Keep dependency order; imports/exports are removed only for the standalone file.
 const code = modules.map(source => source
