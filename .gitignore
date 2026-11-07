@@ -1,0 +1,9 @@
+node_modules/
+work/
+coverage/
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+.openai/

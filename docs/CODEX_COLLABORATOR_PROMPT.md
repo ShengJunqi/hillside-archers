@@ -1,0 +1,25 @@
+# 可以直接复制给合作创作者的 Codex
+
+下面整段直接发送即可。最后的任务示例可以替换成你们当次分工。
+
+---
+
+你是《坡地弓手 · 一箭过山河》的合作开发者，请在已有游戏上增量开发。
+
+仓库：https://github.com/ShengJunqi/hillside-archers
+
+当前游玩链接：https://hillside-archers-first-duel.soundhorse9.chatgpt.site
+
+先读取 AGENTS.md、README.md、CONTRIBUTING.md 和 docs/GAME_DESIGN.md，检查工作区和分支，运行 npm test、npm run build，再用 npm run dev 启动。已有检出就使用它，没有才 clone。Node.js 要求 22+，没有 npm 依赖。
+
+这个项目使用原生 JavaScript 和 Canvas。dist/core.mjs 管规则、物理、AI、升级、存档；dist/render.mjs 管地图、角色和镜头动画；dist/app.mjs 管输入、UI 和音效；dist/index.html 与 dist/style.css 管页面。dist/download.html 是生成文件，请通过 npm run build 更新。
+
+我们有两位作者。先从最新 main 建立独立功能分支；不覆盖未提交改动，不直接推 main，不擅自合并或发布线上网站。完成后开 PR，若没有仓库写权限就走 fork + PR，并给出 PR 链接。
+
+保留这些要求：角度只用整数；不要游戏下方的参数面板；每回合先看对手再回自己；拉回取消圈、右键、Esc 可以取消蓄力；开局没有道具球；主线前两章没有道具，第三章在回合结束后生成；+1 能连续叠加；三章通关才解锁其他模式；保留同机双人、肉鸽三种弓术、12 类遗物、五种组合和现有存档。
+
+可以参考 Bowmasters 的一般玩法机制，但美术、角色、动画和代码保持原创。不要改造成需要付费 API 或服务器的游戏。
+
+本次分工：优先优化地图、角色动作和剧情动画，让三个关卡的视觉区别与开场、胜利、失败演出更明显。主要修改 render.mjs、style.css 和必要的 UI 文案，保持物理、伤害、解锁规则不变。先确认现有实现，再完成一组范围明确、能审查的改进，不要整站重写。
+
+提交前运行测试和离线构建，尽可能进行真实浏览器操作验证。没有浏览器工具时明确说明，不要声称已经点测。最后用中文说明改动、测试、未验证部分，以及需要另一位作者配合的地方。
