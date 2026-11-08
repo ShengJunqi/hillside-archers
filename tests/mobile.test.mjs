@@ -115,7 +115,7 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
     performance: {now: () => now}, requestAnimationFrame: fn => {nextFrame = fn;}};
   if (blockedStorage) Object.defineProperty(sandbox, 'localStorage', {get() {throw new Error('Storage access denied');}});
   const context = vm.createContext(sandbox);
-  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['core', 'render', 'input', 'display', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
+  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['combat', 'body', 'core', 'render', 'input', 'display', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
   vm.runInContext(code + '\nglobalThis.api={game,input,renderer,get paused(){return paused;}};', context);
   const api = context.api, $ = id => ids.get(id), frame = () => {now += 16.67; nextFrame(now);};
   frame();
