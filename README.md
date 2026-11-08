@@ -2,11 +2,13 @@
 
 中文像素弓箭游戏：三章故事、同机双人、电脑对手、肉鸽远征和射靶挑战。原生 JavaScript + Canvas，运行不需要账号、后端或模型 API。
 
-**[在线游玩](https://hillside-archers-first-duel.soundhorse9.chatgpt.site)** · [合作开发](CONTRIBUTING.md) · [给合作作者的 Codex 提示词](docs/CODEX_COLLABORATOR_PROMPT.md) · [MIT 许可证](LICENSE)
+**[在线游玩](https://hillside-archers-first-duel.soundhorse9.chatgpt.site)** · **[免费备用站](https://shengjunqi.github.io/hillside-archers/)** · [合作开发](CONTRIBUTING.md) · [给合作作者的 Codex 提示词](docs/CODEX_COLLABORATOR_PROMPT.md) · [MIT 许可证](LICENSE)
 
 ## 运行
 
 手机和电脑使用同一个在线链接。顶部「自动 ▾」可选择自动识别、电脑版或手机版，浏览器会记住选择；切换保留当前对局与进度。手机支持横屏和竖屏，不需要安装应用。
+
+免费的 GitHub Pages 备用入口已启用，由独立 `gh-pages` 分支发布。启用步骤、访问范围及离线分享见 [发布说明](docs/DEPLOYMENT.md)。不同网址可通过旅营「迁移进度」复制永久存档。
 
 本地开发需要 Node.js 22+。项目没有 npm 依赖，不需要安装依赖。
 
@@ -34,6 +36,9 @@ npm run build   # 重新生成单文件离线版
 - 开局没有道具；主线第三章交锋后开始生成。穿过 `+1` 连续加箭，爱心回血。
 - 三章通关后解锁自由人机、同机双人、无尽远征、百步穿杨。
 - 远征有三种空中二段弓术、12 类遗物、五种属性组合、守关敌人与永久成长。
+- 火、毒重复升级提高每次命中的叠层，连续命中继续累加；升级卡显示前后效果，战斗显示层数和剩余回合。
+- 第七层后敌人开始组合多种属性，深层守关者有多箭、续航与部分净化；保留 NPC 单轮伤害保护。
+- 新手首战对手半血，剧情与观察节奏更快，也可直接开打。
 - 主线进度、解锁、纪录和永久成长保存在当前浏览器；当前远征的临时构筑不跨重开保留。
 
 ## 操作
@@ -53,6 +58,7 @@ npm run build   # 重新生成单文件离线版
 | `dist/app.mjs` | UI、屏幕适配、音效与浏览器存储 |
 | `dist/input.mjs` | 鼠标、触屏、取消蓄力和多指保护 |
 | `dist/display.mjs` | 自动识别、手动切换布局与独立显示偏好 |
+| `dist/save-transfer.mjs` | 不同网址间的永久进度导出与合并 |
 | `dist/index.html` / `dist/style.css` / `dist/mobile.css` | 页面结构、桌面样式与手机布局 |
 | `dist/download.html` | 构建生成的单文件离线版 |
 | `tests/` | 可移植的 Node 逻辑与回归检查 |

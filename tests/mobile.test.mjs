@@ -97,7 +97,7 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   }
   const document = new Element('document'), window = new Element('window');
   document.body = new Element('body'); document.documentElement = new Element('html'); document.hidden = false;
-  ids.get('viewMenu').hidden = true;
+  ids.get('viewMenu').hidden = true; ids.get('transferPanel').hidden = true;
   ids.get('viewPicker').append(ids.get('viewMode')); ids.get('viewPicker').append(ids.get('viewMenu'));
   document.getElementById = id => {assert.ok(ids.has(id), 'HTML element exists: ' + id); return ids.get(id);};
   document.createElement = tag => new Element(tag);
@@ -109,14 +109,14 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   const cv = ids.get('game'); cv.getContext = () => ctx;
   let resizeCallback, nextFrame, now = 0;
   const memory = new Map([[VIEW_KEY, preference]]);
-  const sandbox = {document, window, navigator: {maxTouchPoints: 5}, console,
+  const sandbox = {document, window, navigator: {maxTouchPoints: 5}, console, btoa, atob,
     localStorage: {getItem: key => memory.get(key) ?? null, setItem: (key, value) => memory.set(key, value)},
     ResizeObserver: class {constructor(fn) {resizeCallback = fn;} observe() {}},
     performance: {now: () => now}, requestAnimationFrame: fn => {nextFrame = fn;}};
   if (blockedStorage) Object.defineProperty(sandbox, 'localStorage', {get() {throw new Error('Storage access denied');}});
   const context = vm.createContext(sandbox);
-  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['combat', 'body', 'core', 'render', 'input', 'display', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
-  vm.runInContext(code + '\nglobalThis.api={game,input,renderer,get paused(){return paused;}};', context);
+  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['combat', 'body', 'core', 'save-transfer', 'render', 'input', 'display', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
+  vm.runInContext(code + '\nglobalThis.api={game,input,renderer,encodeProgress,get paused(){return paused;}};', context);
   const api = context.api, $ = id => ids.get(id), frame = () => {now += 16.67; nextFrame(now);};
   frame();
   if (preference === 'desktop' && !blockedStorage) {
@@ -124,7 +124,28 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
     $('chooseAuto').click();
   }
   ok(document.body.classList.contains('touch-ui'), 'touch device gets touch UI');
-  $('campaignStart').click(); frame(); $('skipStory').click(); frame();
+  $('transferHome').click();
+  ok(!$('transferPanel').hidden && !$('importProgressButton').disabled, 'home offers progress import and export');
+  ok($('exportProgress').value.startsWith('HA2:'), 'export shows a portable progress code');
+  await $('copyProgress').click(); ok($('transferMessage').textContent.includes('Ctrl/Cmd+C'), 'clipboard failure offers manual copying');
+  let copiedProgress;
+  sandbox.navigator.clipboard = {writeText: async value => {copiedProgress = value;}};
+  await $('copyProgress').click();
+  equal(copiedProgress, $('exportProgress').value, 'explicit copy button writes the exported progress code');
+  delete sandbox.navigator.clipboard;
+  $('importProgress').value = 'broken'; $('importProgressButton').click();
+  ok($('transferMessage').textContent.length > 0 && !api.game.save.unlocked, 'bad code reports an error without changing progress');
+  $('importProgress').value = api.encodeProgress({...api.game.save, unlocked: true, best: 12, embers: 20});
+  $('importProgressButton').click();
+  ok(api.game.save.unlocked && api.game.save.best === 12 && api.game.phase === 'home', 'valid import merges progress without starting a run');
+  window.dispatch('keydown', {key: 'Escape', target: $('importProgress')});
+  ok($('transferPanel').hidden, 'Escape closes migration while typing');
+  $('campaignQuick').click(); frame(); equal(api.game.phase, 'scout', 'quick start skips story but keeps opponent-first observation');
+  api.game.goHome(); frame();
+  $('campaignStart').click(); frame();
+  equal(api.game.phase, 'intro', 'normal story entry remains available');
+  ok($('storyLine').textContent.length > 20, 'story text appears immediately without typing delay');
+  $('skipStory').click(); frame();
   ok(!$('skipTurn').hidden, 'camera skip button is available without a keyboard');
   $('skipTurn').click(); frame(); equal(api.game.phase, 'aim', 'touch skip starts the turn');
   ok(!$('touchControls').hidden, 'human turn has a touch control bar');
@@ -189,6 +210,13 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   cv.dispatch('pointerdown', pointer(210, 300)); cv.dispatch('pointermove', pointer(110, 355));
   window.dispatch('blur'); frame(); equal(api.input.drag, null, 'backgrounding cancels touch input');
   ok(api.paused, 'backgrounding pauses the game'); $('resume').click(); frame();
+  $('pause').click(); $('transferPause').click();
+  ok(!$('transferPanel').hidden && $('importProgressButton').disabled, 'ongoing game permits export but blocks import');
+  const saveDuringPlay = JSON.stringify(api.game.save);
+  $('importProgress').value = api.encodeProgress({...api.game.save, best: 100});
+  $('importProgressButton').onclick();
+  equal(JSON.stringify(api.game.save), saveDuringPlay, 'import handler also guards an active run');
+  $('transferClose').click(); $('resume').click();
   $('touchFire').click(); frame(); equal(api.game.phase, 'flight', 'touch fire button starts a shot');
   ok($('touchControls').hidden, 'aim buttons disappear during flight');
   const flight = JSON.stringify([api.game.arrows, api.game.phase, api.game.round, api.game.active]);
@@ -199,6 +227,19 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   $('touchFire').click(); for (let i = 0; i < 12; i++) frame();
   ok(!$('skillButton').hidden && !$('skillButton').disabled, 'flight offers a tappable skill button');
   $('skillButton').click(); ok(api.game.skillUsed, 'touch skill button activates the selected bow');
+  api.game.stats.fire = 2; api.game.stats.poison = 3;
+  api.game.choices = [{id: 'fire', name: '焰羽', tag: '火焰', icon: '焰', desc: '强化火焰'}, {id: 'poison', name: '青毒', tag: '毒素', icon: '毒', desc: '强化毒素'}];
+  api.game.setPhase('upgrade'); frame();
+  ok($('upgradeCards').children[0].innerHTML.includes('2 → 3') && $('upgradeCards').children[1].innerHTML.includes('3 → 4'), 'repeated elemental choices show current and next tier benefits');
+  api.game.floor = 15; api.game.setup(); api.game.setPhase('scout'); frame();
+  ok(!$('enemyTraits').hidden && $('enemyTraits').textContent.includes(' · '), 'late enemy combinations are shown during observation');
+  ok($('sceneHint').hidden, 'generic hint does not overlap enemy abilities during observation');
+  api.game.setPhase('thinking'); frame();
+  ok(!$('enemyTraits').hidden && $('sceneHint').hidden, 'thinking keeps enemy abilities clear of the generic hint');
+  api.game.players[0].status = {burn: 2, burnTurns: 2, poison: 12, poisonTurns: 3, ice: 0};
+  api.game.emit('phase'); frame();
+  ok($('status0').textContent.includes('12层') && $('status0').textContent.includes('余3轮'), 'HUD distinguishes accumulated poison stacks from remaining turns');
+  ok($('status0').title.includes('60/轮') && $('inventory').textContent.includes('基础60/轮'), 'full elemental tick damage remains available in pause details');
 }
 const phone = {width: 390, height: 740, coarse: true}, desktop = {width: 1440, height: 900};
 equal(resolveView('auto', phone).layout, 'mobile', 'auto recognizes phone');
