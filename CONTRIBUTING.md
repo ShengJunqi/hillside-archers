@@ -42,7 +42,7 @@ git push -u origin feat/你的功能
 
 ## 线上版本
 
-现在的游玩链接由独立的 Sites 部署维护，GitHub 推送不会自动更新该网站。这个仓库不包含 Sites 项目配置或凭证。合并后的站点内容是整个 `dist/`；维护者按自己的发布流程部署。
+现在的游玩链接由独立的 Sites 部署维护，源码功能分支的 GitHub 推送不会自动更新该网站。额外的免费 Pages 入口已启用，使用独立 gh-pages 发布分支；发布方式与访问范围见 docs/DEPLOYMENT.md。这个仓库不包含 Sites 项目配置或凭证。合并后的站点内容是整个 `dist/`；维护者按自己的发布流程部署。
 
 页面底部的离线版由 `npm run build` 生成。构建后需要把更新后的 `dist/download.html` 一起提交。
 
