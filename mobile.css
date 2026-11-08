@@ -243,3 +243,29 @@ body[data-layout="mobile"][data-handset="true"] .brand-mark { display: none; }
   nav #viewMode { min-width: 44px; font-size: 11px; }
   .view-menu { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 60px); left: 10px; right: 10px; width: auto; max-height: calc(100dvh - 90px); overflow-y: auto; }
 }
+
+/* Clear upgrade feedback and optional quick entry without a numeric control panel. */
+.quick-start { color: var(--gold); min-height: 44px; padding: 12px 0 4px; text-align: left; }
+.transfer-link { min-height: 44px; padding: 8px 0; text-decoration: underline; text-underline-offset: 4px; }
+.health small { white-space: pre-line; line-height: 1.45; overflow-wrap: anywhere; }
+.upgrade { overflow-y: auto; overscroll-behavior: contain; }
+.upgrade-preview { display: block; white-space: pre-line; line-height: 1.7; font-size: 11px; color: #e9d595; padding: 9px 10px; margin: 4px 0 10px; width: 100%; background: #10242c88; border: 1px solid #bba66a44; }
+.enemy-traits { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); max-width: 58%; padding: 7px 12px; color: #e6bd90; background: #182b33e8; border: 1px solid #b4916655; font-size: 10px; line-height: 1.6; text-align: center; pointer-events: none; }
+.pause-card { max-height: calc(100% - 24px); }
+.transfer-panel { display: grid; place-items: center; background: #0b1c28ed; z-index: 9; }
+.transfer-card { width: min(92%, 560px); max-height: calc(100% - 24px); overflow-y: auto; background: #20373c; border: 1px solid #9dba8b4d; padding: 20px 24px; }
+.transfer-card h2 { font-family: serif; font-size: 25px; font-weight: 500; margin: 8px 0; }
+.transfer-card p { font-size: 12px; color: #b7c6ad; line-height: 1.7; }
+.transfer-card .transfer-note { font-size: 11px; color: #9caf9e; }
+.transfer-card label { display: block; margin: 12px 0 6px; font-size: 12px; color: #dfd4af; }
+.transfer-card textarea { display: block; width: 100%; min-height: 72px; max-height: 150px; resize: vertical; border: 1px solid #95a68a55; background: #10242c; color: #dfd9b8; padding: 9px; font: 12px/1.5 monospace; overflow-wrap: anywhere; }
+.transfer-card .quiet { min-height: 44px; padding: 10px 8px; }
+.transfer-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#transferMessage { min-height: 1.7em; color: #e8d28d; }
+body[data-layout="mobile"] .upgrade-preview { grid-column: 1 / -1; font-size: 12px; }
+body[data-layout="mobile"] .enemy-traits { bottom: 88px; max-width: 90%; width: max-content; font-size: 9px; padding: 5px 9px; }
+body[data-layout="mobile"] .transfer-card { padding: 16px; }
+body[data-layout="mobile"] .transfer-card textarea { font-size: 16px; min-height: 80px; }
+body[data-layout="mobile"][data-orientation="landscape"] .enemy-traits { bottom: 64px; max-width: 55%; }
+body[data-layout="mobile"][data-orientation="landscape"] .upgrade-preview { font-size: 10px; padding: 6px; }
+body[data-layout="mobile"][data-orientation="landscape"] .quick-start { padding-top: 8px; }
