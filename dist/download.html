@@ -324,10 +324,10 @@ body[data-layout="mobile"] .account-card .primary { width: 100%; justify-content
 <section class="transfer-panel panel" id="transferPanel" role="dialog" aria-modal="true" aria-labelledby="transferTitle" hidden><div class="transfer-card"><p class="eyebrow">带上你的旅程</p><h2 id="transferTitle">迁移进度</h2><p>把代码带到另一个游戏网址，即可继续已有进度。</p><p class="transfer-note">仅迁移章节、解锁、纪录和修行，不含进行中的远征。导入时保留两边较高的永久进度；请先回到旅营。</p><label for="exportProgress">当前进度代码</label><textarea id="exportProgress" readonly spellcheck="false" aria-label="当前进度代码"></textarea><button class="quiet" id="copyProgress">复制代码</button><label for="importProgress">粘贴另一网址的进度代码</label><textarea id="importProgress" spellcheck="false" placeholder="粘贴 HA2: 开头的代码" aria-label="待导入的进度代码"></textarea><p id="transferMessage" role="status" aria-live="polite"></p><div class="transfer-actions"><button class="primary" id="importProgressButton">导入进度 ↗</button><button class="quiet" id="transferClose">关闭</button></div></div></section><section class="transfer-panel panel" id="namesPanel" role="dialog" aria-modal="true" aria-labelledby="namesTitle" hidden><div class="transfer-card name-card"><p class="eyebrow">让这段旅程有你的名字</p><h2 id="namesTitle">弓手名字</h2><p>每个名字最多 8 个字符，留空使用默认名字。</p><label for="archerName0">第一位弓手 · 玩家一</label><input id="archerName0" type="text" maxlength="16" autocomplete="off" placeholder="青松"><label for="archerName1">第二位弓手 · 对手 / 玩家二</label><input id="archerName1" type="text" maxlength="16" autocomplete="off" placeholder="赤岩"><p id="namesMessage" role="status" aria-live="polite"></p><button class="quiet" id="namesReset">恢复默认</button><div class="transfer-actions"><button class="primary" id="namesSave">保存名字 ↗</button><button class="quiet" id="namesClose">取消</button></div></div></section><section class="transfer-panel panel" id="accountPanel" role="dialog" aria-modal="true" aria-labelledby="accountTitle" hidden>
 <div class="transfer-card account-card"><div class="account-heading"><div><p class="eyebrow">把旅程带到另一端</p><h2 id="accountTitle">账号与云存档</h2></div><button class="quiet" id="accountClose" aria-label="关闭账号窗口">关闭</button></div>
 <p class="transfer-note">随时可以继续本机游玩。仅同步章节、解锁、纪录、名字和永久修行，不含进行中的远征。</p>
-<div id="accountGuest"><div class="account-tabs" role="group" aria-label="登录方式"><button id="authpassword" aria-pressed="true">密码登录</button><button id="authotp" aria-pressed="false">验证码登录</button><button id="authregister" aria-pressed="false">注册账号</button><button id="authreset" aria-pressed="false">忘记密码</button></div>
-<form id="accountForm"><label for="accountEmail">邮箱<input id="accountEmail" type="email" autocomplete="email" maxlength="254" required placeholder="你的邮箱地址"></label><label id="accountPasswordLabel" for="accountPassword">密码<input id="accountPassword" type="password" autocomplete="current-password" maxlength="128" required></label><label id="accountCodeLabel" for="accountCode" hidden>邮件验证码<input id="accountCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" pattern="[0-9]{4,12}"></label><button class="primary" id="accountSubmit" type="submit">登录账号</button><div class="account-actions"><button class="quiet" id="accountResend" type="button" hidden>重新发送验证码</button><button class="quiet" id="accountBack" type="button" hidden>返回修改邮箱</button></div></form></div>
+<div id="accountGuest"><div class="account-tabs" role="group" aria-label="登录方式"><button id="authpassword" aria-pressed="true">账号密码登录</button><button id="authregister" aria-pressed="false">注册账号</button></div>
+<form id="accountForm"><label for="accountEmail"><span id="accountIdentifierText">账号或邮箱</span><input id="accountEmail" type="text" autocomplete="username" maxlength="254" required placeholder="输入账号或邮箱"></label><label id="accountUsernameLabel" for="accountUsername" hidden>设置账号<input id="accountUsername" type="text" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9_]{2,23}" placeholder="如 qingsong_01"></label><label id="accountPasswordLabel" for="accountPassword">密码<input id="accountPassword" type="password" autocomplete="current-password" maxlength="32" required></label><label id="accountCodeLabel" for="accountCode" hidden>邮件验证码<input id="accountCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" pattern="[0-9]{4,12}"></label><button class="primary" id="accountSubmit" type="submit">登录账号</button><div class="account-actions"><button class="quiet" id="accountResend" type="button" hidden>重新发送验证码</button><button class="quiet" id="accountBack" type="button" hidden>返回修改邮箱</button></div></form></div>
 <div id="accountMember" hidden><p class="account-identity" id="accountIdentity"></p><p id="accountSyncStatus" role="status" aria-live="polite"></p><div id="accountChoice" hidden><div class="save-comparison"><div><b>当前本机</b><p id="cloudLocalSummary"></p></div><div><b>账号云端</b><p id="cloudRemoteSummary"></p></div></div><p class="transfer-note">纪录和解锁保留较高进度。余烬与练弓、强身等级整组选择，不把两份余额相加；替换前会留一份本机备份。请在旅营选择。</p><div class="account-actions"><button class="primary" id="keepCloud">使用云端修行与余烬</button><button class="quiet" id="keepLocal">保留本机修行与余烬</button></div></div><div class="account-actions"><button class="quiet" id="cloudRefresh">检查 / 重试同步</button><button class="quiet" id="accountSignOut">退出账号</button></div></div>
-<p id="accountMessage" role="status" aria-live="polite"></p><details id="cloudBackupDetails" hidden><summary>查看同步前的本机备份</summary><p class="transfer-note">复制下面的代码，可在旅营的「迁移进度」中导入。</p><textarea id="cloudBackupCode" readonly aria-label="同步前的本机进度代码"></textarea></details></div></section><div class="toast" id="toast" role="status" aria-live="polite" hidden></div></section><footer><span id="footerHint">拖拽拉弓 · 松手射箭 · 拉回圈内取消</span><span><span>离线版 · 一箭过山河</span><i id="storageNote">本机自动存档</i></span></footer></main><script>
+<p id="accountMessage" role="status" aria-live="polite"></p><details id="accountRecovery"><summary>忘记密码？联系管理员</summary><p>请从注册邮箱发邮件至 <a href="mailto:sheng.327@osu.edu?subject=%E5%9D%A1%E5%9C%B0%E5%BC%93%E6%89%8B%E8%B4%A6%E5%8F%B7%E6%89%BE%E5%9B%9E">sheng.327@osu.edu</a>，写明游戏账号，由管理员核对后重置密码。不要发送密码或验证码。</p></details><details id="cloudBackupDetails" hidden><summary>查看同步前的本机备份</summary><p class="transfer-note">复制下面的代码，可在旅营的「迁移进度」中导入。</p><textarea id="cloudBackupCode" readonly aria-label="同步前的本机进度代码"></textarea></details></div></section><div class="toast" id="toast" role="status" aria-live="polite" hidden></div></section><footer><span id="footerHint">拖拽拉弓 · 松手射箭 · 拉回圈内取消</span><span><span>离线版 · 一箭过山河</span><i id="storageNote">本机自动存档</i></span></footer></main><script>
 const DEFAULT_NAMES = ['青松', '赤岩'];
 const MAX_NAME_LENGTH = 8;
 
@@ -1151,15 +1151,17 @@ function cloudClient(app) {
   }
   return {
     auth, session,
-    async password(email, password) {
-      const data = await result(auth.signInWithPassword({email, password}));
+    async password(identifier, password) {
+      const account = identifier.trim();
+      const credentials = account.includes('@') ? {email: account, password} : {username: account, password};
+      const data = await result(auth.signInWithPassword(credentials));
       if (!data?.session) throw new Error('尚未获得登录会话，请重试。');
       return data;
     },
-    async send(mode, email, password) {
-      const data = await result(mode === 'register' ? auth.signUp({email, password}) :
-        mode === 'reset' ? auth.resetPasswordForEmail(email) : auth.signInWithOtp({email}));
-      if (mode === 'reset') return async code => result(data.updateUser({nonce: code, password}));
+    async register(email, password, username) {
+      // CloudBase requires verified email/phone for self-registration. The
+      // chosen username is bound when the returned verification step completes.
+      const data = await result(auth.signUp({email, password, username}));
       if (typeof data?.verifyOtp !== 'function') throw new Error('暂时无法验证邮件，请稍后重试。');
       return async code => result(data.verifyOtp({token: code}));
     },
@@ -1190,13 +1192,13 @@ function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, loa
   function message(text) {el('accountMessage').textContent = text;}
   function errorMessage(error) {
     const text = error?.message || '暂时无法连接云端，请稍后重试。本机进度仍保留。';
-    return /already.*(exist|register)|user.*not.*found|account.*not.*exist/i.test(text) ? '暂未完成登录，请检查信息，或使用验证码登录。' : text;
+    return /already.*(exist|register)|user.*not.*found|account.*not.*exist/i.test(text) ? '暂未完成登录或注册，请检查信息；需要帮助可联系管理员。' : text;
   }
   function paint(state = sync) {
     const signedIn = !!state.user;
     el('accountGuest').hidden = signedIn || offline;
     el('accountMember').hidden = !signedIn;
-    el('accountIdentity').textContent = state.user?.email || state.user?.username || '已登录账号';
+    el('accountIdentity').textContent = state.user?.user_metadata?.username || state.user?.username || state.user?.email || '已登录账号';
     el('accountSyncStatus').textContent = state.message;
     el('accountChoice').hidden = state.phase !== 'choice';
     el('cloudLocalSummary').textContent = progressSummary(getSave());
@@ -1218,21 +1220,31 @@ function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, loa
     } catch {el('cloudBackupDetails').hidden = true;}
   }
   function formState() {
-    el('accountPasswordLabel').hidden = mode === 'otp';
-    el('accountPassword').required = mode !== 'otp';
-    el('accountPassword').autocomplete = mode === 'register' || mode === 'reset' ? 'new-password' : 'current-password';
-    el('accountPassword').minLength = mode === 'register' || mode === 'reset' ? 8 : 1;
+    const registering = mode === 'register';
+    el('accountPasswordLabel').hidden = false;
+    el('accountPassword').required = true;
+    el('accountPassword').autocomplete = registering ? 'new-password' : 'current-password';
+    el('accountPassword').minLength = registering ? 8 : 1;
+    el('accountIdentifierText').textContent = registering ? '验证邮箱（仅注册时验证一次）' : '账号或邮箱';
+    el('accountEmail').type = registering ? 'email' : 'text';
+    el('accountEmail').placeholder = registering ? '用于验证账号和联系管理员' : '输入账号或邮箱';
+    el('accountEmail').autocomplete = registering ? 'email' : 'username';
+    el('accountUsernameLabel').hidden = !registering;
+    el('accountUsername').required = registering;
+    el('accountUsername').disabled = !registering;
+    el('accountUsername').readOnly = !!verifyCode;
     el('accountCodeLabel').hidden = !verifyCode;
     el('accountCode').required = !!verifyCode;
+    el('accountCode').disabled = !verifyCode;
     el('accountEmail').readOnly = !!verifyCode;
     el('accountPassword').readOnly = !!verifyCode;
     el('accountSubmit').disabled = working || (!verifyCode && mode !== 'password' && Date.now() < cooldown);
-    el('accountSubmit').textContent = working ? '请稍候…' : verifyCode ? (mode === 'reset' ? '确认并设置新密码' : '验证并继续') : mode === 'password' ? '登录账号' : '发送邮箱验证码';
+    el('accountSubmit').textContent = working ? '请稍候…' : verifyCode ? '验证并继续' : mode === 'password' ? '登录账号' : '发送注册验证码';
     el('accountBack').hidden = !verifyCode;
     el('accountResend').hidden = !verifyCode;
     el('accountResend').disabled = working || Date.now() < cooldown;
     el('accountResend').textContent = Date.now() < cooldown ? Math.ceil((cooldown - Date.now()) / 1000) + ' 秒后可重发' : '重新发送验证码';
-    for (const value of ['password','otp','register','reset']) {
+    for (const value of ['password','register']) {
       el('auth' + value).setAttribute('aria-pressed', value === mode);
       el('auth' + value).disabled = working;
     }
@@ -1240,8 +1252,7 @@ function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, loa
   function selectMode(value) {
     if (working) return;
     mode = value; verifyCode = null; el('accountCode').value = ''; el('accountPassword').value = '';
-    message(value === 'register' ? '验证邮箱后创建账号，已有本机进度会保留。密码至少 8 位，含字母和数字。' :
-      value === 'reset' ? '验证邮箱后设置新密码。请在下方填写新密码，再发送验证码。' : '登录后可在不同设备和游戏网址同步永久进度。');
+    message(value === 'register' ? '注册时验证一次邮箱，之后用账号和密码登录。账号 3–24 位字母、数字或下划线；密码 8–32 位，含字母和数字。' : '用账号和密码登录，也支持已绑定的邮箱。忘记密码可联系管理员。');
     formState();
   }
   async function sessionChanged(session) {
@@ -1278,9 +1289,10 @@ function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, loa
   async function sendCode() {
     if (Date.now() < cooldown) throw new Error('请稍候 ' + Math.ceil((cooldown - Date.now()) / 1000) + ' 秒，再发送验证码。');
     const sdk = await boot();
-    const email = el('accountEmail').value.trim(), password = el('accountPassword').value;
-    if ((mode === 'register' || mode === 'reset') && (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password))) throw new Error('请使用至少 8 位、含字母和数字的密码。');
-    verifyCode = await sdk.send(mode, email, password);
+    const email = el('accountEmail').value.trim(), password = el('accountPassword').value, username = el('accountUsername').value.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_]{2,23}$/.test(username)) throw new Error('账号需为 3–24 位字母、数字或下划线，以字母或数字开头。');
+    if (password.length < 8 || password.length > 32 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) throw new Error('请使用 8–32 位、含字母和数字的密码。');
+    verifyCode = await sdk.register(email, password, username);
     cooldown = Date.now() + 60000;
     clearInterval(interval); interval = setInterval(() => {formState(); if (Date.now() >= cooldown) clearInterval(interval);}, 1000);
     message('若邮箱可接收验证邮件，验证码会发送到该地址。请检查收件箱和垃圾邮件。');
@@ -1301,7 +1313,7 @@ function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, loa
       } else await sendCode();
     });
   });
-  for (const value of ['password','otp','register','reset']) el('auth' + value).onclick = () => selectMode(value);
+  for (const value of ['password','register']) el('auth' + value).onclick = () => selectMode(value);
   el('accountBack').onclick = () => selectMode(mode);
   el('accountResend').onclick = () => {if (Date.now() >= cooldown) void work(sendCode);};
   el('keepLocal').onclick = () => {void work(() => sync.choose('local'));};
@@ -1329,7 +1341,7 @@ function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, loa
   el('accountClose').onclick = () => close();
   el('accountPanel').addEventListener('keydown', event => {
     if (event.key !== 'Tab') return;
-    const nodes = [...el('accountPanel').querySelectorAll('button:not(:disabled),input,textarea,summary')].filter(node => node.getClientRects().length);
+    const nodes = [...el('accountPanel').querySelectorAll('button:not(:disabled),input,textarea,summary,a[href]')].filter(node => node.getClientRects().length);
     const first = nodes[0], last = nodes[nodes.length - 1];
     if (event.shiftKey && document.activeElement === first) {event.preventDefault(); last?.focus();}
     else if (!event.shiftKey && document.activeElement === last) {event.preventDefault(); first?.focus();}

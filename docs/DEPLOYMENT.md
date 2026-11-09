@@ -36,3 +36,10 @@ GitHub 集成可能缺少开启 Pages 所需的管理权限。此仓库首次创
 在线发布前，在当前开发机的 `.env.local` 填好已有 CloudBase 环境的 Publishable Key，再运行 `npm run build`。将生成的 `dist/cloud-config.json` 与整个 `dist/` 一同打包到原站和 Pages 分支；这个生成文件被 Git 忽略，不会随源码 PR 自动到达网站。不要将 `.env.local` 或任何管理 API Key 放进站点。
 
 未配置时游戏仍可本机游玩，账号弹窗提示本站暂未配置。`download.html` 始终是完全离线版本，不载入 SDK 或云配置。新增站点域名时需同步 CloudBase 安全来源；现有两个游戏域名已添加。参见 [账号存档说明](ACCOUNT_SAVES.md)。
+
+## 0.12.1 账号密码测试发布
+
+- 原站已发布为 Sites 第 15 版，部署工具返回 `succeeded`：https://hillside-archers-first-duel.soundhorse9.chatgpt.site 。源码提交为 `44df5d8a77d7b298f9105fb8975dffae7480b095`；保留公开访问方式及原有协作提示词／源码 ZIP 下载。
+- 备用站已发布 `gh-pages` 提交 `d51c418839ecd75c82f47e140e970264e8ad74f0`：https://shengjunqi.github.io/hillside-archers/ 。[Pages 构建](https://github.com/ShengJunqi/hillside-archers/actions/runs/42671999913)成功。
+- 已核对备用站的页面、两个账号模块、云配置及浏览器 SDK 共五个文件，与本机已验证构建的摘要一致；模块返回 JavaScript MIME。两个站点来源的 CloudBase API 跨域响应已核对，未登录访问被拒绝。
+- 当前执行环境的原站 HTTP 探测收到 Cloudflare `1010` 拒绝，因此原站只确认原生发布工具成功，未独立复核页面。真实浏览器／手机登录与邮箱收码仍待玩家实测；DOM 表单验证不等同于浏览器验收。

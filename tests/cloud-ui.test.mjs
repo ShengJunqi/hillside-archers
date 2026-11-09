@@ -21,17 +21,18 @@ const prior={document:globalThis.document,window:globalThis.window};
 globalThis.document={getElementById:el,documentElement:{dataset:{}},activeElement:null};
 const events={};globalThis.window={addEventListener:(name,fn)=>{events[name]=fn;}};
 const memory=new Map();const storage={getItem:key=>memory.get(key)||null,setItem:(key,value)=>memory.set(key,value)};
-let local=validSave({unlocked:true,best:6,embers:9}),session=null,remote=null,sent,token,readCount=0,loadCount=0,listener,failSignOut=false;
-const user={id:'ui-user',email:'player@example.test'};
+let local=validSave({unlocked:true,best:6,embers:9}),session=null,remote=null,sent,token,readCount=0,loadCount=0,listener,failSignOut=false,loginAccount,registrations=0;
+const user={id:'ui-user',email:'player@example.test',user_metadata:{username:'archer_01'}};
 const sdk={
   auth:{onAuthStateChange:fn=>{listener=fn;}},
   session:async()=>session,
-  async password(email,password){
+  async password(identifier,password){
+    loginAccount=identifier;
     if(password!=='Correct123')throw Error('Invalid credentials');
     session={user};listener('SIGNED_IN',session);return {session};
   },
-  async send(mode,email,password){
-    sent={mode,email,password};
+  async register(email,password,username){
+    registrations++;sent={email,password,username};
     return async code=>{token=code;session={user};listener('SIGNED_IN',session);return {session};};
   },
   async signOut(){if(failSignOut)throw Error('Sign-out unavailable');session=null;listener('SIGNED_OUT',null);},
@@ -48,19 +49,30 @@ try {
   ok(!el('accountPanel').hidden,'camp opens the account dialog');
   equal(loadCount,1,'the online client is initialized on demand');
   equal(readCount,0,'opening login does not read private progress');
+  equal(el('accountEmail').type,'text','login accepts a username rather than forcing email format');
+  ok(el('accountUsernameLabel').hidden,'login does not require registration fields');
+  ok(el('accountUsername').disabled,'hidden registration input cannot invalidate password login');
   el('accountEmail').value='player@example.test';el('accountPassword').value='wrong';
   el('accountForm').submit();await settle();
   equal(el('accountMessage').textContent,'Invalid credentials','real auth error reaches the form');
   equal(readCount,0,'failed login does not reach private saves');
 
-  el('authregister').click();el('accountPassword').value='Correct123';
+  el('authregister').click();el('accountPassword').value='Correct123';el('accountUsername').value='bad name';
   el('accountForm').submit();await settle();
-  equal(sent,{mode:'register',email:'player@example.test',password:'Correct123'},'the registration form sends the active inputs');
+  equal(registrations,0,'invalid account names do not send a verification email');
+  el('accountUsername').value='archer_01';
+  el('accountPassword').value='A'.repeat(40)+'1';el('accountForm').submit();await settle();
+  equal(registrations,0,'passwords beyond the provider limit do not send a registration email');
+  el('accountPassword').value='Correct123';
+  el('accountForm').submit();await settle();
+  equal(sent,{email:'player@example.test',password:'Correct123',username:'archer_01'},'registration sends the chosen username and a one-time verification email');
   ok(!el('accountCodeLabel').hidden,'registration exposes the code verification step');
   ok(el('accountEmail').readOnly,'verification stays attached to the original mailbox');
+  ok(el('accountUsername').readOnly,'verification stays attached to the chosen account');
   el('accountCode').value='123456';el('accountForm').submit();await settle();
   equal(token,'123456','the submitted code reaches the returned verification callback');
   ok(!el('accountMember').hidden&&el('accountGuest').hidden,'verified login updates the visible dialog');
+  equal(el('accountIdentity').textContent,'archer_01','signed-in screen displays the actual account name');
   ok(!el('accountChoice').hidden,'first login offers an explicit progress choice');
   equal(local.embers,9,'login leaves existing progress intact');
   el('keepLocal').click();await settle();
@@ -72,38 +84,24 @@ try {
   el('accountSignOut').click();await settle();
   ok(el('accountMember').hidden,'sign-out removes account controls');
   equal(local.best,6,'sign-out preserves local progress');
-  el('authreset').click();el('accountPassword').value='NewPassword123';
-  el('accountForm').submit();await settle();
-  equal(sent.mode,'register','cooldown prevents changing mode to bypass the send limit');
+  el('authpassword').click();el('authregister').click();el('accountPassword').value='Correct123';
+  el('accountForm').submit();await settle();equal(registrations,1,'switching modes cannot bypass the registration email cooldown');
   let prevented=false;
   ok(account.key({key:'Escape',preventDefault(){prevented=true;}}),'account dialog captures game keyboard shortcuts');
   ok(prevented&&el('accountPanel').hidden,'Escape closes the dialog');
   account.dispose();
 
-  const recovery=setupCloudAccount({storage,getSave:()=>local,applySave:p=>{local=p;},atCamp:()=>true,beforeOpen:()=>{},loadClient:async()=>sdk});
-  el('accountHome').click();await settle();el('authreset').click();
-  el('accountEmail').value='player@example.test';el('accountPassword').value='NewPassword123';
+  const login=setupCloudAccount({storage,getSave:()=>local,applySave:p=>{local=p;},atCamp:()=>true,beforeOpen:()=>{},loadClient:async()=>sdk});
+  el('accountHome').click();await settle();
+  el('accountEmail').value='archer_01';el('accountPassword').value='Correct123';
   el('accountForm').submit();await settle();
-  equal(sent,{mode:'reset',email:'player@example.test',password:'NewPassword123'},'forgot-password form sends the new password to the SDK adapter');
-  el('accountCode').value='654321';el('accountForm').submit();await settle();
-  equal(token,'654321','forgot-password verification is wired to the active form');
-  ok(!el('accountMember').hidden,'password recovery restores the account controls');
+  equal(loginAccount,'archer_01','password login forwards the username from the actual form');
+  ok(!el('accountMember').hidden,'password-login submit reaches the signed-in screen');
+  equal(registrations,1,'ordinary password login sends no email');
   failSignOut=true;el('accountSignOut').click();await settle();
   ok(!el('accountMember').hidden,'failed sign-out restores the actual SDK session');
   equal(el('accountMessage').textContent,'Sign-out unavailable','sign-out failure is visible');
-  failSignOut=false;el('accountSignOut').click();await settle();recovery.dispose();
-
-  const login=setupCloudAccount({storage,getSave:()=>local,applySave:p=>{local=p;},atCamp:()=>true,beforeOpen:()=>{},loadClient:async()=>sdk});
-  el('accountHome').click();await settle();
-  el('accountEmail').value='player@example.test';el('accountPassword').value='Correct123';
-  el('accountForm').submit();await settle();
-  ok(!el('accountMember').hidden,'password-login submit reaches the signed-in screen');
-  el('accountSignOut').click();await settle();el('authotp').click();
-  ok(el('accountPasswordLabel').hidden,'code-only login does not require a password');
-  el('accountForm').submit();await settle();equal(sent.mode,'otp','OTP login uses the active code-login mode');
-  el('accountCode').value='987654';el('accountForm').submit();await settle();
-  equal(token,'987654','OTP-login form verifies the returned code');
-  ok(!el('accountMember').hidden,'OTP login restores the signed-in screen');
+  failSignOut=false;
   el('accountSignOut').click();await settle();login.dispose();
 
   // Offline build must not initialize the SDK, even when linked metadata exists.
