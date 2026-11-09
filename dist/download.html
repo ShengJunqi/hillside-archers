@@ -1,4 +1,4 @@
-<!doctype html><html lang="zh-CN" data-layout="desktop"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101f23"><meta name="description" content="一箭过山河。像素弓箭冒险，三章故事、回合对决与不断成长的肉鸽远征。"><title>坡地弓手 · 一箭过山河</title><style>:root{--bg:#111f23;--paper:#eadfc5;--muted:#9eafa8;--gold:#d9b675;--line:#bac7b122;--green:#6d9f8b}*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;color:var(--paper);font-family:'Noto Sans CJK SC','Microsoft YaHei',system-ui,sans-serif}button,select,a{font:inherit}button{cursor:pointer}button:disabled{cursor:default}button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:5px}button{color:inherit}button,a{-webkit-tap-highlight-color:transparent}button{border:0;background:none}a{color:inherit;text-decoration:none}.shell{max-width:1320px;padding:0 34px;margin:auto}header{height:96px;display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700;letter-spacing:3px}.brand-mark{font-size:40px;color:var(--gold)}.brand small{display:block;font-size:8px;letter-spacing:3px;color:var(--muted);margin-top:4px;font-weight:500}.edition{font-size:11px;color:#c3c6b3;letter-spacing:4px}.edition i{display:block;font-size:7px;font-style:normal;color:#758983;text-align:center;margin-top:6px;letter-spacing:3px}nav{display:flex;gap:17px}nav button{font-size:11px;color:#a2b1aa;padding:8px 0}nav button[aria-pressed=true]{color:var(--gold)}.arena{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#26474a;border:1px solid #afbb9d3a;box-shadow:0 20px 80px #060e1466;border-radius:3px}canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-action:none;cursor:crosshair}.vignette{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 100px #07121b55}.panel{position:absolute;inset:0;z-index:4}.panel[hidden],[hidden]{display:none!important}.eyebrow{font-size:10px;letter-spacing:3px;color:var(--gold);font-weight:600}.home{display:flex;justify-content:space-between;align-items:center;padding:5.8% 6%;background:linear-gradient(90deg,#101f29ed 0%,#10242d99 42%,#15232b33 60%,#101e25bd 100%)}.home-copy{width:49%}h1{font-family:Georgia,'Noto Serif CJK SC','Songti SC',serif;font-size:clamp(36px,5.7vw,80px);font-weight:500;line-height:1.18;letter-spacing:7px;margin:20px 0}h1 em{font-style:normal;color:#e7c88b}.lead{font-size:13px;line-height:2;color:#b3c2b4;letter-spacing:1px;margin-bottom:25px}.primary{background:#dfc08b;color:#273c37;padding:14px 24px;min-width:180px;display:inline-flex;justify-content:space-between;align-items:center;gap:30px;letter-spacing:2px;font-size:13px;font-weight:700;box-shadow:0 4px 0 #987e56;transition:transform .15s,background .15s}.primary:hover{transform:translateY(-2px);background:#f0d5a4}.primary:active{transform:translateY(2px);box-shadow:0 1px 0 #987e56}.save-note{font-size:10px;color:#849c94;margin-top:16px}.home-modes{width:34%;max-width:345px}.mode-card{display:flex;align-items:center;text-align:left;gap:15px;width:100%;padding:17px 10px;border-top:1px solid #b0c2ae29;transition:background .2s,transform .2s}.mode-card:hover:not(:disabled){background:#b5cab514;transform:translateX(3px)}.mode-card:disabled{opacity:.6}.mode-icon{color:var(--gold);font-size:26px;min-width:30px;text-align:center}.mode-card b{font-size:15px;font-weight:500;letter-spacing:2px}.mode-card small{display:block;font-size:9px;color:#93a69e;margin-top:7px;letter-spacing:.5px}.mode-state{font-size:9px;color:#bfa676;margin-left:auto;white-space:nowrap}.map-choice{display:flex;justify-content:space-between;align-items:center;margin-top:15px;font-size:10px;color:#94a99d}.map-choice select{background:#192e30cc;color:#ced5bd;padding:7px 10px;border:1px solid #899e8333;font-size:10px}.mode-note{font-size:9px;color:#9eac9c;line-height:1.8;margin-top:17px}.camp-meta{border-top:1px solid var(--line);margin-top:12px;padding-top:12px;display:flex;gap:8px;align-items:center}.camp-meta div{margin-right:auto}.camp-meta b{font-size:11px;color:#dcc18a;font-weight:500}.camp-meta small{display:block;font-size:9px;color:#95a998;margin-top:5px}.camp-meta button{font-size:9px;border:1px solid #7f937645;padding:7px}.camp-meta button:disabled{opacity:.4}.hud{position:absolute;inset:25px 3% auto;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:2}.health{display:flex;gap:12px;width:28%;align-items:center}.health>div{flex:1}.portrait{width:40px;height:45px;display:grid;place-items:center;font-family:serif;font-size:23px;flex-shrink:0;background:#2e665b;border:1px solid #9fbc8f85;clip-path:polygon(0 0,100% 0,100% 85%,50% 100%,0 85%)}.enemy-portrait{background:#8e514e;border-color:#d9a47a85}.health label{display:flex;justify-content:space-between;font-size:10px;gap:8px}.health label b{font-weight:500;letter-spacing:2px}.health label span{color:#c5cdb9;font-family:monospace}.health-track{height:7px;margin-top:9px;background:#101f2788;box-shadow:0 0 0 1px #b9c4a529;padding:1px}.health-track i{display:block;background:linear-gradient(90deg,#70a68d,#b3c98c);height:5px;transition:width .2s}.health.right .health-track i{background:linear-gradient(90deg,#a96858,#dbab82);margin-left:auto}.health small{font-size:9px;color:#dbc794;display:block;margin-top:5px;min-height:13px}.chapter{text-align:center;display:flex;flex-direction:column;gap:6px}.chapter small{font-size:8px;letter-spacing:3px;color:#b0c5b6}.chapter strong{font-size:14px;letter-spacing:3px;font-weight:500}.chapter>span{font-size:10px;color:#d4c199}.turn-banner{position:absolute;top:21%;left:50%;transform:translateX(-50%);background:#12252ddb;border:1px solid #a6b59155;font-size:13px;letter-spacing:3px;padding:12px 25px;pointer-events:none;white-space:nowrap}.scene-hint{position:absolute;left:0;right:0;bottom:3%;text-align:center;pointer-events:none;font-size:10px;letter-spacing:1px;color:#dce0bc;text-shadow:0 1px 5px #000}.build{position:absolute;left:3%;bottom:4%;display:flex;flex-wrap:wrap;gap:5px;max-width:50%;pointer-events:none}.build span{padding:5px 8px;font-size:9px;color:#d8d2b5;background:#112732b5;border:1px solid #a1b49633}.story{pointer-events:none}.story button{pointer-events:auto}.story-top{position:absolute;top:9%;left:6%;right:6%;display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:3px}.story-top button{font-size:10px;color:#c8c9ac;padding:9px 14px;background:#132731a6;border:1px solid #a3b4913d}.dialogue{position:absolute;bottom:10%;left:7%;right:7%;display:flex;align-items:end;justify-content:space-between;gap:30px;padding:24px 28px;background:linear-gradient(90deg,#102531f0,#152a33ce);border-left:3px solid var(--gold);box-shadow:0 8px 30px #06141b44}.dialogue small{font-size:10px;color:var(--gold);letter-spacing:3px}.dialogue p{font-size:15px;line-height:1.9;letter-spacing:1px;margin:9px 0 5px;max-width:630px}.dialogue button{white-space:nowrap;font-size:11px;color:var(--gold);padding:12px}.story-dots{display:flex;gap:7px;margin-top:12px}.story-dots i{width:14px;height:3px;background:#8a9e8344}.story-dots i.active{background:var(--gold)}.result{display:flex;align-items:center;padding:8%;background:linear-gradient(90deg,#10232fe0,#10232f55,transparent)}.result-card{max-width:450px;width:46%}.result h2{font-family:Georgia,'Songti SC',serif;font-weight:500;font-size:36px;letter-spacing:3px;line-height:1.5;margin:17px 0}.result p:not(.eyebrow){font-size:12px;line-height:2;color:#bbc6b2}.resultReward,#resultReward{font-size:12px;color:var(--gold);margin:20px 0}.result .primary{margin-top:10px}.quiet{display:block;padding:13px 0;color:#acbba9;font-size:11px;letter-spacing:1px}.upgrade{padding:7% 6%;text-align:center;background:#10232fdd;backdrop-filter:blur(5px)}.upgrade h2{font-family:'Songti SC',serif;font-size:28px;letter-spacing:3px;font-weight:500}.upgrade-note{font-size:11px;color:#a6b7ab}.upgrade-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:5%}.relic{background:linear-gradient(150deg,#314640,#1b3136);border:1px solid #a0ac8055;padding:25px 20px;color:#d9d7b9;display:flex;flex-direction:column;align-items:center;transition:transform .2s,border-color .2s}.relic:hover{transform:translateY(-8px);border-color:var(--gold)}.relic .symbol{font-size:37px;color:var(--gold);display:grid;place-items:center;width:70px;height:70px;border:1px solid #abac7955;transform:rotate(3deg);margin-bottom:18px}.relic small{font-size:9px;color:#a3b79d;letter-spacing:3px}.relic b{font-size:20px;letter-spacing:4px;font-weight:500;margin:10px 0}.relic p{font-size:11px;line-height:1.8;min-height:42px;color:#b3c3aa}.relic .take{font-size:10px;color:var(--gold);margin-top:14px}.pause-panel{display:grid;place-items:center;background:#0b1c28c9;backdrop-filter:blur(5px);z-index:8}.pause-card{width:440px;max-width:85%;background:#20373ce8;border:1px solid #9dba8b4d;padding:28px 36px;text-align:center}.pause-card h2{font-family:serif;font-weight:500;letter-spacing:3px}.pause-card p{font-size:11px;line-height:2;color:#b7c6ad}.pause-card .primary{width:100%;justify-content:center}.pause-card .quiet{margin:auto}.inventory{max-height:130px;overflow:auto;text-align:left;font-size:10px;color:#d2cfaa;line-height:1.9;margin-bottom:15px}.toast{position:absolute;left:50%;bottom:7%;transform:translateX(-50%);z-index:12;padding:11px 20px;background:#132d33f2;border:1px solid #a5b88c66;color:#e1d9ac;font-size:12px;pointer-events:none;max-width:80%;text-align:center}footer{height:55px;display:flex;justify-content:space-between;align-items:center;gap:15px;color:#778f86;font-size:10px;letter-spacing:1px}footer>span:last-child{display:flex;gap:20px}footer i{font-style:normal;color:#566f64}footer a:hover{color:var(--gold)}.arena:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;background:#0d1921}.arena:fullscreen canvas{object-fit:contain}.arena:fullscreen .panel{max-width:1600px;margin:auto}@media(prefers-reduced-motion:reduce){*{transition:none!important}}@media(max-width:900px){.shell{padding:0 15px}header{height:74px}.edition{display:none}nav{gap:12px}.home{padding:4%}.home-copy{width:48%}h1{font-size:45px;margin:14px 0}.home-modes{width:42%}.lead{font-size:10px;line-height:1.7;margin-bottom:15px}.eyebrow{font-size:8px}.mode-card{padding:12px 5px;gap:8px}.mode-card b{font-size:12px}.mode-card small{font-size:8px}.primary{font-size:11px;padding:10px 16px;min-width:150px}.hud{top:15px}.portrait{width:28px;height:35px;font-size:18px}.health{gap:7px}.chapter strong{font-size:12px}.health label{font-size:9px}.dialogue{padding:14px 20px}.dialogue p{font-size:12px}.result h2{font-size:25px}.result p:not(.eyebrow){font-size:10px}.upgrade{padding:4%}.upgrade h2{font-size:22px}.upgrade-cards{gap:12px;margin-top:3%}.relic{padding:15px 12px}.relic .symbol{width:45px;height:45px;font-size:26px;margin-bottom:9px}.relic b{font-size:16px}.relic p{font-size:10px}.map-choice{margin-top:6px}.mode-note{margin-top:8px}.save-note{font-size:8px}.camp-meta{gap:5px}.camp-meta button{font-size:8px;padding:4px}.camp-meta small{font-size:8px}}@media(max-width:600px){header{height:60px}.brand{font-size:14px}.brand-mark{font-size:28px}.brand small{font-size:6px}nav{gap:9px}nav button{font-size:9px}nav #view{display:none}.arena{aspect-ratio:4/3}.arena canvas{object-fit:fill}.home{padding:5%;align-items:start}.home-copy{padding-top:7%;width:48%}h1{font-size:35px;letter-spacing:2px}.lead{font-size:9px}.home-modes{width:45%;padding-top:4%}.mode-card{gap:5px;padding:12px 2px}.mode-icon{font-size:18px;min-width:20px}.mode-card small{display:none}.mode-state{font-size:8px}.mode-card b{font-size:11px;letter-spacing:1px}.mode-note{font-size:8px}.home-copy .primary{min-width:0;width:100%;gap:8px;padding:11px;font-size:10px;letter-spacing:1px}.map-choice{display:block}.map-choice select{width:100%;margin-top:5px;font-size:9px}.camp-meta{flex-wrap:wrap}.camp-meta div{width:100%}.portrait{display:none}.health{width:27%}.chapter strong{font-size:10px;letter-spacing:1px}.chapter small{font-size:6px;letter-spacing:1px}.chapter>span{font-size:8px}.health label{font-size:8px}.health label b{letter-spacing:0}.health small{font-size:7px}.health-track{margin-top:5px}.hud{top:12px}.turn-banner{font-size:10px;letter-spacing:1px;padding:8px 13px;top:26%}.story-top{font-size:8px;letter-spacing:1px}.dialogue{bottom:7%;padding:12px;gap:5px}.dialogue p{font-size:10px;line-height:1.7}.dialogue button{font-size:9px;padding:4px}.story-top button{font-size:8px}.story-dots{margin-top:6px}.result-card{width:65%}.result h2{font-size:22px;margin:8px 0}.result p:not(.eyebrow){line-height:1.8}.result .primary{min-width:140px;gap:8px}.quiet{font-size:9px;padding:9px 0}.upgrade h2{font-size:17px}.upgrade-note{font-size:9px}.upgrade-cards{gap:6px}.relic{padding:12px 6px}.relic .symbol{font-size:24px;width:38px;height:38px}.relic b{font-size:14px;letter-spacing:2px}.relic small{font-size:7px}.relic p{font-size:9px;line-height:1.6}.relic .take{font-size:8px}.pause-card{padding:18px}.pause-card h2{font-size:20px}.pause-card p{font-size:10px}.inventory{max-height:65px}.scene-hint{font-size:8px}.build span{font-size:7px;padding:3px}.build{max-width:65%;bottom:8%}footer{font-size:8px;letter-spacing:0;gap:7px}footer i{display:none}}
+<!doctype html><html lang="zh-CN" data-layout="desktop" data-offline="true"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101f23"><meta name="description" content="一箭过山河。像素弓箭冒险，三章故事、回合对决与不断成长的肉鸽远征。"><title>坡地弓手 · 一箭过山河</title><style>:root{--bg:#111f23;--paper:#eadfc5;--muted:#9eafa8;--gold:#d9b675;--line:#bac7b122;--green:#6d9f8b}*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;color:var(--paper);font-family:'Noto Sans CJK SC','Microsoft YaHei',system-ui,sans-serif}button,select,a{font:inherit}button{cursor:pointer}button:disabled{cursor:default}button:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(--gold);outline-offset:5px}button{color:inherit}button,a{-webkit-tap-highlight-color:transparent}button{border:0;background:none}a{color:inherit;text-decoration:none}.shell{max-width:1320px;padding:0 34px;margin:auto}header{height:96px;display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{display:flex;align-items:center;gap:12px;font-size:18px;font-weight:700;letter-spacing:3px}.brand-mark{font-size:40px;color:var(--gold)}.brand small{display:block;font-size:8px;letter-spacing:3px;color:var(--muted);margin-top:4px;font-weight:500}.edition{font-size:11px;color:#c3c6b3;letter-spacing:4px}.edition i{display:block;font-size:7px;font-style:normal;color:#758983;text-align:center;margin-top:6px;letter-spacing:3px}nav{display:flex;gap:17px}nav button{font-size:11px;color:#a2b1aa;padding:8px 0}nav button[aria-pressed=true]{color:var(--gold)}.arena{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:#26474a;border:1px solid #afbb9d3a;box-shadow:0 20px 80px #060e1466;border-radius:3px}canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-action:none;cursor:crosshair}.vignette{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 100px #07121b55}.panel{position:absolute;inset:0;z-index:4}.panel[hidden],[hidden]{display:none!important}.eyebrow{font-size:10px;letter-spacing:3px;color:var(--gold);font-weight:600}.home{display:flex;justify-content:space-between;align-items:center;padding:5.8% 6%;background:linear-gradient(90deg,#101f29ed 0%,#10242d99 42%,#15232b33 60%,#101e25bd 100%)}.home-copy{width:49%}h1{font-family:Georgia,'Noto Serif CJK SC','Songti SC',serif;font-size:clamp(36px,5.7vw,80px);font-weight:500;line-height:1.18;letter-spacing:7px;margin:20px 0}h1 em{font-style:normal;color:#e7c88b}.lead{font-size:13px;line-height:2;color:#b3c2b4;letter-spacing:1px;margin-bottom:25px}.primary{background:#dfc08b;color:#273c37;padding:14px 24px;min-width:180px;display:inline-flex;justify-content:space-between;align-items:center;gap:30px;letter-spacing:2px;font-size:13px;font-weight:700;box-shadow:0 4px 0 #987e56;transition:transform .15s,background .15s}.primary:hover{transform:translateY(-2px);background:#f0d5a4}.primary:active{transform:translateY(2px);box-shadow:0 1px 0 #987e56}.save-note{font-size:10px;color:#849c94;margin-top:16px}.home-modes{width:34%;max-width:345px}.mode-card{display:flex;align-items:center;text-align:left;gap:15px;width:100%;padding:17px 10px;border-top:1px solid #b0c2ae29;transition:background .2s,transform .2s}.mode-card:hover:not(:disabled){background:#b5cab514;transform:translateX(3px)}.mode-card:disabled{opacity:.6}.mode-icon{color:var(--gold);font-size:26px;min-width:30px;text-align:center}.mode-card b{font-size:15px;font-weight:500;letter-spacing:2px}.mode-card small{display:block;font-size:9px;color:#93a69e;margin-top:7px;letter-spacing:.5px}.mode-state{font-size:9px;color:#bfa676;margin-left:auto;white-space:nowrap}.map-choice{display:flex;justify-content:space-between;align-items:center;margin-top:15px;font-size:10px;color:#94a99d}.map-choice select{background:#192e30cc;color:#ced5bd;padding:7px 10px;border:1px solid #899e8333;font-size:10px}.mode-note{font-size:9px;color:#9eac9c;line-height:1.8;margin-top:17px}.camp-meta{border-top:1px solid var(--line);margin-top:12px;padding-top:12px;display:flex;gap:8px;align-items:center}.camp-meta div{margin-right:auto}.camp-meta b{font-size:11px;color:#dcc18a;font-weight:500}.camp-meta small{display:block;font-size:9px;color:#95a998;margin-top:5px}.camp-meta button{font-size:9px;border:1px solid #7f937645;padding:7px}.camp-meta button:disabled{opacity:.4}.hud{position:absolute;inset:25px 3% auto;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:2}.health{display:flex;gap:12px;width:28%;align-items:center}.health>div{flex:1}.portrait{width:40px;height:45px;display:grid;place-items:center;font-family:serif;font-size:23px;flex-shrink:0;background:#2e665b;border:1px solid #9fbc8f85;clip-path:polygon(0 0,100% 0,100% 85%,50% 100%,0 85%)}.enemy-portrait{background:#8e514e;border-color:#d9a47a85}.health label{display:flex;justify-content:space-between;font-size:10px;gap:8px}.health label b{font-weight:500;letter-spacing:2px}.health label span{color:#c5cdb9;font-family:monospace}.health-track{height:7px;margin-top:9px;background:#101f2788;box-shadow:0 0 0 1px #b9c4a529;padding:1px}.health-track i{display:block;background:linear-gradient(90deg,#70a68d,#b3c98c);height:5px;transition:width .2s}.health.right .health-track i{background:linear-gradient(90deg,#a96858,#dbab82);margin-left:auto}.health small{font-size:9px;color:#dbc794;display:block;margin-top:5px;min-height:13px}.chapter{text-align:center;display:flex;flex-direction:column;gap:6px}.chapter small{font-size:8px;letter-spacing:3px;color:#b0c5b6}.chapter strong{font-size:14px;letter-spacing:3px;font-weight:500}.chapter>span{font-size:10px;color:#d4c199}.turn-banner{position:absolute;top:21%;left:50%;transform:translateX(-50%);background:#12252ddb;border:1px solid #a6b59155;font-size:13px;letter-spacing:3px;padding:12px 25px;pointer-events:none;white-space:nowrap}.scene-hint{position:absolute;left:0;right:0;bottom:3%;text-align:center;pointer-events:none;font-size:10px;letter-spacing:1px;color:#dce0bc;text-shadow:0 1px 5px #000}.build{position:absolute;left:3%;bottom:4%;display:flex;flex-wrap:wrap;gap:5px;max-width:50%;pointer-events:none}.build span{padding:5px 8px;font-size:9px;color:#d8d2b5;background:#112732b5;border:1px solid #a1b49633}.story{pointer-events:none}.story button{pointer-events:auto}.story-top{position:absolute;top:9%;left:6%;right:6%;display:flex;justify-content:space-between;align-items:center;font-size:10px;letter-spacing:3px}.story-top button{font-size:10px;color:#c8c9ac;padding:9px 14px;background:#132731a6;border:1px solid #a3b4913d}.dialogue{position:absolute;bottom:10%;left:7%;right:7%;display:flex;align-items:end;justify-content:space-between;gap:30px;padding:24px 28px;background:linear-gradient(90deg,#102531f0,#152a33ce);border-left:3px solid var(--gold);box-shadow:0 8px 30px #06141b44}.dialogue small{font-size:10px;color:var(--gold);letter-spacing:3px}.dialogue p{font-size:15px;line-height:1.9;letter-spacing:1px;margin:9px 0 5px;max-width:630px}.dialogue button{white-space:nowrap;font-size:11px;color:var(--gold);padding:12px}.story-dots{display:flex;gap:7px;margin-top:12px}.story-dots i{width:14px;height:3px;background:#8a9e8344}.story-dots i.active{background:var(--gold)}.result{display:flex;align-items:center;padding:8%;background:linear-gradient(90deg,#10232fe0,#10232f55,transparent)}.result-card{max-width:450px;width:46%}.result h2{font-family:Georgia,'Songti SC',serif;font-weight:500;font-size:36px;letter-spacing:3px;line-height:1.5;margin:17px 0}.result p:not(.eyebrow){font-size:12px;line-height:2;color:#bbc6b2}.resultReward,#resultReward{font-size:12px;color:var(--gold);margin:20px 0}.result .primary{margin-top:10px}.quiet{display:block;padding:13px 0;color:#acbba9;font-size:11px;letter-spacing:1px}.upgrade{padding:7% 6%;text-align:center;background:#10232fdd;backdrop-filter:blur(5px)}.upgrade h2{font-family:'Songti SC',serif;font-size:28px;letter-spacing:3px;font-weight:500}.upgrade-note{font-size:11px;color:#a6b7ab}.upgrade-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:5%}.relic{background:linear-gradient(150deg,#314640,#1b3136);border:1px solid #a0ac8055;padding:25px 20px;color:#d9d7b9;display:flex;flex-direction:column;align-items:center;transition:transform .2s,border-color .2s}.relic:hover{transform:translateY(-8px);border-color:var(--gold)}.relic .symbol{font-size:37px;color:var(--gold);display:grid;place-items:center;width:70px;height:70px;border:1px solid #abac7955;transform:rotate(3deg);margin-bottom:18px}.relic small{font-size:9px;color:#a3b79d;letter-spacing:3px}.relic b{font-size:20px;letter-spacing:4px;font-weight:500;margin:10px 0}.relic p{font-size:11px;line-height:1.8;min-height:42px;color:#b3c3aa}.relic .take{font-size:10px;color:var(--gold);margin-top:14px}.pause-panel{display:grid;place-items:center;background:#0b1c28c9;backdrop-filter:blur(5px);z-index:8}.pause-card{width:440px;max-width:85%;background:#20373ce8;border:1px solid #9dba8b4d;padding:28px 36px;text-align:center}.pause-card h2{font-family:serif;font-weight:500;letter-spacing:3px}.pause-card p{font-size:11px;line-height:2;color:#b7c6ad}.pause-card .primary{width:100%;justify-content:center}.pause-card .quiet{margin:auto}.inventory{max-height:130px;overflow:auto;text-align:left;font-size:10px;color:#d2cfaa;line-height:1.9;margin-bottom:15px}.toast{position:absolute;left:50%;bottom:7%;transform:translateX(-50%);z-index:12;padding:11px 20px;background:#132d33f2;border:1px solid #a5b88c66;color:#e1d9ac;font-size:12px;pointer-events:none;max-width:80%;text-align:center}footer{height:55px;display:flex;justify-content:space-between;align-items:center;gap:15px;color:#778f86;font-size:10px;letter-spacing:1px}footer>span:last-child{display:flex;gap:20px}footer i{font-style:normal;color:#566f64}footer a:hover{color:var(--gold)}.arena:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;background:#0d1921}.arena:fullscreen canvas{object-fit:contain}.arena:fullscreen .panel{max-width:1600px;margin:auto}@media(prefers-reduced-motion:reduce){*{transition:none!important}}@media(max-width:900px){.shell{padding:0 15px}header{height:74px}.edition{display:none}nav{gap:12px}.home{padding:4%}.home-copy{width:48%}h1{font-size:45px;margin:14px 0}.home-modes{width:42%}.lead{font-size:10px;line-height:1.7;margin-bottom:15px}.eyebrow{font-size:8px}.mode-card{padding:12px 5px;gap:8px}.mode-card b{font-size:12px}.mode-card small{font-size:8px}.primary{font-size:11px;padding:10px 16px;min-width:150px}.hud{top:15px}.portrait{width:28px;height:35px;font-size:18px}.health{gap:7px}.chapter strong{font-size:12px}.health label{font-size:9px}.dialogue{padding:14px 20px}.dialogue p{font-size:12px}.result h2{font-size:25px}.result p:not(.eyebrow){font-size:10px}.upgrade{padding:4%}.upgrade h2{font-size:22px}.upgrade-cards{gap:12px;margin-top:3%}.relic{padding:15px 12px}.relic .symbol{width:45px;height:45px;font-size:26px;margin-bottom:9px}.relic b{font-size:16px}.relic p{font-size:10px}.map-choice{margin-top:6px}.mode-note{margin-top:8px}.save-note{font-size:8px}.camp-meta{gap:5px}.camp-meta button{font-size:8px;padding:4px}.camp-meta small{font-size:8px}}@media(max-width:600px){header{height:60px}.brand{font-size:14px}.brand-mark{font-size:28px}.brand small{font-size:6px}nav{gap:9px}nav button{font-size:9px}nav #view{display:none}.arena{aspect-ratio:4/3}.arena canvas{object-fit:fill}.home{padding:5%;align-items:start}.home-copy{padding-top:7%;width:48%}h1{font-size:35px;letter-spacing:2px}.lead{font-size:9px}.home-modes{width:45%;padding-top:4%}.mode-card{gap:5px;padding:12px 2px}.mode-icon{font-size:18px;min-width:20px}.mode-card small{display:none}.mode-state{font-size:8px}.mode-card b{font-size:11px;letter-spacing:1px}.mode-note{font-size:8px}.home-copy .primary{min-width:0;width:100%;gap:8px;padding:11px;font-size:10px;letter-spacing:1px}.map-choice{display:block}.map-choice select{width:100%;margin-top:5px;font-size:9px}.camp-meta{flex-wrap:wrap}.camp-meta div{width:100%}.portrait{display:none}.health{width:27%}.chapter strong{font-size:10px;letter-spacing:1px}.chapter small{font-size:6px;letter-spacing:1px}.chapter>span{font-size:8px}.health label{font-size:8px}.health label b{letter-spacing:0}.health small{font-size:7px}.health-track{margin-top:5px}.hud{top:12px}.turn-banner{font-size:10px;letter-spacing:1px;padding:8px 13px;top:26%}.story-top{font-size:8px;letter-spacing:1px}.dialogue{bottom:7%;padding:12px;gap:5px}.dialogue p{font-size:10px;line-height:1.7}.dialogue button{font-size:9px;padding:4px}.story-top button{font-size:8px}.story-dots{margin-top:6px}.result-card{width:65%}.result h2{font-size:22px;margin:8px 0}.result p:not(.eyebrow){line-height:1.8}.result .primary{min-width:140px;gap:8px}.quiet{font-size:9px;padding:9px 0}.upgrade h2{font-size:17px}.upgrade-note{font-size:9px}.upgrade-cards{gap:6px}.relic{padding:12px 6px}.relic .symbol{font-size:24px;width:38px;height:38px}.relic b{font-size:14px;letter-spacing:2px}.relic small{font-size:7px}.relic p{font-size:9px;line-height:1.6}.relic .take{font-size:8px}.pause-card{padding:18px}.pause-card h2{font-size:20px}.pause-card p{font-size:10px}.inventory{max-height:65px}.scene-hint{font-size:8px}.build span{font-size:7px;padding:3px}.build{max-width:65%;bottom:8%}footer{font-size:8px;letter-spacing:0;gap:7px}footer i{display:none}}
 
 .skill-button{position:absolute;right:3%;bottom:5%;display:flex;flex-direction:column;gap:6px;align-items:center;min-width:150px;padding:13px 18px;color:#f1d29a;background:#28413ae8;border:1px solid #dabc7a88;box-shadow:0 4px 0 #132a2a;font-size:13px;z-index:3}.skill-button small{font-size:9px;color:#b3c2a5}.skill-button:disabled{opacity:.55}.skill-button:not(:disabled){animation:skillGlow 1.3s ease-in-out infinite alternate}.challenge-info{position:absolute;right:5%;top:6%;font-size:13px;letter-spacing:2px;color:#e9cc92}.loadout .quiet{margin:18px auto 0}.loadout .relic p{min-height:60px}.home-modes .mode-card{padding-top:13px;padding-bottom:13px}.result-card{animation:storyAppear .6s ease-out both}.inventory{white-space:pre-line}.arena canvas:focus-visible{outline:none}.dialogue p{min-height:2.1em}.dialogue{bottom:7%;padding-top:18px;padding-bottom:18px}.build{max-width:43%}@keyframes skillGlow{to{box-shadow:0 0 22px #e1bd5e55;border-color:#e7cd87}}@keyframes storyAppear{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}@media(max-width:900px){.home-modes .mode-card{padding-top:9px;padding-bottom:9px}.skill-button{min-width:125px;font-size:11px;padding:10px}.challenge-info{font-size:11px}}@media(max-width:600px){.home-modes .mode-card{padding-top:10px;padding-bottom:10px}.skill-button{min-width:95px;padding:7px 9px;font-size:10px;bottom:8%}.skill-button small{font-size:7px}.challenge-info{font-size:9px;top:8%}.loadout .relic p{min-height:85px}.loadout .quiet{margin-top:6px}.dialogue{bottom:5%;padding:10px}.dialogue p{font-size:9px}.mode-note{margin-top:6px}}
 
@@ -284,17 +284,50 @@ body[data-layout="mobile"][data-orientation="landscape"] .quick-start { padding-
 .name-card input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 #namesMessage { min-height: 3.4em; color: #e8d28d; }
 .health label b { min-width: 0; overflow-wrap: anywhere; }
+
+/* Account settings keep the camp palette and the same scrollable dialog. */
+#accountPanel { z-index: 10; }
+.account-card { width: min(92%, 560px); }
+.account-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.account-heading .eyebrow { margin-top: 0; }
+.account-heading button { flex-shrink: 0; }
+.account-tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--line); gap: 4px; margin: 16px 0; }
+.account-tabs button { min-height: 44px; padding: 8px 12px; color: var(--paper); font-size: 12px; border-bottom: 2px solid transparent; }
+.account-tabs button[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+.account-card input { display: block; width: 100%; min-height: 48px; margin-top: 8px; padding: 12px; border: 1px solid #95a68a77; background: #10242c; color: var(--paper); font: inherit; font-size: 16px; }
+.account-card input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.account-card input::placeholder { color: #abbfb6; }
+.account-card input[readonly] { opacity: .8; }
+.account-card button:disabled { opacity: .5; }
+.account-card .primary { min-height: 48px; margin-top: 16px; }
+.account-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
+.account-card #accountMessage, .account-card #accountSyncStatus { color: #ead29a; min-height: 1.7em; overflow-wrap: anywhere; }
+.account-identity { overflow-wrap: anywhere; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.save-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+.save-comparison > div { border-left: 2px solid var(--gold); padding-left: 12px; }
+.save-comparison b { font-size: 12px; color: var(--gold); }
+.save-comparison p { white-space: pre-line; }
+.account-card summary { min-height: 44px; cursor: pointer; padding: 12px 0; font-size: 12px; }
+.account-card details textarea { font-size: 12px; }
+body[data-layout="mobile"] .account-card .primary { width: 100%; justify-content: center; }
+@media (max-width: 600px) { .save-comparison { grid-template-columns: 1fr; gap: 8px; } }
 </style></head><body data-layout="desktop"><main class="shell" id="gameShell"><header><a class="brand" href="#" id="brand"><span class="brand-mark">➶</span><span>坡地弓手<small>HILLSIDE ARCHERS</small></span></a><span class="edition">一 箭 过 山 河 <i>THE EMBER ROAD</i></span><nav><div class="view-picker" id="viewPicker"><button id="viewMode" aria-expanded="false" aria-controls="viewMenu" title="切换电脑版或手机版">自动 ▾</button><div class="view-menu" id="viewMenu" role="group" aria-label="显示方式" hidden><button id="chooseAuto" aria-pressed="true">自动识别<small id="autoViewHint"></small></button><button id="chooseDesktop" aria-pressed="false">电脑版<small>宽屏布局 · 鼠标和键盘</small></button><button id="chooseMobile" aria-pressed="false">手机版<small>大按钮 · 触屏操作</small></button><p>切换保留当前对局和进度</p></div></div><button id="sound" aria-pressed="false">声音：关</button><button id="view" aria-pressed="false">全景</button><button id="pause">暂停</button><button id="fullscreen">全屏 ↗</button></nav></header><section class="arena" id="arena" aria-label="弓箭游戏"><canvas id="game" tabindex="0" width="1600" height="900" aria-label="拖拽拉弓，松手射箭；拉回取消圈、右键或 Esc 取消"></canvas><div class="vignette"></div>
 <div class="hud" id="hud" hidden><div class="health left"><span class="portrait hero-portrait" id="portrait0">青</span><div><label><b id="name0">青松</b><span id="hp0">100 / 100</span></label><div class="health-track"><i id="bar0"></i></div><small id="status0"></small></div></div><div class="chapter"><small id="chapterSub"></small><strong id="chapterName"></strong><span id="turn"></span></div><div class="health right"><div><label><b id="name1">赤岩</b><span id="hp1">100 / 100</span></label><div class="health-track"><i id="bar1"></i></div><small id="status1"></small></div><span class="portrait enemy-portrait" id="portrait1">岩</span></div></div>
 <div class="enemy-traits" id="enemyTraits" aria-label="对手能力" hidden></div><div class="turn-banner" id="turnBanner" hidden></div><div class="build" id="build" hidden></div><div class="scene-hint" id="sceneHint" hidden></div><button class="skill-button" id="skillButton" hidden><b id="skillName"></b><small id="skillHint">飞行中 · 空格 / 点击</small></button><div class="challenge-info" id="challengeInfo" hidden></div>
 <div class="touch-controls" id="touchControls" role="group" aria-label="触屏射箭操作" hidden><button id="angleDown" aria-label="角度减一度">−</button><button id="angleUp" aria-label="角度加一度">＋</button><button id="touchFire">射箭 <span>➶</span></button><button id="cancelShot" disabled>取消拉弓</button></div>
 <button class="skip-turn" id="skipTurn" hidden>开始本回合 ➜</button>
-<section class="home panel" id="home"><div class="home-copy"><p class="eyebrow">一场从松风开始的冒险</p><h1>一箭<br><em>过山河。</em></h1><p class="lead">拉开弓弦，让山风作答。<br>从一支箭，走到一场属于你的箭雨。</p><button class="primary" id="campaignStart">踏上山路 <span>↗</span></button><button class="quiet quick-start" id="campaignQuick" title="永久解锁无尽、切磋、双人和射靶，不额外发放奖励">跳过新手教程，解锁全部玩法 ➜</button><p class="save-note" id="saveNote">三章故事 · 可通关或跳过教程解锁玩法</p></div><div class="home-modes"><p class="eyebrow">旅 营 / BEYOND THE ROAD</p><button class="mode-card" id="rogueStart"><span class="mode-icon">✦</span><span><b>无尽远征</b><small>弓术二段 · 遗物组合 · 逐关成长</small></span><span class="mode-state">锁定</span></button><button class="mode-card" id="duelStart"><span class="mode-icon">➶</span><span><b>自由切磋</b><small>选择地形，与电脑再比一场</small></span><span class="mode-state">锁定</span></button><button class="mode-card" id="localStart"><span class="mode-icon">⚔</span><span><b>同机双人</b><small>分享一张桌子，轮流拉弓</small></span><span class="mode-state">锁定</span></button><button class="mode-card" id="targetStart"><span class="mode-icon">◎</span><span><b>百步穿杨</b><small>浮动靶标 · 连续命中 · 挑战纪录</small></span><span class="mode-state">锁定</span></button><label class="map-choice">切磋场地<select id="mapChoice" aria-label="自由模式地图"><option value="1">青岚古道</option><option value="2">赤砂关隘</option><option value="3">星坠遗迹</option></select></label><div class="camp-meta" id="campMeta" hidden><div><b id="embers"></b><small id="best"></small></div><button id="buyBow">练弓</button><button id="buyLife">强身</button></div><p class="mode-note" id="modeNote">完成三章，或跳过新手教程，即可解锁全部玩法。</p><button class="quiet transfer-link" id="editNamesHome">弓手名字 ↗</button><button class="quiet transfer-link" id="transferHome">迁移进度 ↗</button></div></section>
+<section class="home panel" id="home"><div class="home-copy"><p class="eyebrow">一场从松风开始的冒险</p><h1>一箭<br><em>过山河。</em></h1><p class="lead">拉开弓弦，让山风作答。<br>从一支箭，走到一场属于你的箭雨。</p><button class="primary" id="campaignStart">踏上山路 <span>↗</span></button><button class="quiet quick-start" id="campaignQuick" title="永久解锁无尽、切磋、双人和射靶，不额外发放奖励">跳过新手教程，解锁全部玩法 ➜</button><p class="save-note" id="saveNote">三章故事 · 可通关或跳过教程解锁玩法</p></div><div class="home-modes"><p class="eyebrow">旅 营 / BEYOND THE ROAD</p><button class="mode-card" id="rogueStart"><span class="mode-icon">✦</span><span><b>无尽远征</b><small>弓术二段 · 遗物组合 · 逐关成长</small></span><span class="mode-state">锁定</span></button><button class="mode-card" id="duelStart"><span class="mode-icon">➶</span><span><b>自由切磋</b><small>选择地形，与电脑再比一场</small></span><span class="mode-state">锁定</span></button><button class="mode-card" id="localStart"><span class="mode-icon">⚔</span><span><b>同机双人</b><small>分享一张桌子，轮流拉弓</small></span><span class="mode-state">锁定</span></button><button class="mode-card" id="targetStart"><span class="mode-icon">◎</span><span><b>百步穿杨</b><small>浮动靶标 · 连续命中 · 挑战纪录</small></span><span class="mode-state">锁定</span></button><label class="map-choice">切磋场地<select id="mapChoice" aria-label="自由模式地图"><option value="1">青岚古道</option><option value="2">赤砂关隘</option><option value="3">星坠遗迹</option></select></label><div class="camp-meta" id="campMeta" hidden><div><b id="embers"></b><small id="best"></small></div><button id="buyBow">练弓</button><button id="buyLife">强身</button></div><p class="mode-note" id="modeNote">完成三章，或跳过新手教程，即可解锁全部玩法。</p><button class="quiet transfer-link" id="editNamesHome">弓手名字 ↗</button><button class="quiet transfer-link" id="transferHome">迁移进度 ↗</button><button class="quiet transfer-link" id="accountHome">账号与云存档 ↗</button></div></section>
 <section class="story panel" id="story" hidden><div class="story-top"><span id="storyChapter"></span><button id="skipStory" title="跳过新手教程并解锁玩法">跳过剧情，开始对决 ↗</button></div><div class="dialogue"><div><small id="speaker"></small><p id="storyLine"></p><div id="storyDots" class="story-dots"></div></div><button id="nextLine" aria-label="下一幕">继续 ➜</button></div></section>
 <section class="result panel" id="result" hidden><div class="result-card"><p class="eyebrow" id="resultKicker"></p><h2 id="resultTitle"></h2><p id="resultText"></p><div id="resultReward"></div><button class="primary" id="resultNext"></button><button class="quiet" id="resultHome">返回旅营</button></div></section>
 <section class="upgrade panel" id="upgrade" hidden><p class="eyebrow">长路漫漫 / CHOOSE YOUR RELIC</p><h2>把这一战，化作新的力量。</h2><p class="upgrade-note">选择一件遗物，携带当前生命和强化继续远征。</p><div class="upgrade-cards" id="upgradeCards"></div></section>
-<section class="upgrade loadout panel" id="loadout" hidden><p class="eyebrow">远征第一步 / CHOOSE YOUR BOW</p><h2>选一张弓，走自己的路。</h2><p class="upgrade-note"><span id="loadoutName">青松</span>的初始天赋「沉着」：首次危急时，自己的回合回复 10 点生命。<br>选择弓术；胜利后获得额外遗物，分别叠加生效。</p><div class="upgrade-cards" id="bowCards"></div><button class="quiet" id="loadoutHome">返回旅营</button></section><section class="pause-panel panel" id="pausePanel" hidden><div class="pause-card"><p class="eyebrow">弓弦暂歇</p><h2>山风会等你。</h2><p id="controlHelp">拖拽拉弓，松手射箭。<br>拉回圆圈、右键或 Esc 取消蓄力。<br>← → 微调整数角度，空格射箭或跳过观察镜头。<br>远征中，箭飞行时再次按空格 / 点击施展弓术。</p><div class="inventory" id="inventory"></div><button class="primary" id="resume">继续旅程 ↗</button><button class="quiet" id="restart">重新开始本局</button><button class="quiet" id="pauseHome">返回旅营</button><button class="quiet transfer-link" id="editNamesPause">弓手名字 ↗</button><button class="quiet transfer-link" id="transferPause">迁移进度 ↗</button></div></section>
-<section class="transfer-panel panel" id="transferPanel" role="dialog" aria-modal="true" aria-labelledby="transferTitle" hidden><div class="transfer-card"><p class="eyebrow">带上你的旅程</p><h2 id="transferTitle">迁移进度</h2><p>把代码带到另一个游戏网址，即可继续已有进度。</p><p class="transfer-note">仅迁移章节、解锁、纪录和修行，不含进行中的远征。导入时保留两边较高的永久进度；请先回到旅营。</p><label for="exportProgress">当前进度代码</label><textarea id="exportProgress" readonly spellcheck="false" aria-label="当前进度代码"></textarea><button class="quiet" id="copyProgress">复制代码</button><label for="importProgress">粘贴另一网址的进度代码</label><textarea id="importProgress" spellcheck="false" placeholder="粘贴 HA2: 开头的代码" aria-label="待导入的进度代码"></textarea><p id="transferMessage" role="status" aria-live="polite"></p><div class="transfer-actions"><button class="primary" id="importProgressButton">导入进度 ↗</button><button class="quiet" id="transferClose">关闭</button></div></div></section><section class="transfer-panel panel" id="namesPanel" role="dialog" aria-modal="true" aria-labelledby="namesTitle" hidden><div class="transfer-card name-card"><p class="eyebrow">让这段旅程有你的名字</p><h2 id="namesTitle">弓手名字</h2><p>每个名字最多 8 个字符，留空使用默认名字。</p><label for="archerName0">第一位弓手 · 玩家一</label><input id="archerName0" type="text" maxlength="16" autocomplete="off" placeholder="青松"><label for="archerName1">第二位弓手 · 对手 / 玩家二</label><input id="archerName1" type="text" maxlength="16" autocomplete="off" placeholder="赤岩"><p id="namesMessage" role="status" aria-live="polite"></p><button class="quiet" id="namesReset">恢复默认</button><div class="transfer-actions"><button class="primary" id="namesSave">保存名字 ↗</button><button class="quiet" id="namesClose">取消</button></div></div></section><div class="toast" id="toast" role="status" aria-live="polite" hidden></div></section><footer><span id="footerHint">拖拽拉弓 · 松手射箭 · 拉回圈内取消</span><span><span>离线版 · 一箭过山河</span><i id="storageNote">本机自动存档</i></span></footer></main><script>
+<section class="upgrade loadout panel" id="loadout" hidden><p class="eyebrow">远征第一步 / CHOOSE YOUR BOW</p><h2>选一张弓，走自己的路。</h2><p class="upgrade-note"><span id="loadoutName">青松</span>的初始天赋「沉着」：首次危急时，自己的回合回复 10 点生命。<br>选择弓术；胜利后获得额外遗物，分别叠加生效。</p><div class="upgrade-cards" id="bowCards"></div><button class="quiet" id="loadoutHome">返回旅营</button></section><section class="pause-panel panel" id="pausePanel" hidden><div class="pause-card"><p class="eyebrow">弓弦暂歇</p><h2>山风会等你。</h2><p id="controlHelp">拖拽拉弓，松手射箭。<br>拉回圆圈、右键或 Esc 取消蓄力。<br>← → 微调整数角度，空格射箭或跳过观察镜头。<br>远征中，箭飞行时再次按空格 / 点击施展弓术。</p><div class="inventory" id="inventory"></div><button class="primary" id="resume">继续旅程 ↗</button><button class="quiet" id="restart">重新开始本局</button><button class="quiet" id="pauseHome">返回旅营</button><button class="quiet transfer-link" id="editNamesPause">弓手名字 ↗</button><button class="quiet transfer-link" id="transferPause">迁移进度 ↗</button><button class="quiet transfer-link" id="accountPause">账号与云存档 ↗</button></div></section>
+<section class="transfer-panel panel" id="transferPanel" role="dialog" aria-modal="true" aria-labelledby="transferTitle" hidden><div class="transfer-card"><p class="eyebrow">带上你的旅程</p><h2 id="transferTitle">迁移进度</h2><p>把代码带到另一个游戏网址，即可继续已有进度。</p><p class="transfer-note">仅迁移章节、解锁、纪录和修行，不含进行中的远征。导入时保留两边较高的永久进度；请先回到旅营。</p><label for="exportProgress">当前进度代码</label><textarea id="exportProgress" readonly spellcheck="false" aria-label="当前进度代码"></textarea><button class="quiet" id="copyProgress">复制代码</button><label for="importProgress">粘贴另一网址的进度代码</label><textarea id="importProgress" spellcheck="false" placeholder="粘贴 HA2: 开头的代码" aria-label="待导入的进度代码"></textarea><p id="transferMessage" role="status" aria-live="polite"></p><div class="transfer-actions"><button class="primary" id="importProgressButton">导入进度 ↗</button><button class="quiet" id="transferClose">关闭</button></div></div></section><section class="transfer-panel panel" id="namesPanel" role="dialog" aria-modal="true" aria-labelledby="namesTitle" hidden><div class="transfer-card name-card"><p class="eyebrow">让这段旅程有你的名字</p><h2 id="namesTitle">弓手名字</h2><p>每个名字最多 8 个字符，留空使用默认名字。</p><label for="archerName0">第一位弓手 · 玩家一</label><input id="archerName0" type="text" maxlength="16" autocomplete="off" placeholder="青松"><label for="archerName1">第二位弓手 · 对手 / 玩家二</label><input id="archerName1" type="text" maxlength="16" autocomplete="off" placeholder="赤岩"><p id="namesMessage" role="status" aria-live="polite"></p><button class="quiet" id="namesReset">恢复默认</button><div class="transfer-actions"><button class="primary" id="namesSave">保存名字 ↗</button><button class="quiet" id="namesClose">取消</button></div></div></section><section class="transfer-panel panel" id="accountPanel" role="dialog" aria-modal="true" aria-labelledby="accountTitle" hidden>
+<div class="transfer-card account-card"><div class="account-heading"><div><p class="eyebrow">把旅程带到另一端</p><h2 id="accountTitle">账号与云存档</h2></div><button class="quiet" id="accountClose" aria-label="关闭账号窗口">关闭</button></div>
+<p class="transfer-note">随时可以继续本机游玩。仅同步章节、解锁、纪录、名字和永久修行，不含进行中的远征。</p>
+<div id="accountGuest"><div class="account-tabs" role="group" aria-label="登录方式"><button id="authpassword" aria-pressed="true">密码登录</button><button id="authotp" aria-pressed="false">验证码登录</button><button id="authregister" aria-pressed="false">注册账号</button><button id="authreset" aria-pressed="false">忘记密码</button></div>
+<form id="accountForm"><label for="accountEmail">邮箱<input id="accountEmail" type="email" autocomplete="email" maxlength="254" required placeholder="你的邮箱地址"></label><label id="accountPasswordLabel" for="accountPassword">密码<input id="accountPassword" type="password" autocomplete="current-password" maxlength="128" required></label><label id="accountCodeLabel" for="accountCode" hidden>邮件验证码<input id="accountCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" pattern="[0-9]{4,12}"></label><button class="primary" id="accountSubmit" type="submit">登录账号</button><div class="account-actions"><button class="quiet" id="accountResend" type="button" hidden>重新发送验证码</button><button class="quiet" id="accountBack" type="button" hidden>返回修改邮箱</button></div></form></div>
+<div id="accountMember" hidden><p class="account-identity" id="accountIdentity"></p><p id="accountSyncStatus" role="status" aria-live="polite"></p><div id="accountChoice" hidden><div class="save-comparison"><div><b>当前本机</b><p id="cloudLocalSummary"></p></div><div><b>账号云端</b><p id="cloudRemoteSummary"></p></div></div><p class="transfer-note">纪录和解锁保留较高进度。余烬与练弓、强身等级整组选择，不把两份余额相加；替换前会留一份本机备份。请在旅营选择。</p><div class="account-actions"><button class="primary" id="keepCloud">使用云端修行与余烬</button><button class="quiet" id="keepLocal">保留本机修行与余烬</button></div></div><div class="account-actions"><button class="quiet" id="cloudRefresh">检查 / 重试同步</button><button class="quiet" id="accountSignOut">退出账号</button></div></div>
+<p id="accountMessage" role="status" aria-live="polite"></p><details id="cloudBackupDetails" hidden><summary>查看同步前的本机备份</summary><p class="transfer-note">复制下面的代码，可在旅营的「迁移进度」中导入。</p><textarea id="cloudBackupCode" readonly aria-label="同步前的本机进度代码"></textarea></details></div></section><div class="toast" id="toast" role="status" aria-live="polite" hidden></div></section><footer><span id="footerHint">拖拽拉弓 · 松手射箭 · 拉回圈内取消</span><span><span>离线版 · 一箭过山河</span><i id="storageNote">本机自动存档</i></span></footer></main><script>
 const DEFAULT_NAMES = ['青松', '赤岩'];
 const MAX_NAME_LENGTH = 8;
 
@@ -923,7 +956,409 @@ function mergeProgress(current, incoming) {
   return validSave(merged);
 }
 
+
+const CLOUD_META_KEY = 'hillside-archers-cloud-v1';
+const CLOUD_BACKUP_KEY = 'hillside-archers-cloud-backups-v1';
+const saveText = progress => JSON.stringify(validSave(progress));
+
+// Records can be combined. Currency and purchased levels must travel together.
+function reconcileCloudProgress(local, remote, choice) {
+  const a = validSave(local), b = validSave(remote);
+  const result = {...(choice === 'local' ? a : b), unlocked: a.unlocked || b.unlocked};
+  for (const key of ['targetBest', 'checkpoint', 'best']) result[key] = Math.max(a[key], b[key]);
+  return validSave(result);
+}
+
+function cloudRecord(row) {
+  if (!row) return {revision: 0, progress: null};
+  const revision = Number(row.revision);
+  if (!Number.isSafeInteger(revision) || revision < 1 || row.progress?.version !== 2 ||
+      typeof row.progress.unlocked !== 'boolean' ||
+      ['targetBest','checkpoint','best','embers','bow','life'].some(k => !Number.isSafeInteger(row.progress[k]))) {
+    throw new Error('云端存档格式无法识别，已保留本机进度。');
+  }
+  return {...row, revision, progress: validSave(row.progress)};
+}
+
+function progressSummary(progress) {
+  if (!progress) return '尚无云存档';
+  const p = validSave(progress);
+  return (p.unlocked ? '全部模式已解锁' : '主线第 ' + p.checkpoint + ' 章') +
+    ' · 远征 ' + p.best + ' 层 · 射靶 ' + p.targetBest + ' 分\n余烬 ' + p.embers +
+    ' · 练弓 ' + p.bow + ' 级 · 强身 ' + p.life + ' 级';
+}
+
+class CloudProgress {
+  constructor({storage, getSave, applySave, atCamp, onState = () => {}, requestId = () => globalThis.crypto.randomUUID()}) {
+    this.storage = storage; this.getSave = getSave; this.applySave = applySave;
+    this.atCamp = atCamp; this.onState = onState; this.requestId = requestId;
+    this.meta = this.readMeta(); this.epoch = 0; this.user = null; this.remote = null;
+    this.ready = false; this.busy = null; this.timer = null; this.applying = false;
+    this.phase = 'guest'; this.message = '本机游玩 · 登录后可同步永久进度';
+  }
+  readMeta() {
+    try {return JSON.parse(this.storage?.getItem(CLOUD_META_KEY) || 'null');} catch {return null;}
+  }
+  storeMeta(meta) {
+    // Fail closed rather than upload without a durable revision / retry record.
+    if (!this.storage) throw new Error('浏览器无法保存同步记录，请先导出迁移码备份。');
+    this.storage.setItem(CLOUD_META_KEY, JSON.stringify(meta)); this.meta = meta;
+  }
+  state(phase, message) {
+    this.phase = phase; this.message = message;
+    this.onState({phase, message, user: this.user, remote: this.remote, local: validSave(this.getSave())});
+  }
+  disconnect() {
+    this.epoch++; this.user = null; this.backend = null; this.ready = false;
+    this.busy = null; this.remote = null; clearTimeout(this.timer);
+    this.state('guest', '已退出账号，本机进度仍保留。');
+  }
+  async connect(user, backend) {
+    this.disconnect(); this.user = user; this.backend = backend;
+    return this.refresh();
+  }
+  async refresh() {
+    if (!this.user || this.busy) return this.busy;
+    const epoch = this.epoch;
+    this.state('syncing', '正在检查云端进度…');
+    const task = (async () => {
+      try {
+        const remote = cloudRecord(await this.backend.read());
+        if (epoch !== this.epoch) return;
+        this.remote = remote;
+        const meta = this.meta, sameAccount = meta?.userId === this.user.id;
+        if (sameAccount && meta.pending) {
+          this.ready = true;
+          return; // Resume the exact request below, including its idempotency key.
+        }
+        if (sameAccount && remote.revision === meta.revision) {
+          this.ready = true;
+          if (saveText(this.getSave()) === saveText(remote.progress)) this.state('synced', '永久进度已同步');
+          return;
+        }
+        if (sameAccount && saveText(this.getSave()) === saveText(meta.baseline) && remote.progress) {
+          if (!this.atCamp()) {this.ready = false; this.state('waiting', '云端有新进度，回到旅营后更新。'); return;}
+          this.accept(remote, remote.progress);
+          return;
+        }
+        this.ready = false;
+        this.state('choice', remote.progress ? '发现两份进度，请选择要保留的修行与余烬。纪录和解锁会合并。' : '此账号还没有云存档。确认后，将当前本机进度保存到账号。');
+      } catch (error) {
+        if (epoch === this.epoch) this.state('error', error.message || '暂时无法连接云端，本机进度仍保留。');
+      }
+    })();
+    this.busy = task;
+    await task;
+    if (this.busy === task) this.busy = null;
+    if (epoch === this.epoch && this.ready && this.phase !== 'error') return this.flush();
+  }
+  backup(progress) {
+    if (!this.storage) throw new Error('浏览器无法备份本机进度，请先导出迁移码。');
+    const backups = JSON.parse(this.storage.getItem(CLOUD_BACKUP_KEY) || '[]');
+    const list = Array.isArray(backups) ? backups : [];
+    list.unshift({userId: this.user.id, at: new Date().toISOString(), progress: validSave(progress)});
+    this.storage.setItem(CLOUD_BACKUP_KEY, JSON.stringify(list.slice(0, 4)));
+  }
+  accept(remote, progress) {
+    const before = this.getSave();
+    if (saveText(before) !== saveText(progress)) this.backup(before);
+    this.storeMeta({userId: this.user.id, revision: remote.revision, baseline: remote.progress, pending: null});
+    this.ready = true;
+    this.applying = true;
+    try {if (saveText(before) !== saveText(progress)) this.applySave(validSave(progress));}
+    finally {this.applying = false;}
+    this.state('synced', '永久进度已同步');
+  }
+  async choose(choice) {
+    if (this.phase !== 'choice' || !this.user || !this.remote || this.busy) return;
+    if (!this.atCamp()) {this.state('choice', '请先回到旅营，再选择进度。'); return;}
+    try {
+      if (choice === 'cloud' && !this.remote.progress) return;
+      const result = this.remote.progress ? reconcileCloudProgress(this.getSave(), this.remote.progress, choice) : validSave(this.getSave());
+      this.accept(this.remote, result);
+      return this.flush();
+    } catch (error) {this.ready = false; this.state('error', error.message);}
+  }
+  changed() {
+    if (!this.user || !this.ready || this.applying) return;
+    clearTimeout(this.timer);
+    if (!this.busy) this.state('pending', '本机已保存，准备同步…');
+    this.timer = setTimeout(() => {void this.flush();}, 2000);
+  }
+  async flush() {
+    if (!this.user || !this.ready || this.busy) return this.busy;
+    const epoch = this.epoch;
+    if (this.meta?.revision > 0 && !this.meta.pending && saveText(this.getSave()) === saveText(this.meta.baseline)) {
+      this.state('synced', '永久进度已同步'); return;
+    }
+    this.state('syncing', '正在同步永久进度…');
+    const task = (async () => {
+      try {
+        let pending = this.meta?.pending;
+        if (!pending) {
+          pending = {revision: this.meta.revision, progress: validSave(this.getSave()), requestId: this.requestId()};
+          this.storeMeta({...this.meta, pending});
+        }
+        const result = await this.backend.write(pending.revision, pending.progress, pending.requestId);
+        if (epoch !== this.epoch) return;
+        if (result.status === 'conflict') {
+          this.remote = result.revision ? cloudRecord(result) : {revision: 0, progress: null};
+          this.storeMeta({...this.meta, pending: null}); this.ready = false;
+          this.state('choice', '另一设备刚更新了进度。已停止上传，请回旅营选择要保留的修行与余烬。'); return;
+        }
+        if (result.status !== 'saved') throw new Error('未收到云端保存确认，本机进度仍保留。');
+        const remote = cloudRecord(result);
+        this.remote = remote;
+        this.storeMeta({userId: this.user.id, revision: remote.revision, baseline: remote.progress, pending: null});
+        this.state('synced', '永久进度已同步');
+      } catch (error) {if (epoch === this.epoch) this.state('error', error.message || '同步失败，本机进度仍保留；联网后可重试。');}
+    })();
+    this.busy = task;
+    await task;
+    if (this.busy === task) this.busy = null;
+    // Progress earned while a request was in flight belongs in a new revision.
+    if (epoch === this.epoch && this.ready && this.phase === 'synced' && saveText(this.getSave()) !== saveText(this.meta.baseline)) return this.flush();
+  }
+}
+
+// Online-only SDK is loaded once, on demand. The standalone offline game never
+// loads it; a blocked cloud service cannot prevent the Canvas game from starting.
+let cloudClientPromise;
+async function loadCloudClient() {
+  if (cloudClientPromise) return cloudClientPromise;
+  cloudClientPromise = (async () => {
+    const response = await fetch('cloud-config.json', {cache: 'no-store'});
+    if (!response.ok) throw new Error('本站尚未配置云存档，请继续本机游玩或使用迁移码。');
+    const config = await response.json();
+    if (!config.enabled || !config.env || !config.accessKey) throw new Error('本站尚未配置云存档，请继续本机游玩或使用迁移码。');
+    const {default: cloudbase} = await import('./vendor/cloudbase-3.11.0.mjs');
+    const app = cloudbase.init({env: config.env, region: config.region, accessKey: config.accessKey, auth: {detectSessionInUrl: true}});
+    return cloudClient(app);
+  })();
+  try {return await cloudClientPromise;} catch (error) {cloudClientPromise = null; throw error;}
+}
+
+function cloudClient(app) {
+  const auth = app.auth, db = app.rdb();
+  const result = async promise => {const response = await promise; if (response.error) throw new Error(response.error.message); return response.data;};
+  async function session() {
+    const data = await result(auth.getSession());
+    const value = data?.session;
+    return value?.user?.id && !value.user.is_anonymous ? value : null;
+  }
+  async function requireUser(uid) {
+    if ((await session())?.user.id !== uid) throw new Error('登录状态已变化，请重新登录；本机进度仍保留。');
+  }
+  return {
+    auth, session,
+    async password(email, password) {
+      const data = await result(auth.signInWithPassword({email, password}));
+      if (!data?.session) throw new Error('尚未获得登录会话，请重试。');
+      return data;
+    },
+    async send(mode, email, password) {
+      const data = await result(mode === 'register' ? auth.signUp({email, password}) :
+        mode === 'reset' ? auth.resetPasswordForEmail(email) : auth.signInWithOtp({email}));
+      if (mode === 'reset') return async code => result(data.updateUser({nonce: code, password}));
+      if (typeof data?.verifyOtp !== 'function') throw new Error('暂时无法验证邮件，请稍后重试。');
+      return async code => result(data.verifyOtp({token: code}));
+    },
+    signOut: () => result(auth.signOut()),
+    backend(uid) {
+      return {
+        async read() {
+          await requireUser(uid);
+          const rows = await result(db.from('archer_saves').select('revision,progress,updated_at').eq('owner_id', uid).limit(1));
+          return rows?.[0] || null;
+        },
+        async write(revision, progress, requestId) {
+          await requireUser(uid);
+          return result(db.rpc('archer_save_for_account', {expected_owner: uid, expected_revision: revision, new_progress: progress, request_id: requestId}));
+        },
+      };
+    },
+  };
+}
+
+
+function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, loadClient = loadCloudClient}) {
+  const el = id => document.getElementById(id);
+  let client, listenerClient, bootPromise, verifyCode, mode = 'password', working = false, cooldown = 0, interval, activeUid;
+  const offline = document.documentElement.dataset.offline === 'true' || globalThis.location?.protocol === 'file:';
+  const sync = new CloudProgress({storage, getSave, applySave, atCamp, onState: paint});
+  el('accountPanel').hidden = true;
+  function message(text) {el('accountMessage').textContent = text;}
+  function errorMessage(error) {
+    const text = error?.message || '暂时无法连接云端，请稍后重试。本机进度仍保留。';
+    return /already.*(exist|register)|user.*not.*found|account.*not.*exist/i.test(text) ? '暂未完成登录，请检查信息，或使用验证码登录。' : text;
+  }
+  function paint(state = sync) {
+    const signedIn = !!state.user;
+    el('accountGuest').hidden = signedIn || offline;
+    el('accountMember').hidden = !signedIn;
+    el('accountIdentity').textContent = state.user?.email || state.user?.username || '已登录账号';
+    el('accountSyncStatus').textContent = state.message;
+    el('accountChoice').hidden = state.phase !== 'choice';
+    el('cloudLocalSummary').textContent = progressSummary(getSave());
+    el('cloudRemoteSummary').textContent = progressSummary(state.remote?.progress);
+    el('keepCloud').disabled = working || !atCamp() || !state.remote?.progress;
+    el('keepLocal').disabled = working || !atCamp();
+    el('keepLocal').textContent = state.remote?.progress ? '保留本机修行与余烬' : '将本机进度保存到账号';
+    el('cloudRefresh').disabled = working || state.phase === 'syncing';
+    el('accountSignOut').disabled = working;
+    const labels = {guest:'账号与云存档 ↗',syncing:'云存档 · 同步中',synced:'云存档 · 已同步',pending:'云存档 · 待同步',choice:'云存档 · 选择进度',waiting:'云存档 · 回旅营更新',error:'云存档 · 待重试'};
+    for (const id of ['accountHome','accountPause']) el(id).textContent = offline ? '云存档 · 在线版可用' : labels[state.phase] || '账号与云存档 ↗';
+    refreshBackup();
+  }
+  function refreshBackup() {
+    try {
+      const backup = JSON.parse(storage?.getItem(CLOUD_BACKUP_KEY) || '[]')?.[0];
+      el('cloudBackupDetails').hidden = !backup;
+      if (backup) el('cloudBackupCode').value = encodeProgress(backup.progress);
+    } catch {el('cloudBackupDetails').hidden = true;}
+  }
+  function formState() {
+    el('accountPasswordLabel').hidden = mode === 'otp';
+    el('accountPassword').required = mode !== 'otp';
+    el('accountPassword').autocomplete = mode === 'register' || mode === 'reset' ? 'new-password' : 'current-password';
+    el('accountPassword').minLength = mode === 'register' || mode === 'reset' ? 8 : 1;
+    el('accountCodeLabel').hidden = !verifyCode;
+    el('accountCode').required = !!verifyCode;
+    el('accountEmail').readOnly = !!verifyCode;
+    el('accountPassword').readOnly = !!verifyCode;
+    el('accountSubmit').disabled = working || (!verifyCode && mode !== 'password' && Date.now() < cooldown);
+    el('accountSubmit').textContent = working ? '请稍候…' : verifyCode ? (mode === 'reset' ? '确认并设置新密码' : '验证并继续') : mode === 'password' ? '登录账号' : '发送邮箱验证码';
+    el('accountBack').hidden = !verifyCode;
+    el('accountResend').hidden = !verifyCode;
+    el('accountResend').disabled = working || Date.now() < cooldown;
+    el('accountResend').textContent = Date.now() < cooldown ? Math.ceil((cooldown - Date.now()) / 1000) + ' 秒后可重发' : '重新发送验证码';
+    for (const value of ['password','otp','register','reset']) {
+      el('auth' + value).setAttribute('aria-pressed', value === mode);
+      el('auth' + value).disabled = working;
+    }
+  }
+  function selectMode(value) {
+    if (working) return;
+    mode = value; verifyCode = null; el('accountCode').value = ''; el('accountPassword').value = '';
+    message(value === 'register' ? '验证邮箱后创建账号，已有本机进度会保留。密码至少 8 位，含字母和数字。' :
+      value === 'reset' ? '验证邮箱后设置新密码。请在下方填写新密码，再发送验证码。' : '登录后可在不同设备和游戏网址同步永久进度。');
+    formState();
+  }
+  async function sessionChanged(session) {
+    const user = session?.user;
+    if (!user?.id || user.is_anonymous) {
+      activeUid = null; sync.disconnect(); paint(); return;
+    }
+    if (activeUid === user.id) return;
+    activeUid = user.id; el('accountPassword').value = ''; el('accountCode').value = '';
+    verifyCode = null; formState();
+    await sync.connect(user, client.backend(user.id));
+  }
+  async function boot() {
+    if (bootPromise) return bootPromise;
+    bootPromise = (async () => {
+      if (offline) throw new Error('离线版保留本机存档和迁移码。请打开在线游戏网址使用账号云存档。');
+      client = await loadClient();
+      // Never await an SDK auth method from inside its auth-state callback.
+      if (listenerClient !== client) {
+        client.auth.onAuthStateChange((_event, session) => {queueMicrotask(() => {void sessionChanged(session);});});
+        listenerClient = client;
+      }
+      await sessionChanged(await client.session());
+      return client;
+    })();
+    try {return await bootPromise;} catch (error) {bootPromise = null; throw error;}
+  }
+  async function work(action) {
+    if (working) return;
+    working = true; formState(); paint();
+    try {await action();} catch (error) {message(errorMessage(error));}
+    finally {working = false; formState(); paint();}
+  }
+  async function sendCode() {
+    if (Date.now() < cooldown) throw new Error('请稍候 ' + Math.ceil((cooldown - Date.now()) / 1000) + ' 秒，再发送验证码。');
+    const sdk = await boot();
+    const email = el('accountEmail').value.trim(), password = el('accountPassword').value;
+    if ((mode === 'register' || mode === 'reset') && (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password))) throw new Error('请使用至少 8 位、含字母和数字的密码。');
+    verifyCode = await sdk.send(mode, email, password);
+    cooldown = Date.now() + 60000;
+    clearInterval(interval); interval = setInterval(() => {formState(); if (Date.now() >= cooldown) clearInterval(interval);}, 1000);
+    message('若邮箱可接收验证邮件，验证码会发送到该地址。请检查收件箱和垃圾邮件。');
+    formState(); el('accountCode').focus();
+  }
+  el('accountForm').addEventListener('submit', event => {
+    event.preventDefault();
+    void work(async () => {
+      const sdk = await boot();
+      if (verifyCode) {
+        const data = await verifyCode(el('accountCode').value.trim());
+        if (!data?.session && !await sdk.session()) throw new Error('验证尚未完成，请重新登录。');
+        await sessionChanged(data?.session || await sdk.session());
+        message('已登录，本机进度仍保留。');
+      } else if (mode === 'password') {
+        const data = await sdk.password(el('accountEmail').value.trim(), el('accountPassword').value);
+        await sessionChanged(data.session); message('已登录，本机进度仍保留。');
+      } else await sendCode();
+    });
+  });
+  for (const value of ['password','otp','register','reset']) el('auth' + value).onclick = () => selectMode(value);
+  el('accountBack').onclick = () => selectMode(mode);
+  el('accountResend').onclick = () => {if (Date.now() >= cooldown) void work(sendCode);};
+  el('keepLocal').onclick = () => {void work(() => sync.choose('local'));};
+  el('keepCloud').onclick = () => {void work(() => sync.choose('cloud'));};
+  el('cloudRefresh').onclick = () => {void work(() => sync.refresh());};
+  el('accountSignOut').onclick = () => {void work(async () => {
+    const pending = sync.busy;
+    activeUid = null; sync.disconnect();
+    if (pending) await pending;
+    try {await client.signOut();}
+    catch (error) {await sessionChanged(await client.session()); throw error;}
+    message('已退出。本机进度仍保留，其他人使用时可登录自己的账号。');
+  });};
+  function close(focus = true) {
+    el('accountPanel').hidden = true;
+    if (focus) el(atCamp() ? 'accountHome' : 'accountPause').focus();
+  }
+  function open() {
+    beforeOpen(); el('accountPanel').hidden = false; paint(); formState();
+    message(offline ? '离线版保留本机存档和迁移码。请打开在线游戏网址使用账号云存档。' : '本机进度会保留；只有登录后才会连接云端。');
+    el('accountClose').focus();
+    if (!offline) void work(boot);
+  }
+  el('accountHome').onclick = open; el('accountPause').onclick = open;
+  el('accountClose').onclick = () => close();
+  el('accountPanel').addEventListener('keydown', event => {
+    if (event.key !== 'Tab') return;
+    const nodes = [...el('accountPanel').querySelectorAll('button:not(:disabled),input,textarea,summary')].filter(node => node.getClientRects().length);
+    const first = nodes[0], last = nodes[nodes.length - 1];
+    if (event.shiftKey && document.activeElement === first) {event.preventDefault(); last?.focus();}
+    else if (!event.shiftKey && document.activeElement === last) {event.preventDefault(); first?.focus();}
+  });
+  window.addEventListener('online', () => {if (sync.user) void sync.refresh(); else if (sync.meta?.userId && !offline) void work(boot);});
+  let lastCheck = 0;
+  function checkAtCamp() {
+    if (sync.user && atCamp() && !sync.busy && sync.phase !== 'choice' && (sync.phase === 'waiting' || Date.now() - lastCheck > 10000)) {
+      lastCheck = Date.now(); void sync.refresh();
+    }
+  }
+  window.addEventListener('focus', checkAtCamp);
+  // No request for new guests; returning members recover their SDK session.
+  if (sync.meta?.userId && !offline) void work(boot);
+  paint(); formState();
+  return {
+    changed: () => sync.changed(), close,
+    dispose: () => {clearInterval(interval); sync.disconnect();},
+    camp: () => {checkAtCamp(); paint();},
+    key(event) {
+      if (el('accountPanel').hidden) return false;
+      if (event.key === 'Escape') {event.preventDefault(); close();}
+      return true;
+    },
+  };
+}
+
 const $=id=>document.getElementById(id),canvas=$('game'),renderer=new Renderer(canvas),SAVE_KEY='hillside-archers-save-v2';
+let cloudAccount;
 let saved,storageReady=true;try{saved=localStorage.getItem(SAVE_KEY);}catch{storageReady=false;}let paused=false,soundOn=false,audio=null,toastUntil=0,lastPhase='',lastBeat=-1,lastNow=0,renderDirty=true,stored=storageReady;
 const game=new Game({save:validSave(saved),onEvent:handleEvent});
 const archerName=i=>normalizeNames(game.save.names)[i],namedText=text=>storyNames(text,game.save.names);
@@ -968,7 +1403,7 @@ const STORIES=[[
 ]];
 function tone(freq,dur=.12,type='triangle',vol=.035){if(!soundOn)return;try{audio??=new(window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume();const t=audio.currentTime,osc=audio.createOscillator(),gain=audio.createGain();osc.type=type;osc.frequency.setValueAtTime(freq,t);osc.frequency.exponentialRampToValueAtTime(Math.max(45,freq*.55),t+dur);gain.gain.setValueAtTime(vol,t);gain.gain.exponentialRampToValueAtTime(.001,t+dur);osc.connect(gain);gain.connect(audio.destination);osc.start();osc.stop(t+dur);}catch{}}
 function toast(text){$('toast').textContent=text;$('toast').hidden=false;toastUntil=performance.now()+3000;}
-function handleEvent(e){renderDirty=true;if(e.type==='save'){try{localStorage.setItem(SAVE_KEY,JSON.stringify(e.save));stored=true;}catch{stored=false;}}if(e.type==='phase')cancelDrag();if(e.type==='shoot')tone(500,.17);if(e.type==='hit')tone(e.head?160:110,.14,'triangle',.07);if(e.type==='break')tone(90,.14,'square',.025);if(e.type==='pickup')tone(800,.24,'sine');if(e.type==='skill')tone(300,.3,'sawtooth',.025);if(e.type==='target')tone(850,.2,'sine');if(e.type==='victory')tone(620,.7,'sine');if(e.type==='defeat')tone(180,.6,'sine');}
+function handleEvent(e){renderDirty=true;if(e.type==='save'){try{localStorage.setItem(SAVE_KEY,JSON.stringify(e.save));stored=true;}catch{stored=false;}cloudAccount?.changed();}if(e.type==='phase')cancelDrag();if(e.type==='shoot')tone(500,.17);if(e.type==='hit')tone(e.head?160:110,.14,'triangle',.07);if(e.type==='break')tone(90,.14,'square',.025);if(e.type==='pickup')tone(800,.24,'sine');if(e.type==='skill')tone(300,.3,'sawtooth',.025);if(e.type==='target')tone(850,.2,'sine');if(e.type==='victory')tone(620,.7,'sine');if(e.type==='defeat')tone(180,.6,'sine');}
 function modeName(){return game.mode==='campaign'?'山路三试 / 第 '+game.stage+' 章':game.mode==='rogue'?'无尽远征 / 第 '+game.floor+' 层':game.mode==='local'?'同机双人':game.mode==='target'?'百步穿杨':'自由切磋';}
 function show(id,visible){$(id).hidden=!visible;}
 function renderHome(){const unlocked=game.save.unlocked;show('campaignQuick',!unlocked);for(const id of ['rogueStart','duelStart','localStart','targetStart']){const b=$(id);b.disabled=!unlocked;b.querySelector('.mode-state').textContent=unlocked?'进入 ↗':'未解锁';}$('mapChoice').disabled=!unlocked;$('campaignStart').innerHTML=(game.save.checkpoint>1?'继续第 '+game.save.checkpoint+' 章':unlocked?'重温山路':'踏上山路')+' <span>↗</span>';$('saveNote').textContent=unlocked?'全部模式已解锁 · 主线可随时重温':game.save.checkpoint===1?'新手首战 · 对手半血 · 可跳过教程解锁玩法':'三章故事 · 已走到第 '+game.save.checkpoint+' 章';$('modeNote').textContent=unlocked?'遗物在本次远征叠加，余烬可用于永久修行。':'完成三章，或跳过新手教程，即可解锁全部玩法。';show('campMeta',unlocked);$('embers').textContent='余烬 '+game.save.embers;$('best').textContent='远征最高 '+game.save.best+' 层';for(const [id,key,label] of [['buyBow','bow','练弓'],['buyLife','life','强身']]){const level=game.save[key],cost=3+level*2;$(id).textContent=label+' '+level+'/5 · '+(level===5?'已满':cost+'余烬');$(id).disabled=level>=5||game.save.embers<cost;$(id).title=key==='bow'?'永久增加远征初始箭伤害，每级4%':'永久增加远征初始生命，每级5点';}}
@@ -979,7 +1414,7 @@ function renderResult(){const win=game.phase==='victory';$('resultKicker').textC
 function renderBows(){const host=$('bowCards');host.replaceChildren();for(const bow of BOWS){const b=document.createElement('button');b.className='relic';b.innerHTML='<span class="symbol" style="color:'+bow.color+'">'+bow.icon+'</span><small>'+bow.skill+'</small><b>'+bow.name+'</b><p>'+bow.desc+'</p><span class="take">带上这张弓 ↗</span>';b.onclick=()=>{if(game.start('rogue',1,bow.id)){setPaused(false);canvas.focus();toast(bow.tip);}};host.append(b);}}
 function renderChoices(){const host=$('upgradeCards');host.replaceChildren();for(const u of game.choices){const b=document.createElement('button');b.className='relic';const before=synergies(game.stats),after=synergies(applyUpgrade({...game.stats},u.id)),newPairs=after.filter(s=>!before.some(b=>b.id===s.id));b.innerHTML='<span class="symbol">'+u.icon+'</span><small>'+u.tag+'</small><b>'+u.name+'</b><p>'+u.desc+'</p><span class="upgrade-preview">'+upgradePreview(game.stats,u.id)+'</span>'+(newPairs.length?'<span class="pair-badge">激活 '+newPairs.map(s=>s.name).join(' · ')+'</span>':'')+'<span class="take">带上遗物 ↗</span>';b.onclick=()=>{if(game.chooseUpgrade(u.id)){tone(700,.2,'sine');renderDirty=true;}};host.append(b);}}
 function inventory(){const counts={};for(const id of game.upgrades)counts[id]=(counts[id]||0)+1;return Object.entries(counts).map(([id,n])=>({u:UPGRADES.find(u=>u.id===id),n}));}
-function renderUI(){const phase=game.phase;if(lastPhase!==phase){lastPhase=phase;renderDirty=true;lastBeat=-1;for(const [id,p] of [['home','home'],['story','intro'],['result','result'],['upgrade','upgrade'],['loadout','loadout']])show(id,p==='result'?['victory','defeat'].includes(phase):p===phase);if(phase==='home')renderHome();if(['victory','defeat'].includes(phase))renderResult();if(phase==='upgrade')renderChoices();if(phase==='loadout')renderBows();}
+function renderUI(){const phase=game.phase;if(lastPhase!==phase){lastPhase=phase;if(phase==='home')cloudAccount?.camp();renderDirty=true;lastBeat=-1;for(const [id,p] of [['home','home'],['story','intro'],['result','result'],['upgrade','upgrade'],['loadout','loadout']])show(id,p==='result'?['victory','defeat'].includes(phase):p===phase);if(phase==='home')renderHome();if(['victory','defeat'].includes(phase))renderResult();if(phase==='upgrade')renderChoices();if(phase==='loadout')renderBows();}
  if(renderDirty){if(phase==='home')renderHome();const inv=inventory();$('build').replaceChildren();for(const {u,n} of inv){const el=document.createElement('span');el.textContent=u.name+(n>1?' ×'+n:'');$('build').append(el);}const pairs=synergies(game.stats);for(const pair of pairs){const el=document.createElement('span');el.className='pair-badge';el.textContent=pair.name;el.title=pair.desc;$('build').append(el);}$('inventory').textContent=characterById(game.players[0].characterId).description+'\n\n'+(game.mode==='rogue'?(BOWS.find(b=>b.id===game.skill)||BOWS[0]).tip+'\n\n':'')+(inv.length?inv.map(({u,n})=>u.name+' ×'+n+'：'+u.desc+(u.id==='fire'||u.id==='poison'?'\n下次升级：'+upgradePreview(game.stats,u.id):'')).join('\n'):'当前尚未携带遗物。')+(pairs.length?'\n\n'+pairs.map(p=>p.desc).join('\n'):'')+(game.mode==='rogue'?'\n\n对手能力：'+enemySummary(game.players[1]):'')+'\n\n当前状态\n'+game.players.map((p,i)=>archerName(i)+'：'+(statusSummary(p.status)||'无异常')).join('\n');renderDirty=false;}
  const gameplay=['scout','thinking','aim','flight','settle'].includes(phase);show('hud',gameplay);$('storageNote').textContent=stored?'本机自动存档':'当前浏览器无法保存进度';show('build',gameplay&&game.mode==='rogue'&&game.upgrades.length>0);show('sceneHint',gameplay&&!['scout','thinking'].includes(phase));$('chapterSub').textContent=modeName();$('chapterName').textContent=MAPS[game.map].name;$('turn').textContent='第 '+game.round+' 回合';const enemyRole=game.mode==='rogue'?(game.floor%3===0?'星墟守将':game.floor>=4?(game.floor%3===1?'青毒猎手':'焰羽游侠'):''):'';$('name1').textContent=archerName(1)+(game.mode==='local'?' · 玩家二':enemyRole?' · '+enemyRole:'');$('name0').textContent=archerName(0)+(game.mode==='local'?' · 玩家一':'');$('portrait0').textContent=Array.from(archerName(0))[0];$('portrait1').textContent=Array.from(archerName(1))[0];$('loadoutName').textContent=archerName(0);
  for(let i=0;i<2;i++){const p=game.players[i];$('hp'+i).textContent=Math.ceil(p.hp)+' / '+p.stats.maxHp;$('bar'+i).style.width=clamp(p.hp/p.stats.maxHp*100,0,100)+'%';const summary=statusSummary(p.status);$('status'+i).textContent=summary.replace(/ · 基础[0-9]+\/轮/g,'');$('status'+i).title=summary;}
@@ -1006,23 +1441,24 @@ function fullScreenChanged(){const active=Boolean(document.fullscreenElement||do
 function fallbackFullscreen(){document.body.classList.toggle('immersive');fullScreenChanged();}
 async function toggleFullscreen(){cancelDrag();const exit=document.exitFullscreen||document.webkitExitFullscreen,request=$('gameShell').requestFullscreen||$('gameShell').webkitRequestFullscreen;$('fullscreen').disabled=true;try{if(document.fullscreenElement||document.webkitFullscreenElement){await exit.call(document);}else if(document.body.classList.contains('immersive')){fallbackFullscreen();}else if(request){try{await request.call($('gameShell'));}catch{fallbackFullscreen();}}else fallbackFullscreen();}catch{toast('未能切换全屏，请重试。');}finally{$('fullscreen').disabled=false;fullScreenChanged();}}
 document.addEventListener('fullscreenchange',fullScreenChanged);document.addEventListener('webkitfullscreenchange',fullScreenChanged);
-function setPaused(value){if(!value){closeTransfer(false);closeNames(false);}cancelDrag();paused=value;show('pausePanel',value);$('pause').textContent=value?'继续':'暂停';if(value)$('resume').focus();}
+function setPaused(value){if(!value){closeTransfer(false);closeNames(false);cloudAccount?.close(false);}cancelDrag();paused=value;show('pausePanel',value);$('pause').textContent=value?'继续':'暂停';if(value)$('resume').focus();}
 function home(){closeNames(false);closeTransfer(false);setPaused(false);game.goHome();}
 function skipTutorial(){setPaused(false);if(game.skipTutorial()){renderDirty=true;lastPhase='';toast(stored?'全部玩法已解锁，也可随时返回主线练习。':'玩法已解锁；浏览器无法保存，可导出迁移码备份。');}}
 function closeNames(focus=true){show('namesPanel',false);if(focus)$(game.phase==='home'?'editNamesHome':'editNamesPause').focus();}
-function openNames(){cancelDrag();closeViewMenu();closeTransfer(false);if(game.phase!=='home')setPaused(true);const names=normalizeNames(game.save.names);$('archerName0').value=names[0];$('archerName1').value=names[1];$('namesMessage').textContent='名字会用于对局、剧情和结算，也会随迁移码保存。';show('namesPanel',true);$('archerName0').focus();}
+function openNames(){cloudAccount?.close(false);cancelDrag();closeViewMenu();closeTransfer(false);if(game.phase!=='home')setPaused(true);const names=normalizeNames(game.save.names);$('archerName0').value=names[0];$('archerName1').value=names[1];$('namesMessage').textContent='名字会用于对局、剧情和结算，也会随迁移码保存。';show('namesPanel',true);$('archerName0').focus();}
 $('editNamesHome').onclick=openNames;$('editNamesPause').onclick=openNames;$('namesClose').onclick=()=>closeNames();
 $('namesReset').onclick=()=>{DEFAULT_NAMES.forEach((name,i)=>{$('archerName'+i).value=name;});$('namesMessage').textContent='已填入默认名字，点击保存生效。';};
 $('namesSave').onclick=()=>{const values=[$('archerName0').value,$('archerName1').value];if(values.some(value=>Array.from(value.trim()).length>MAX_NAME_LENGTH)){$('namesMessage').textContent='每个名字最多 '+MAX_NAME_LENGTH+' 个字符。';return;}game.save=validSave({...game.save,names:normalizeNames(values)});game.persist();lastPhase='';lastBeat=-1;renderDirty=true;closeNames();toast(stored?'弓手名字已保存。':'名字已应用；当前浏览器无法保存，可导出迁移码备份。');};
 function closeTransfer(focus=true){show('transferPanel',false);if(focus)$(game.phase==='home'?'transferHome':'transferPause').focus();}
-function openTransfer(){closeNames(false);cancelDrag();closeViewMenu();if(game.phase!=='home')setPaused(true);$('exportProgress').value=encodeProgress(game.save);$('importProgress').value='';$('transferMessage').textContent=game.phase==='home'?'导入会合并永久进度，不会降低已有纪录。':'请先返回旅营，再导入进度。当前进度仍可复制。';$('importProgressButton').disabled=game.phase!=='home';show('transferPanel',true);$('transferClose').focus();}
+function openTransfer(){cloudAccount?.close(false);closeNames(false);cancelDrag();closeViewMenu();if(game.phase!=='home')setPaused(true);$('exportProgress').value=encodeProgress(game.save);$('importProgress').value='';$('transferMessage').textContent=game.phase==='home'?'导入会合并永久进度，不会降低已有纪录。':'请先返回旅营，再导入进度。当前进度仍可复制。';$('importProgressButton').disabled=game.phase!=='home';show('transferPanel',true);$('transferClose').focus();}
 $('transferHome').onclick=openTransfer;$('transferPause').onclick=openTransfer;$('transferClose').onclick=()=>closeTransfer();
 $('copyProgress').onclick=async()=>{try{if(!globalThis.navigator?.clipboard?.writeText)throw new Error('manual');await navigator.clipboard.writeText($('exportProgress').value);$('transferMessage').textContent='已复制，去另一个游戏网址粘贴导入即可。';}catch{$('exportProgress').focus();$('exportProgress').select?.();$('transferMessage').textContent='请长按代码选择复制，或在电脑按 Ctrl/Cmd+C。';}};
 $('importProgressButton').onclick=()=>{if(game.phase!=='home'){$('transferMessage').textContent='请先返回旅营，再导入进度。';return;}try{game.save=mergeProgress(game.save,decodeProgress($('importProgress').value));game.persist();renderDirty=true;renderHome();$('exportProgress').value=encodeProgress(game.save);$('transferMessage').textContent=stored?'进度已合并，可以继续旅程。':'进度已合并，但当前浏览器无法保存；关闭页面前请复制新的进度代码。';}catch(error){$('transferMessage').textContent=error.message||'进度代码无效，请重新复制。';}};
 
 $('brand').onclick=e=>{e.preventDefault();if(game.phase==='home')return;setPaused(true);};$('campaignStart').onclick=()=>{setPaused(false);game.start('campaign',game.save.checkpoint);};$('campaignQuick').onclick=skipTutorial;$('rogueStart').onclick=()=>{if(game.save.unlocked){setPaused(false);game.setPhase('loadout');}};$('loadoutHome').onclick=home;$('targetStart').onclick=()=>{if(game.start('target',Number($('mapChoice').value)))setPaused(false);};$('skillButton').onclick=()=>{if(!paused)game.activateSkill();};$('duelStart').onclick=()=>{if(game.start('duel',Number($('mapChoice').value)))setPaused(false);};$('localStart').onclick=()=>{if(game.start('local',Number($('mapChoice').value)))setPaused(false);};$('buyBow').onclick=()=>{if(game.buy('bow'))toast('练弓完成：下次远征初始箭伤害提高。');};$('buyLife').onclick=()=>{if(game.buy('life'))toast('强身完成：下次远征初始生命提高。');};$('sound').onclick=()=>{soundOn=!soundOn;$('sound').textContent='声音：'+(soundOn?'开':'关');$('sound').setAttribute('aria-pressed',soundOn);tone(600,.1,'sine');};$('view').onclick=()=>{renderer.allView=!renderer.allView;$('view').setAttribute('aria-pressed',renderer.allView);$('view').textContent=renderer.allView?'跟随镜头':'全景';};$('pause').onclick=()=>setPaused(!paused);$('resume').onclick=()=>setPaused(false);$('pauseHome').onclick=home;$('restart').onclick=()=>{const mode=game.mode,stage=game.stage;setPaused(false);game.start(mode,stage,game.skill,game.characterId);};$('resultHome').onclick=home;$('resultNext').onclick=()=>game.resultNext();$('skipStory').onclick=()=>game.save.unlocked?game.skip():skipTutorial();$('nextLine').onclick=()=>game.introNext();$('fullscreen').onclick=toggleFullscreen;
-function onKey(e){if(e.repeat)return;if(e.key==='Escape'&&!$('namesPanel').hidden){e.preventDefault();closeNames();return;}if(e.key==='Escape'&&!$('transferPanel').hidden){e.preventDefault();closeTransfer();return;}if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if(e.key==='Escape'){e.preventDefault();if(!$('viewMenu').hidden){closeViewMenu(true);return;}if(input.drag)cancelDrag();else if(paused)setPaused(false);else if(game.phase!=='home')setPaused(true);return;}if(paused||e.target.tagName==='BUTTON')return;if([' ','ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();if(input.drag)return;if(e.key===' '){if(game.phase==='intro'&&!game.save.unlocked)skipTutorial();else if(['scout','intro'].includes(game.phase))game.skip();else if(game.canAim)game.shoot();else if(game.canSkill)game.activateSkill();}else if(game.canAim)game.aim(game.angles[game.active]+(e.key==='ArrowRight'?1:-1),game.powers[game.active]);}}
+function onKey(e){if(cloudAccount?.key(e))return;if(e.repeat)return;if(e.key==='Escape'&&!$('namesPanel').hidden){e.preventDefault();closeNames();return;}if(e.key==='Escape'&&!$('transferPanel').hidden){e.preventDefault();closeTransfer();return;}if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if(e.key==='Escape'){e.preventDefault();if(!$('viewMenu').hidden){closeViewMenu(true);return;}if(input.drag)cancelDrag();else if(paused)setPaused(false);else if(game.phase!=='home')setPaused(true);return;}if(paused||e.target.tagName==='BUTTON')return;if([' ','ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();if(input.drag)return;if(e.key===' '){if(game.phase==='intro'&&!game.save.unlocked)skipTutorial();else if(['scout','intro'].includes(game.phase))game.skip();else if(game.canAim)game.shoot();else if(game.canSkill)game.activateSkill();}else if(game.canAim)game.aim(game.angles[game.active]+(e.key==='ArrowRight'?1:-1),game.powers[game.active]);}}
 window.addEventListener('keydown',onKey);window.addEventListener('blur',()=>{cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);}});
+cloudAccount=setupCloudAccount({storage:viewStorage,getSave:()=>game.save,applySave:progress=>{game.save=progress;game.persist();lastPhase='';lastBeat=-1;renderDirty=true;renderHome();},atCamp:()=>game.phase==='home',beforeOpen:()=>{cancelDrag();closeViewMenu();closeNames(false);closeTransfer(false);if(game.phase!=='home')setPaused(true);}});
 function frame(now){const dt=Math.min((now-lastNow)/1000||0,.05);lastNow=now;if(!paused)game.update(dt);renderer.draw(game,dt,{drag:input.drag,paused});renderUI();if(toastUntil&&now>toastUntil){show('toast',false);toastUntil=0;}requestAnimationFrame(frame);}renderUI();requestAnimationFrame(frame);
 
 </script></body></html>

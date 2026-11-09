@@ -10,3 +10,4 @@ coverage/
 
 .cloudbase/auth.json
 .cloudbase/*.local.json
+dist/cloud-config.json

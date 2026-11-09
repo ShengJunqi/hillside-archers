@@ -97,6 +97,7 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   }
   const document = new Element('document'), window = new Element('window');
   document.body = new Element('body'); document.documentElement = new Element('html'); document.hidden = false;
+  document.documentElement.dataset.offline = String(offline);
   ids.get('namesPanel').hidden = true; ids.get('viewMenu').hidden = true; ids.get('transferPanel').hidden = true;
   ids.get('viewPicker').append(ids.get('viewMode')); ids.get('viewPicker').append(ids.get('viewMenu'));
   document.getElementById = id => {assert.ok(ids.has(id), 'HTML element exists: ' + id); return ids.get(id);};
@@ -115,7 +116,7 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
     performance: {now: () => now}, requestAnimationFrame: fn => {nextFrame = fn;}};
   if (blockedStorage) Object.defineProperty(sandbox, 'localStorage', {get() {throw new Error('Storage access denied');}});
   const context = vm.createContext(sandbox);
-  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['names', 'combat', 'body', 'core', 'save-transfer', 'emotes', 'render', 'input', 'display', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
+  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['names', 'combat', 'body', 'core', 'save-transfer', 'emotes', 'render', 'input', 'display', 'cloud-save', 'cloud-client', 'cloud-ui', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
   vm.runInContext(code + '\nglobalThis.api={game,input,renderer,encodeProgress,archerName,get paused(){return paused;}};', context);
   const api = context.api, $ = id => ids.get(id), frame = () => {now += 16.67; nextFrame(now);};
   frame();
