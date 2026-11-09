@@ -7,3 +7,6 @@ coverage/
 .env.*
 !.env.example
 .openai/
+
+.cloudbase/auth.json
+.cloudbase/*.local.json
