@@ -1,3 +1,4 @@
+import {DEFAULT_NAMES,normalizeNames} from './names.mjs';
 import {opponentProfile,rogueEnemyStats,characterById,createSkillState,turnSkillHealing} from './combat.mjs';
 import {bodyCollision,impactBody,updateBody,attachArrow} from './body.mjs';
 export const W=1600,H=900,G=155,SPEED=500,MAX_ARROWS=24;
@@ -64,7 +65,7 @@ export function enemySummary(player){
  const pairs=synergies(s);if(pairs.length)traits.push('组合：'+pairs.map(pair=>pair.name).join(' / '));
  return traits.length?traits.join(' · '):'基础弓术';
 }
-export function validSave(raw){let a;try{a=typeof raw==='string'?JSON.parse(raw):raw;}catch{}a=a&&typeof a==='object'?a:{};const num=(v,min,max)=>Number.isFinite(v)?Math.max(min,Math.min(max,Math.floor(v))):min;return {version:2,targetBest:num(a.targetBest,0,999999),unlocked:a.unlocked===true,checkpoint:num(a.checkpoint,1,3),best:num(a.best,0,9999),embers:num(a.embers,0,99999),bow:num(a.bow,0,5),life:num(a.life,0,5)};}
+export function validSave(raw){let a;try{a=typeof raw==='string'?JSON.parse(raw):raw;}catch{}a=a&&typeof a==='object'?a:{};const num=(v,min,max)=>Number.isFinite(v)?Math.max(min,Math.min(max,Math.floor(v))):min;const result={version:2,targetBest:num(a.targetBest,0,999999),unlocked:a.unlocked===true,checkpoint:num(a.checkpoint,1,3),best:num(a.best,0,9999),embers:num(a.embers,0,99999),bow:num(a.bow,0,5),life:num(a.life,0,5)};const names=normalizeNames(a.names);if(names.some((name,i)=>name!==DEFAULT_NAMES[i]))result.names=names;return result;}
 export function zones(p){return [{part:'head',x:p.x-12,y:p.y-108,w:24,h:25,damage:42},{part:'body',x:p.x-17,y:p.y-83,w:34,h:43,damage:26},{part:'legs',x:p.x-15,y:p.y-40,w:30,h:30,damage:18},{part:'feet',x:p.x-20,y:p.y-10,w:40,h:11,damage:12}];}
 export function launch(p,angle,power=100){const a=angle*Math.PI/180;return {x:p.x+p.dir*32,y:p.y-66,vx:p.dir*SPEED*power/100*Math.cos(a),vy:-SPEED*power/100*Math.sin(a)};}
 export function position(b,t){return {x:b.x+b.vx*t,y:b.y+b.vy*t+G*t*t/2};}
@@ -80,6 +81,7 @@ export class Game{
  start(mode,stage=1,skill='split',characterId='qingsong'){if(mode!=='campaign'&&!this.save.unlocked)return false;this.mode=mode;this.characterId=characterById(characterId).id;this.skill=BOWS.some(b=>b.id===skill)?skill:'split';this.stage=mode==='rogue'?1:Math.max(1,Math.min(3,stage));this.floor=1;this.upgrades=[];this.stats=baseStats(mode==='rogue'?this.save:{});this.setup();this.setPhase(mode==='campaign'?'intro':'scout');this.emit('start');return true;}
  setPhase(p){this.phase=p;this.phaseTime=0;this.emit('phase',{phase:p});}
  goHome(){this.arrows=[];this.setPhase('home');}
+ skipTutorial(){if(!['home','intro'].includes(this.phase))return false;const changed=!this.save.unlocked;this.save.unlocked=true;if(changed)this.persist();this.goHome();return true;}
  get storyBeatDuration(){return this.mode==='campaign'&&this.stage===1?2.5:4.5;}
  get scoutDuration(){return this.mode==='campaign'&&this.stage===1?1.5:2.6;}
  introNext(){if(this.phase==='intro'){this.phaseTime=(Math.floor(this.phaseTime/this.storyBeatDuration)+1)*this.storyBeatDuration;if(this.phaseTime>=this.storyBeatDuration*3)this.setPhase('scout');}}
