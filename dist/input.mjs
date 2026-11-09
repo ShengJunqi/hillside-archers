@@ -8,12 +8,13 @@ export function pullGeometry(rect, pointerType = 'mouse') {
 }
 
 export class AimInput {
-  constructor(canvas, game, {isPaused = () => false, onChange = () => {}, onTouch = () => {}} = {}) {
+  constructor(canvas, game, {isPaused = () => false, onChange = () => {}, onTouch = () => {}, onTap = () => {}} = {}) {
     this.canvas = canvas;
     this.game = game;
     this.isPaused = isPaused;
     this.onChange = onChange;
     this.onTouch = onTouch;
+    this.onTap = onTap;
     this.drag = null;
     canvas.addEventListener('pointerdown', event => this.start(event));
     canvas.addEventListener('pointermove', event => this.move(event));
@@ -42,6 +43,8 @@ export class AimInput {
       screenY: (event.clientY - rect.top) / rect.height * this.canvas.height,
       screenScale: this.canvas.width / rect.width,
       ...pullGeometry(rect, event.pointerType), inside: true, moved: false,
+      maxDistance: 0, tapSlop: event.pointerType === 'mouse' ? 5 : 9,
+      startedAt: Number.isFinite(event.timeStamp) ? event.timeStamp : performance.now(),
     };
     try {this.canvas.setPointerCapture(event.pointerId);} catch {this.cancel(); return;}
     this.onChange();
@@ -56,6 +59,7 @@ export class AimInput {
     const dx = (drag.x - event.clientX) * this.game.players[this.game.active].dir;
     const dy = event.clientY - drag.y;
     const distance = Math.hypot(dx, dy);
+    drag.maxDistance = Math.max(drag.maxDistance, distance);
     drag.inside = distance <= drag.cancelRadius;
     drag.moved = !drag.inside;
     if (drag.inside) this.game.aim(drag.angle, drag.power);
@@ -85,5 +89,9 @@ export class AimInput {
     const old = this.drag;
     this.release(old);
     if (old.moved) this.game.shoot();
+    else {
+      const now = Number.isFinite(event.timeStamp) ? event.timeStamp : performance.now();
+      if (old.maxDistance <= old.tapSlop && now - old.startedAt <= 350) this.onTap();
+    }
   }
 }

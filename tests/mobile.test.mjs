@@ -115,7 +115,7 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
     performance: {now: () => now}, requestAnimationFrame: fn => {nextFrame = fn;}};
   if (blockedStorage) Object.defineProperty(sandbox, 'localStorage', {get() {throw new Error('Storage access denied');}});
   const context = vm.createContext(sandbox);
-  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['combat', 'body', 'core', 'save-transfer', 'render', 'input', 'display', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
+  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['combat', 'body', 'core', 'save-transfer', 'emotes', 'render', 'input', 'display', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
   vm.runInContext(code + '\nglobalThis.api={game,input,renderer,encodeProgress,get paused(){return paused;}};', context);
   const api = context.api, $ = id => ids.get(id), frame = () => {now += 16.67; nextFrame(now);};
   frame();
@@ -148,6 +148,9 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   $('skipStory').click(); frame();
   ok(!$('skipTurn').hidden, 'camera skip button is available without a keyboard');
   $('skipTurn').click(); frame(); equal(api.game.phase, 'aim', 'touch skip starts the turn');
+  cv.dispatch('pointerdown', pointer(210, 300)); cv.dispatch('pointerup', pointer(210, 300, {buttons: 0})); frame();
+  equal(api.renderer.emote.kind, 'jump', 'real app tap starts a character animation');
+  equal(api.game.phase, 'aim', 'app character animation does not consume a turn');
   ok(!$('touchControls').hidden, 'human turn has a touch control bar');
   const angle = api.game.angles[0]; $('angleUp').click(); frame(); equal(api.game.angles[0], angle + 1, 'touch + changes angle by one degree');
   $('angleDown').click(); frame(); equal(api.game.angles[0], angle, 'touch minus changes angle by one degree');
@@ -234,8 +237,8 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   api.game.floor = 15; api.game.setup(); api.game.setPhase('scout'); frame();
   ok(!$('enemyTraits').hidden && $('enemyTraits').textContent.includes(' · '), 'late enemy combinations are shown during observation');
   ok($('sceneHint').hidden, 'generic hint does not overlap enemy abilities during observation');
-  api.game.setPhase('thinking'); frame();
-  ok(!$('enemyTraits').hidden && $('sceneHint').hidden, 'thinking keeps enemy abilities clear of the generic hint');
+  api.game.active = 1; api.game.readyTurn(); frame();
+  equal(api.game.phase, 'flight', 'robot starts its shot without a thinking delay');
   api.game.players[0].status = {burn: 2, burnTurns: 2, poison: 12, poisonTurns: 3, ice: 0};
   api.game.emit('phase'); frame();
   ok($('status0').textContent.includes('12层') && $('status0').textContent.includes('余3轮'), 'HUD distinguishes accumulated poison stacks from remaining turns');
