@@ -45,3 +45,5 @@
 角色显示名字可在旅营/暂停修改，不替换角色ID或技能；兼容没有names字段的旧v2存档。中文名字通过ASCII转义继续使用HA2迁移码，取消改名不能保存输入。
 
 CloudBase 管理连接已配置：国内站、上海，已有环境见 `.cloudbase/project.json`，数据库已验证为 PostgreSQL。后续按 PG/RLS 实现，不误用文档数据库API；使用已购个人版环境，不另建环境或擅自升级套餐。游戏离线模式须保留。
+
+账号与云存档模块为 `dist/cloud-save.mjs`、`dist/cloud-client.mjs`、`dist/cloud-ui.mjs`；不把 SDK/网络耦合进纯游戏物理。CloudBase 匿名登录保持禁用，本机游客不创建云身份。读存档走 RLS，写存档只走 `archer_save_for_account`，必须传 expected_owner、版本号与幂等请求 ID；禁止直接 update/upsert 或将余烬按 max 合并。首次关联、账号切换和冲突都需玩家在旅营选整组修行与余额；替换前留本机备份。`.env.local` 与生成的 `dist/cloud-config.json` 不提交；只允许 Publishable Key 进入发布产物。新增 SQL 用 `cloudbase/migrations/` 版本化，不编辑已应用迁移。

@@ -6,13 +6,14 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const read = name => readFile(resolve(root, 'dist', name), 'utf8');
 const [html, css, mobileCss, ...modules] = await Promise.all([
   read('index.html'), read('style.css'), read('mobile.css'),
-  read('names.mjs'), read('combat.mjs'), read('body.mjs'), read('core.mjs'), read('emotes.mjs'), read('render.mjs'), read('input.mjs'), read('display.mjs'), read('save-transfer.mjs'), read('app.mjs'),
+  read('names.mjs'), read('combat.mjs'), read('body.mjs'), read('core.mjs'), read('emotes.mjs'), read('render.mjs'), read('input.mjs'), read('display.mjs'), read('save-transfer.mjs'), read('cloud-save.mjs'), read('cloud-client.mjs'), read('cloud-ui.mjs'), read('app.mjs'),
 ]);
 // Keep dependency order; imports/exports are removed only for the standalone file.
 const code = modules.map(source => source
   .replace(/^import .*;\r?\n/gm, '')
   .replace(/\bexport /g, '')).join('\n');
 const standalone = html
+  .replace('data-layout="desktop"', 'data-layout="desktop" data-offline="true"')
   .replace('<link rel="stylesheet" href="mobile.css">', '<style>' + mobileCss + '</style>')
   .replace('<link rel="stylesheet" href="style.css">', '<style>' + css + '</style>')
   .replace('<script type="module" src="app.mjs"></script>', '<script>\n' + code + '\n</script>')
