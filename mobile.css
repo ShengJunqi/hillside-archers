@@ -277,3 +277,30 @@ body[data-layout="mobile"][data-orientation="landscape"] .quick-start { padding-
 .name-card input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 #namesMessage { min-height: 3.4em; color: #e8d28d; }
 .health label b { min-width: 0; overflow-wrap: anywhere; }
+
+/* Account settings keep the camp palette and the same scrollable dialog. */
+#accountPanel { z-index: 10; }
+.account-card { width: min(92%, 560px); }
+.account-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; }
+.account-heading .eyebrow { margin-top: 0; }
+.account-heading button { flex-shrink: 0; }
+.account-tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--line); gap: 4px; margin: 16px 0; }
+.account-tabs button { min-height: 44px; padding: 8px 12px; color: var(--paper); font-size: 12px; border-bottom: 2px solid transparent; }
+.account-tabs button[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); }
+.account-card input { display: block; width: 100%; min-height: 48px; margin-top: 8px; padding: 12px; border: 1px solid #95a68a77; background: #10242c; color: var(--paper); font: inherit; font-size: 16px; }
+.account-card input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.account-card input::placeholder { color: #abbfb6; }
+.account-card input[readonly] { opacity: .8; }
+.account-card button:disabled { opacity: .5; }
+.account-card .primary { min-height: 48px; margin-top: 16px; }
+.account-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
+.account-card #accountMessage, .account-card #accountSyncStatus { color: #ead29a; min-height: 1.7em; overflow-wrap: anywhere; }
+.account-identity { overflow-wrap: anywhere; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
+.save-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+.save-comparison > div { border-left: 2px solid var(--gold); padding-left: 12px; }
+.save-comparison b { font-size: 12px; color: var(--gold); }
+.save-comparison p { white-space: pre-line; }
+.account-card summary { min-height: 44px; cursor: pointer; padding: 12px 0; font-size: 12px; }
+.account-card details textarea { font-size: 12px; }
+body[data-layout="mobile"] .account-card .primary { width: 100%; justify-content: center; }
+@media (max-width: 600px) { .save-comparison { grid-template-columns: 1fr; gap: 8px; } }
