@@ -28,15 +28,17 @@ export function cloudClient(app) {
   }
   return {
     auth, session,
-    async password(email, password) {
-      const data = await result(auth.signInWithPassword({email, password}));
+    async password(identifier, password) {
+      const account = identifier.trim();
+      const credentials = account.includes('@') ? {email: account, password} : {username: account, password};
+      const data = await result(auth.signInWithPassword(credentials));
       if (!data?.session) throw new Error('尚未获得登录会话，请重试。');
       return data;
     },
-    async send(mode, email, password) {
-      const data = await result(mode === 'register' ? auth.signUp({email, password}) :
-        mode === 'reset' ? auth.resetPasswordForEmail(email) : auth.signInWithOtp({email}));
-      if (mode === 'reset') return async code => result(data.updateUser({nonce: code, password}));
+    async register(email, password, username) {
+      // CloudBase requires verified email/phone for self-registration. The
+      // chosen username is bound when the returned verification step completes.
+      const data = await result(auth.signUp({email, password, username}));
       if (typeof data?.verifyOtp !== 'function') throw new Error('暂时无法验证邮件，请稍后重试。');
       return async code => result(data.verifyOtp({token: code}));
     },

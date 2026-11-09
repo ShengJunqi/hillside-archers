@@ -11,13 +11,13 @@ export function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOp
   function message(text) {el('accountMessage').textContent = text;}
   function errorMessage(error) {
     const text = error?.message || '暂时无法连接云端，请稍后重试。本机进度仍保留。';
-    return /already.*(exist|register)|user.*not.*found|account.*not.*exist/i.test(text) ? '暂未完成登录，请检查信息，或使用验证码登录。' : text;
+    return /already.*(exist|register)|user.*not.*found|account.*not.*exist/i.test(text) ? '暂未完成登录或注册，请检查信息；需要帮助可联系管理员。' : text;
   }
   function paint(state = sync) {
     const signedIn = !!state.user;
     el('accountGuest').hidden = signedIn || offline;
     el('accountMember').hidden = !signedIn;
-    el('accountIdentity').textContent = state.user?.email || state.user?.username || '已登录账号';
+    el('accountIdentity').textContent = state.user?.user_metadata?.username || state.user?.username || state.user?.email || '已登录账号';
     el('accountSyncStatus').textContent = state.message;
     el('accountChoice').hidden = state.phase !== 'choice';
     el('cloudLocalSummary').textContent = progressSummary(getSave());
@@ -39,21 +39,31 @@ export function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOp
     } catch {el('cloudBackupDetails').hidden = true;}
   }
   function formState() {
-    el('accountPasswordLabel').hidden = mode === 'otp';
-    el('accountPassword').required = mode !== 'otp';
-    el('accountPassword').autocomplete = mode === 'register' || mode === 'reset' ? 'new-password' : 'current-password';
-    el('accountPassword').minLength = mode === 'register' || mode === 'reset' ? 8 : 1;
+    const registering = mode === 'register';
+    el('accountPasswordLabel').hidden = false;
+    el('accountPassword').required = true;
+    el('accountPassword').autocomplete = registering ? 'new-password' : 'current-password';
+    el('accountPassword').minLength = registering ? 8 : 1;
+    el('accountIdentifierText').textContent = registering ? '验证邮箱（仅注册时验证一次）' : '账号或邮箱';
+    el('accountEmail').type = registering ? 'email' : 'text';
+    el('accountEmail').placeholder = registering ? '用于验证账号和联系管理员' : '输入账号或邮箱';
+    el('accountEmail').autocomplete = registering ? 'email' : 'username';
+    el('accountUsernameLabel').hidden = !registering;
+    el('accountUsername').required = registering;
+    el('accountUsername').disabled = !registering;
+    el('accountUsername').readOnly = !!verifyCode;
     el('accountCodeLabel').hidden = !verifyCode;
     el('accountCode').required = !!verifyCode;
+    el('accountCode').disabled = !verifyCode;
     el('accountEmail').readOnly = !!verifyCode;
     el('accountPassword').readOnly = !!verifyCode;
     el('accountSubmit').disabled = working || (!verifyCode && mode !== 'password' && Date.now() < cooldown);
-    el('accountSubmit').textContent = working ? '请稍候…' : verifyCode ? (mode === 'reset' ? '确认并设置新密码' : '验证并继续') : mode === 'password' ? '登录账号' : '发送邮箱验证码';
+    el('accountSubmit').textContent = working ? '请稍候…' : verifyCode ? '验证并继续' : mode === 'password' ? '登录账号' : '发送注册验证码';
     el('accountBack').hidden = !verifyCode;
     el('accountResend').hidden = !verifyCode;
     el('accountResend').disabled = working || Date.now() < cooldown;
     el('accountResend').textContent = Date.now() < cooldown ? Math.ceil((cooldown - Date.now()) / 1000) + ' 秒后可重发' : '重新发送验证码';
-    for (const value of ['password','otp','register','reset']) {
+    for (const value of ['password','register']) {
       el('auth' + value).setAttribute('aria-pressed', value === mode);
       el('auth' + value).disabled = working;
     }
@@ -61,8 +71,7 @@ export function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOp
   function selectMode(value) {
     if (working) return;
     mode = value; verifyCode = null; el('accountCode').value = ''; el('accountPassword').value = '';
-    message(value === 'register' ? '验证邮箱后创建账号，已有本机进度会保留。密码至少 8 位，含字母和数字。' :
-      value === 'reset' ? '验证邮箱后设置新密码。请在下方填写新密码，再发送验证码。' : '登录后可在不同设备和游戏网址同步永久进度。');
+    message(value === 'register' ? '注册时验证一次邮箱，之后用账号和密码登录。账号 3–24 位字母、数字或下划线；密码 8–32 位，含字母和数字。' : '用账号和密码登录，也支持已绑定的邮箱。忘记密码可联系管理员。');
     formState();
   }
   async function sessionChanged(session) {
@@ -99,9 +108,10 @@ export function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOp
   async function sendCode() {
     if (Date.now() < cooldown) throw new Error('请稍候 ' + Math.ceil((cooldown - Date.now()) / 1000) + ' 秒，再发送验证码。');
     const sdk = await boot();
-    const email = el('accountEmail').value.trim(), password = el('accountPassword').value;
-    if ((mode === 'register' || mode === 'reset') && (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password))) throw new Error('请使用至少 8 位、含字母和数字的密码。');
-    verifyCode = await sdk.send(mode, email, password);
+    const email = el('accountEmail').value.trim(), password = el('accountPassword').value, username = el('accountUsername').value.trim();
+    if (!/^[A-Za-z0-9][A-Za-z0-9_]{2,23}$/.test(username)) throw new Error('账号需为 3–24 位字母、数字或下划线，以字母或数字开头。');
+    if (password.length < 8 || password.length > 32 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) throw new Error('请使用 8–32 位、含字母和数字的密码。');
+    verifyCode = await sdk.register(email, password, username);
     cooldown = Date.now() + 60000;
     clearInterval(interval); interval = setInterval(() => {formState(); if (Date.now() >= cooldown) clearInterval(interval);}, 1000);
     message('若邮箱可接收验证邮件，验证码会发送到该地址。请检查收件箱和垃圾邮件。');
@@ -122,7 +132,7 @@ export function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOp
       } else await sendCode();
     });
   });
-  for (const value of ['password','otp','register','reset']) el('auth' + value).onclick = () => selectMode(value);
+  for (const value of ['password','register']) el('auth' + value).onclick = () => selectMode(value);
   el('accountBack').onclick = () => selectMode(mode);
   el('accountResend').onclick = () => {if (Date.now() >= cooldown) void work(sendCode);};
   el('keepLocal').onclick = () => {void work(() => sync.choose('local'));};
@@ -150,7 +160,7 @@ export function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOp
   el('accountClose').onclick = () => close();
   el('accountPanel').addEventListener('keydown', event => {
     if (event.key !== 'Tab') return;
-    const nodes = [...el('accountPanel').querySelectorAll('button:not(:disabled),input,textarea,summary')].filter(node => node.getClientRects().length);
+    const nodes = [...el('accountPanel').querySelectorAll('button:not(:disabled),input,textarea,summary,a[href]')].filter(node => node.getClientRects().length);
     const first = nodes[0], last = nodes[nodes.length - 1];
     if (event.shiftKey && document.activeElement === first) {event.preventDefault(); last?.focus();}
     else if (!event.shiftKey && document.activeElement === last) {event.preventDefault(); first?.focus();}

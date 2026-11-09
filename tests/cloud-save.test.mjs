@@ -100,13 +100,11 @@ equal(f.local.best,10,'blocked storage never clears local progress');
 equal(sync.phase,'error','blocked storage is reported');
 
 // The adapter must use real sessions and OTP callbacks from the SDK result.
-let session=null,readCount=0,sent,verified,updated;
+let session=null,readCount=0,sent,verified,credentials;
 const auth={
   getSession:async()=>({data:{session}}),
-  signInWithPassword:async args=>({data:{session:args.password==='correct'?{user}:null}}),
+  signInWithPassword:async args=>{credentials=args;return {data:{session:args.password==='correct'?{user}:null}};},
   signUp:async args=>{sent=args;return {data:{verifyOtp:async args=>{verified=args;return {data:{session:{user}}};}}};},
-  signInWithOtp:async args=>{sent=args;return {data:{verifyOtp:async args=>{verified=args;return {data:{session:{user}}};}}};},
-  resetPasswordForEmail:async()=>({data:{updateUser:async args=>{updated=args;return {data:{session:{user}}};}}}),
   signOut:async()=>({data:{}}),
 };
 const fakeDb={from:()=>{readCount++;return {select:()=>({eq:()=>({limit:async()=>({data:[]})})})};}};
@@ -119,9 +117,11 @@ session={user:{id:'different-account'}};
 await assert.rejects(()=>client.backend(user.id).read());checks++;
 session={user};await client.backend(user.id).read();equal(readCount,1,'real expected session unlocks the read');
 await assert.rejects(()=>client.password('mail@example.test','wrong'));checks++;
-const verify=await client.send('register','mail@example.test','Correct123');await verify('123456');
-equal(sent,{email:'mail@example.test',password:'Correct123'},'registration uses the built-in email provider');
-equal(verified,{token:'123456'},'verification calls the bound SDK closure');
-const reset=await client.send('reset','mail@example.test','NewPassword123');await reset('654321');
-equal(updated,{nonce:'654321',password:'NewPassword123'},'password recovery uses the bound update callback');
+await client.password('  archer_01  ','correct');
+equal(credentials,{username:'archer_01',password:'correct'},'plain account identifiers use the username login API');
+await client.password('mail@example.test','correct');
+equal(credentials,{email:'mail@example.test',password:'correct'},'existing email accounts retain password login');
+const verify=await client.register('mail@example.test','Correct123','archer_01');await verify('123456');
+equal(sent,{email:'mail@example.test',password:'Correct123',username:'archer_01'},'verified registration binds the selected username');
+equal(verified,{token:'123456'},'registration verification calls the bound SDK closure');
 console.log(checks+' cloud-save, retry, conflict, account-isolation and auth-adapter checks passed.');
