@@ -541,7 +541,7 @@ class Game{
  get scoutDuration(){return this.mode==='campaign'&&this.stage===1?1.5:2.6;}
  introNext(){if(this.phase==='intro'){this.phaseTime=(Math.floor(this.phaseTime/this.storyBeatDuration)+1)*this.storyBeatDuration;if(this.phaseTime>=this.storyBeatDuration*3)this.setPhase('scout');}}
  skip(){if(this.phase==='intro')this.setPhase('scout');else if(this.phase==='scout'){this.readyTurn();}}
- readyTurn(){const p=this.players[this.active],heal=turnSkillHealing(p);if(heal){this.heal(p,heal);this.pop(p.x,p.y-165,'沉着 · 回息','#b4d8a2');}this.setPhase(this.active===1&&this.mode!=='local'?'thinking':'aim');}
+ readyTurn(){const p=this.players[this.active],heal=turnSkillHealing(p);if(heal){this.heal(p,heal);this.pop(p.x,p.y-165,'沉着 · 回息','#b4d8a2');}if(this.active===1&&this.mode!=='local'){this.setPhase('thinking');this.angles[1]=this.chooseAI();this.powers[1]=100;this.shoot();}else this.setPhase('aim');}
  get canAim(){return this.phase==='aim';}
  aim(angle,power){if(!this.canAim)return;this.angles[this.active]=Math.max(5,Math.min(75,Math.round(angle)));this.powers[this.active]=Math.max(20,Math.min(100,Math.round(power)));}
  shoot(){if(!this.canAim&&this.phase!=='thinking')return false;const p=this.players[this.active];if(this.active===1){this.npcVolleyDamage=0;this.npcHeadHits=0;}this.volleyCount=0;this.trails=[];this.arrows=[];this.impact=null;this.skillUsed=false;this.volleyTargetHits=0;this.icePenalty=Math.min(.45,p.status.ice*.15);p.status.ice=0;const n=p.stats.multi;for(let i=0;i<n;i++){const b=launch(p,this.angles[this.active]+(i-(n-1)/2)*.65,this.powers[this.active]);this.addArrow(b);}this.emit('shoot');this.setPhase('flight');return true;}
@@ -587,7 +587,7 @@ class Game{
  pickup(orb,b,p){if(orb.used)return;orb.used=true;const shooter=this.players[this.active];if(orb.type==='heart'){this.lastHeal=this.heal(shooter,20+shooter.stats.heal*15,orb.x,orb.y-25);}else{const currentVy=b.vy+G*b.t;const extra={x:p.x,y:p.y,vx:b.vx,vy:currentVy+(this.volleyCount%2?1:-1)*(this.active===1&&this.mode!=='local'?Math.min(48,22+this.volleyCount*6):8),scale:b.scale??1,pierce:b.pierce,ignored:new Set(b.ignored)};if(this.addArrow(extra))this.pop(orb.x,orb.y-35,'+1  共 '+this.volleyCount+' 箭','#f6dc85');else this.pop(orb.x,orb.y-35,'箭雨已满','#f6dc85');}this.fx('pickup',orb.x,orb.y,orb.type==='heart'?'#eaa1a0':'#f2d080');this.emit('pickup',{kind:orb.type,x:orb.x,y:orb.y});}
  tickArrows(dt){let left=dt;while(left>0&&this.arrows.length){const h=Math.min(left,1/300);for(const b of [...this.arrows]){b.t+=h;const p=position(b,b.t);if(Math.floor(b.t*40)!==b.lastTrail){this.trails.push({x:p.x,y:p.y,t:1});b.lastTrail=Math.floor(b.t*40);}for(const orb of this.orbs)if(!orb.used&&Math.hypot(p.x-orb.x,p.y-orb.y)<=orb.r)this.pickup(orb,b,p);if(this.mode==='target')for(const target of this.targets)if(!target.used&&Math.hypot(p.x-target.x,p.y-target.y)<=target.r){this.hitTargetBoard(target);b.dead=true;break;}if(b.dead)continue;const r=collision(p,this.mode==='target'?{x:-500,y:0}:this.players[1-this.active],this.obs,this.map,b.ignored);if(r){this.impact=p;if(r.kind==='obstacle'){this.hitObstacle(r.o,this.players[this.active].dir);if(b.pierce>0){b.pierce--;b.ignored.add(r.o.id);}else b.dead=true;}else{if(r.kind==='hit')this.hitTarget(b,r,p);b.dead=true;}}if(b.t>14)b.dead=true;}this.arrows=this.arrows.filter(b=>!b.dead);left-=h;}if(!this.arrows.length)this.setPhase('settle');}
  spawnOrbs(){if(!(this.mode==='rogue'||this.mode!=='target'&&this.stage===3))return;this.orbs=this.orbs.filter(o=>!o.used);for(let i=0;i<2&&this.orbs.length<12;i++){const shooter=this.players[i];const offset=220+this.rng()*270;const a=24+this.rng()*13;const b=launch(shooter,a);const p=position(b,offset/Math.abs(b.vx));const orb={id:'orb-'+this.round+'-'+i,x:Math.max(80,Math.min(W-80,p.x)),y:Math.min(p.y,ground(p.x,this.map)-65),r:25,type:this.rng()<.65?'plus':'heart',used:false};for(const o of this.obs)if(o.state==='standing'&&Math.abs(orb.x-o.x)<o.w/2+orb.r&&orb.y+orb.r>o.y-o.h)orb.y=o.y-o.h-orb.r-12;for(let n=0;n<12&&this.orbs.some(o=>Math.hypot(o.x-orb.x,o.y-orb.y)<58);n++)orb.y-=60;orb.y=Math.max(55,orb.y);this.orbs.push(orb);}}
- nextTurn(){if(this.mode==='target'){if(!this.volleyTargetHits)this.targetMisses++;if(this.targetMisses>=3){this.save.targetBest=Math.max(this.save.targetBest,this.targetScore);this.persist();this.win=false;this.winner=0;this.setPhase('defeat');return;}this.round++;this.active=0;if(this.targets.every(t=>t.used))this.newTargets();this.setPhase('scout');return;}if(this.players[1-this.active].hp<=0){this.complete(this.active===0||this.mode==='local');return;}this.active=1-this.active;this.round++;this.spawnOrbs();const p=this.players[this.active],source=this.players[1-this.active],poisonActive=p.status.poisonTurns>0,burning=p.status.burnTurns>0;let tick=0;if(p.status.burnTurns>0){tick+=p.status.burn*5;p.status.burnTurns--;if(!p.status.burnTurns)p.status.burn=0;}if(p.status.poisonTurns>0){tick+=p.status.poison*(burning?5:3);p.status.poisonTurns--;if(!p.status.poisonTurns)p.status.poison=0;}if(tick){const dealt=this.damage(p,tick,source,{leech:poisonActive});if(dealt)this.pop(p.x,p.y-145,'持续伤害 −'+dealt,'#c2d784');}if(p.hp<=0){impactBody(p,{point:{x:p.x,y:p.y-60},vx:source.dir*50,vy:20,damage:tick,part:'body',angle:this.angles[this.active]});this.complete(this.active!==0||this.mode==='local');return;}if(p.stats.cleanse){const before=p.status.burn+p.status.poison;for(const key of ['burn','poison'])p.status[key]=Math.ceil(p.status[key]*(1-p.stats.cleanse));if(p.status.burn+p.status.poison<before)this.pop(p.x,p.y-170,'净化 · 保留 '+Math.round((1-p.stats.cleanse)*100)+'% 层数','#b1d2d9');}if(p.stats.regen)this.heal(p,p.stats.regen*5+p.stats.armor*2);this.setPhase('scout');}
+ nextTurn(){if(this.mode==='target'){if(!this.volleyTargetHits)this.targetMisses++;if(this.targetMisses>=3){this.save.targetBest=Math.max(this.save.targetBest,this.targetScore);this.persist();this.win=false;this.winner=0;this.setPhase('defeat');return;}this.round++;this.active=0;if(this.targets.every(t=>t.used))this.newTargets();this.setPhase('scout');return;}if(this.players[1-this.active].hp<=0){this.complete(this.active===0||this.mode==='local');return;}this.active=1-this.active;this.round++;this.spawnOrbs();const p=this.players[this.active],source=this.players[1-this.active],poisonActive=p.status.poisonTurns>0,burning=p.status.burnTurns>0;let tick=0;if(p.status.burnTurns>0){tick+=p.status.burn*5;p.status.burnTurns--;if(!p.status.burnTurns)p.status.burn=0;}if(p.status.poisonTurns>0){tick+=p.status.poison*(burning?5:3);p.status.poisonTurns--;if(!p.status.poisonTurns)p.status.poison=0;}if(tick){const dealt=this.damage(p,tick,source,{leech:poisonActive});if(dealt)this.pop(p.x,p.y-145,'持续伤害 −'+dealt,'#c2d784');}if(p.hp<=0){impactBody(p,{point:{x:p.x,y:p.y-60},vx:source.dir*50,vy:20,damage:tick,part:'body',angle:this.angles[this.active]});this.complete(this.active!==0||this.mode==='local');return;}if(p.stats.cleanse){const before=p.status.burn+p.status.poison;for(const key of ['burn','poison'])p.status[key]=Math.ceil(p.status[key]*(1-p.stats.cleanse));if(p.status.burn+p.status.poison<before)this.pop(p.x,p.y-170,'净化 · 保留 '+Math.round((1-p.stats.cleanse)*100)+'% 层数','#b1d2d9');}if(p.stats.regen)this.heal(p,p.stats.regen*5+p.stats.armor*2);if(this.active===1&&this.mode!=='local')this.readyTurn();else this.setPhase('scout');}
  complete(win){this.win=win;this.winner=this.mode==='local'?(this.players[0].hp>0?0:1):win?0:1;if(win&&this.mode==='campaign'){if(this.stage===3){this.save.unlocked=true;this.save.checkpoint=1;}else this.save.checkpoint=Math.max(this.save.checkpoint,this.stage+1);this.persist();}if(this.mode==='rogue'){if(win){this.save.best=Math.max(this.save.best,this.floor);this.save.embers+=this.floor%3===0?3:1;this.persist();}this.emit('run',{floor:this.floor,win});}this.emit(win?'victory':'defeat');this.setPhase(win?'victory':'defeat');}
  resultNext(){if(this.phase==='victory'&&this.mode==='rogue'){this.choices=this.rollUpgrades();this.setPhase('upgrade');return;}if(this.phase==='victory'&&this.mode==='campaign'&&this.stage<3){this.stage++;this.stats=baseStats();this.setup();this.setPhase('intro');return;}if(this.phase==='defeat'&&this.mode==='campaign'){this.setup();this.setPhase('scout');return;}this.goHome();}
  rollUpgrades(){const ids=UPGRADES.filter(u=>!(u.id==='multi'&&this.stats.multi>=8)&&!(u.id==='ice'&&this.stats.ice>=3)&&!(u.id==='crit'&&this.stats.crit>=.75)&&!(u.id==='leech'&&this.stats.leech>=.6)&&!(['fire','poison'].includes(u.id)&&this.stats[u.id]>=MAX_ELEMENT_LEVEL));const result=[];const partner=SYNERGIES.flatMap(s=>s.needs.some(k=>this.stats[k]>0)&&!s.needs.every(k=>this.stats[k]>0)?s.needs.filter(k=>!this.stats[k]):[]);if(partner.length){const id=partner[Math.min(partner.length-1,Math.floor(this.rng()*partner.length))],i=ids.findIndex(u=>u.id===id);if(i>=0)result.push(ids.splice(i,1)[0]);}while(result.length<3&&ids.length){const i=Math.min(ids.length-1,Math.floor(this.rng()*ids.length));result.push(ids.splice(i,1)[0]);}return result;}
@@ -610,12 +610,44 @@ class Game{
   return Math.max(5,Math.min(75,Math.round(chosen+(this.rng()*2-1)*error)));
  }
  update(dt){dt=Math.min(dt,.05);if(this.hitStop>0){this.hitStop=Math.max(0,this.hitStop-dt);dt*=.2;}this.totalTime+=dt;this.phaseTime+=dt;for(const f of this.vfx)f.t-=dt;this.vfx=this.vfx.filter(f=>f.t>0);if(this.mode==='target')for(const t of this.targets)t.y=t.baseY+Math.sin(this.totalTime*1.1+t.seed)*24;this.shake=Math.max(0,this.shake-dt);for(const [i,p] of this.players.entries()){p.poseAngle=this.angles[i];updateBody(p,dt,x=>ground(x,this.map),W);p.recoil=Math.max(0,p.recoil-dt);if(p.hp<=0)p.deadTime+=dt;}for(const o of this.obs)if(o.state==='falling'){o.rot=Math.min(Math.PI/2,o.rot+dt*3);if(o.rot>=Math.PI/2)o.state='fallen';}for(const e of this.effects){e.t-=dt;e.y-=dt*20;}this.effects=this.effects.filter(e=>e.t>0);for(const t of this.trails)t.t-=dt*.32;this.trails=this.trails.filter(t=>t.t>0).slice(-1500);
- if(this.phase==='intro'&&this.phaseTime>=this.storyBeatDuration*3)this.setPhase('scout');else if(this.phase==='scout'&&this.phaseTime>=this.scoutDuration)this.readyTurn();else if(this.phase==='thinking'&&this.phaseTime>=.85){this.angles[1]=this.chooseAI();this.powers[1]=100;this.shoot();}else if(this.phase==='flight')this.tickArrows(dt);else if(this.phase==='settle'&&this.phaseTime>=.85&&!this.players.some(p=>p.hp>0&&p.body?.active))this.nextTurn();}
+ if(this.phase==='intro'&&this.phaseTime>=this.storyBeatDuration*3)this.setPhase('scout');else if(this.phase==='scout'&&this.phaseTime>=this.scoutDuration)this.readyTurn();else if(this.phase==='thinking'){this.angles[1]=this.chooseAI();this.powers[1]=100;this.shoot();}else if(this.phase==='flight')this.tickArrows(dt);else if(this.phase==='settle'&&this.phaseTime>=.85&&!this.players.some(p=>p.hp>0&&p.body?.active))this.nextTurn();}
+}
+
+const EMOTES = [{id: 'jump', duration: .85}, {id: 'flex', duration: 1.2}];
+const bound = value => Math.max(0, Math.min(1, value));
+const smooth = value => {const t = bound(value); return t * t * (3 - 2 * t);};
+
+// Pose changes are cosmetic. They never move the gameplay body or hit boxes.
+function emotePose(pose, player, emote) {
+  const copy = Object.fromEntries(Object.entries(pose).map(([key, point]) => [key, {...point}]));
+  if (!emote) return copy;
+  const t = emote.time, dir = player.dir;
+  if (emote.kind === 'jump') {
+    const crouch = t < .12 ? Math.sin(t / .12 * Math.PI) * 8 : t > .67 ? Math.sin(bound((t - .67) / .18) * Math.PI) * 6 : 0;
+    const air = Math.sin(bound((t - .12) / .55) * Math.PI), lift = Math.max(0, air) * 35;
+    for (const point of Object.values(copy)) point.y -= lift;
+    for (const key of ['head', 'chest', 'hip']) copy[key].y += crouch;
+    copy.kneeBack.x -= dir * air * 7; copy.kneeFront.x += dir * air * 7;
+    copy.footBack.y -= air * 9; copy.footFront.y -= air * 4;
+    copy.handBack.y -= air * 13;
+  } else if (emote.kind === 'flex') {
+    const strength = smooth(t / .2) * (1 - smooth((t - .85) / .35));
+    const target = {elbowBack: [-dir * 36, -69], handBack: [-dir * 26, -99],
+      elbowFront: [dir * 24, -57], handFront: [dir * 31, -41]};
+    for (const [key, [x, y]] of Object.entries(target)) {
+      copy[key].x += (player.x + x - copy[key].x) * strength;
+      copy[key].y += (player.y + y - copy[key].y) * strength;
+    }
+    copy.chest.y -= strength * 3; copy.head.y -= strength * 3;
+    copy.head.x += dir * strength * 2;
+  }
+  return copy;
 }
 
 const rClamp=(v,a,b)=>Math.max(a,Math.min(b,v));const rEase=t=>t*t*(3-2*t);
 class Renderer{
- constructor(canvas){this.canvas=canvas;canvas.width=W;canvas.height=H;this.c=canvas.getContext('2d');this.c.imageSmoothingEnabled=false;this.cam={x:W/2,y:H,z:1};this.lastPhase='';this.allView=false;this.time=0;}
+ constructor(canvas){this.canvas=canvas;canvas.width=W;canvas.height=H;this.c=canvas.getContext('2d');this.c.imageSmoothingEnabled=false;this.cam={x:W/2,y:H,z:1};this.lastPhase='';this.allView=false;this.time=0;this.emote=null;this.emoteIndex=0;}
+ playEmote(game){if(!game.canAim||game.players[game.active].hp<=0||game.players[game.active].body?.active)return false;const choice=EMOTES[this.emoteIndex++%EMOTES.length];this.emote={kind:choice.id,duration:choice.duration,time:0,side:game.active};return true;}
  resize(width,height){if(!width||!height)return;const nextW=Math.round(H*width/height);if(this.canvas.width===nextW&&this.canvas.height===H)return;this.canvas.width=nextW;this.canvas.height=H;this.c.imageSmoothingEnabled=false;this.resized=true;}
  rect(x,y,w,h,color){this.c.fillStyle=color;this.c.fillRect(Math.round(x),Math.round(y),w,h);}
  line(points,color,width=2){const c=this.c;c.beginPath();c.strokeStyle=color;c.lineWidth=width;points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.stroke();}
@@ -644,9 +676,9 @@ class Renderer{
   c.save();c.translate(a.x,a.y);c.rotate(angle);this.rect(-2,-width/2,length+4,width,color);
   this.rect(0,width/2-3,length,3,shade);c.restore();
  }
- character(p,side,{angle=25,time=0,walk=0,drawn=false,dead=false,boss=false,scale=1,bow='plain'}={}){
+ character(p,side,{angle=25,time=0,walk=0,drawn=false,dead=false,boss=false,scale=1,bow='plain',emote=null}={}){
   const c=this.c,dir=p.dir,palette=side===0?{cape:'#2b6c61',light:'#81aa83',shirt:'#c2b386',hood:'#34594a'}:{cape:boss?'#80679a':'#9d554c',light:boss?'#bba0cd':'#d49a72',shirt:'#927a68',hood:boss?'#4e3c66':'#624a49'};
-  const pose=bodyPose(p,angle,walk,time,drawn),reacting=p.body?.active;
+  const pose=emotePose(bodyPose(p,angle,walk,time,drawn),p,emote),reacting=p.body?.active;
   if(dead&&!reacting){const f=rEase(rClamp((p.deadTime||time)/.8,0,1)),a=dir*f*1.35;
    for(const n of Object.values(pose)){const x=n.x-p.x,y=n.y-p.y;n.x=p.x+x*Math.cos(a)-y*Math.sin(a);n.y=p.y+x*Math.sin(a)+y*Math.cos(a);}
   }
@@ -656,7 +688,7 @@ class Renderer{
   // Each arm and leg has its own hinge; the struck limb leads the reaction.
   const leg=(knee,foot,front)=>{this.limb(hip,knee,front?12:10,front?'#3d4d42':'#2f3e36','#26382f');this.limb(knee,foot,front?11:9,'#35483d','#26382f');const a=Math.atan2(foot.y-knee.y,foot.x-knee.x)-Math.PI/2;c.save();c.translate(foot.x,foot.y);c.rotate(a);this.rect(-8,-6,20,10,'#24342f');this.rect(-6,-6,16,3,'#54634d');c.restore();};
   const arm=(elbow,hand,front)=>{this.limb(chest,elbow,front?10:9,palette.shirt,'#7c765a');this.limb(elbow,hand,front?8:7,'#c9ab81','#a18460');this.rect(hand.x-4,hand.y-4,8,8,'#d6b68c');};
-  arm(elbowBack,handBack,false);leg(kneeBack,footBack,false);
+  if(emote?.kind!=='flex')arm(elbowBack,handBack,false);leg(kneeBack,footBack,false);
   const torsoAngle=Math.atan2(chest.y-hip.y,chest.x-hip.x)+Math.PI/2,torsoLength=Math.hypot(chest.x-hip.x,chest.y-hip.y);
   c.save();c.translate(hip.x,hip.y);c.rotate(torsoAngle);
   this.poly([[-dir*12,-torsoLength-9],[-dir*32-Math.sin(time*3)*4,-torsoLength],[-dir*24-Math.sin(time*3+1)*5,1],[-dir*4,0]],palette.cape);
@@ -671,12 +703,13 @@ class Renderer{
   c.save();c.translate(head.x,head.y);c.rotate(headAngle);c.scale(dir,1);
   this.rect(-13,-7,26,24,'#cda97a');this.rect(-15,-13,30,13,palette.hood);this.rect(-16,-4,8,22,palette.hood);this.rect(7,0,5,4,'#24352f');this.rect(8,10,7,3,'#a57957');
   if(boss){this.poly([[-15,-8],[-22,-28],[-6,-14]],'#d8b97b');this.poly([[15,-8],[22,-28],[6,-14]],'#d8b97b');}c.restore();
+  if(emote?.kind==='flex'){arm(elbowBack,handBack,true);if(emote.time>.15&&emote.time<.95)this.circle((chest.x+elbowBack.x)/2,(chest.y+elbowBack.y)/2,6,'#c9ab81');}
   arm(elbowFront,handFront,true);
-  const a=angle*Math.PI/180,bowAngle=reacting?Math.atan2(handFront.y-elbowFront.y,handFront.x-elbowFront.x):dir>0?-a:Math.PI+a;
+  const a=angle*Math.PI/180,bowAngle=emote?.kind==='flex'?(dir>0?0:Math.PI):reacting?Math.atan2(handFront.y-elbowFront.y,handFront.x-elbowFront.x):dir>0?-a:Math.PI+a;
   const bowColor=bow==='split'?'#c6dd9a':bow==='dive'?'#afcfee':bow==='burst'?'#e9a575':'#d0ac68';
   c.save();c.translate(handFront.x,handFront.y);c.rotate(bowAngle);this.line([[0,-34],[17,-3],[0,34]],bowColor,4);
   if(bow!=='plain'){this.poly([[12,-9],[20,-3],[12,4],[7,-3]],bowColor);this.rect(-2,-37,5,7,bowColor);this.rect(-2,31,5,7,bowColor);}
-  this.line([[0,-34],[-(drawn&&!reacting?15:3),0],[0,34]],'#ddd7b8',1.4);if(drawn&&!reacting)this.arrow(-8,0,0,'#ecd6a3',.9);c.restore();
+  this.line([[0,-34],[-(drawn&&!reacting&&!emote?15:3),0],[0,34]],'#ddd7b8',1.4);if(drawn&&!reacting&&!emote)this.arrow(-8,0,0,'#ecd6a3',.9);c.restore();
   for(const arrow of p.stuck||[]){const attached=attachedArrowPose(arrow,pose);if(attached)this.arrow(attached.x,attached.y,attached.angle,'#d8b87f',.8);}
   c.restore();
  }
@@ -702,9 +735,9 @@ class Renderer{
  }
  beacon(x,y,light){this.rect(x-28,y-28,56,28,'#657d78');this.rect(x-20,y-128,40,100,'#536e71');this.rect(x-35,y-141,70,15,'#95a394');this.rect(x-25,y-170,50,30,'#223c4d');if(light>0){this.c.save();this.c.globalAlpha=light*.65;this.poly([[x-22,y-168],[x-100,-300],[x+100,-300],[x+22,y-168]],'#a6e6d41c');this.circle(x,y-166,60,'#c1edca15');for(let i=0;i<5;i++)this.poly([[x-22+i*9,y-160],[x-18+i*9,y-190-Math.sin(this.time*5+i)*15],[x-12+i*9,y-160]],i%2?'#f0d38f':'#bce5c4');this.c.restore();}}
  particles(game){const c=this.c;for(const f of game.vfx||[]){const age=1-f.t/f.life;c.save();c.globalAlpha=1-age;const burst=f.kind==='burst',count=burst?20:12,reach=burst?130:65;if(burst||f.kind==='pickup'||f.kind==='split'){c.strokeStyle=f.color;c.lineWidth=burst?6:2;c.beginPath();c.arc(f.x,f.y,8+age*reach,0,Math.PI*2);c.stroke();}for(let i=0;i<count;i++){const a=i*2.399,rr=(.4+(i%5)/7)*age*reach,x=f.x+Math.cos(a)*rr,y=f.y+Math.sin(a)*rr+age*age*45;this.rect(x,y,burst?6:4,3,f.color);}c.restore();}}
- draw(game,dt,{drag=null,paused=false}={}){this.time+=dt;const viewW=this.canvas.width,viewH=this.canvas.height,portrait=viewW<viewH,wideScale=Math.max(1,viewW/W);const cinematic=['home','intro','victory','defeat','upgrade','loadout'].includes(game.phase);let z=viewW/W,x=W/2,y=H;if(cinematic){z=game.phase==='home'?1.12:1.25;x=game.phase==='home'?1000:800;if(game.phase==='intro'){const beat=Math.floor(game.phaseTime/game.storyBeatDuration);x=beat===0?620:beat===1?1000:800;z=beat===1?1.5:1.25;if(portrait){y=H+100;if(beat===2)z=Math.min(z,(viewW-60)/650);}}if(portrait&&['victory','defeat'].includes(game.phase))x=1160;}else if(!this.allView){z=1.6*wideScale;if(game.phase==='scout'){const t=game.phaseTime,hold=game.scoutDuration*.85/2.6,travel=game.scoutDuration*1.55/2.6;const a=game.mode==='target'?(game.targets.find(t=>!t.used)?.x??1100):game.players[1-game.active].x,b=game.players[game.active].x;x=t<hold?a:a+(b-a)*rEase(rClamp((t-hold)/travel,0,1));}else if(game.phase==='flight'&&game.arrows.length){z=1.35*wideScale;const p=position(game.arrows[0],game.arrows[0].t);x=p.x;y=Math.min(H,p.y+H*.56/z);}else if(game.phase==='settle'&&game.impact){x=game.impact.x;z=1.7*wideScale;}else x=game.players[game.active].x;if(wideScale>1&&game.phase!=='flight')y=ground(x,game.map)+viewH*.28/z;}
+ draw(game,dt,{drag=null,paused=false}={}){this.time+=dt;if(this.emote){if(!game.canAim||drag||game.active!==this.emote.side||game.players[this.emote.side].body?.active)this.emote=null;else if(!paused){this.emote.time+=dt;if(this.emote.time>=this.emote.duration)this.emote=null;}}const viewW=this.canvas.width,viewH=this.canvas.height,portrait=viewW<viewH,wideScale=Math.max(1,viewW/W);const cinematic=['home','intro','victory','defeat','upgrade','loadout'].includes(game.phase);let z=viewW/W,x=W/2,y=H;if(cinematic){z=game.phase==='home'?1.12:1.25;x=game.phase==='home'?1000:800;if(game.phase==='intro'){const beat=Math.floor(game.phaseTime/game.storyBeatDuration);x=beat===0?620:beat===1?1000:800;z=beat===1?1.5:1.25;if(portrait){y=H+100;if(beat===2)z=Math.min(z,(viewW-60)/650);}}if(portrait&&['victory','defeat'].includes(game.phase))x=1160;}else if(!this.allView){z=1.6*wideScale;if(game.phase==='scout'){const t=game.phaseTime,hold=game.scoutDuration*.85/2.6,travel=game.scoutDuration*1.55/2.6;const a=game.mode==='target'?(game.targets.find(t=>!t.used)?.x??1100):game.players[1-game.active].x,b=game.players[game.active].x;x=t<hold?a:a+(b-a)*rEase(rClamp((t-hold)/travel,0,1));}else if(game.phase==='flight'&&game.arrows.length){z=1.35*wideScale;const p=position(game.arrows[0],game.arrows[0].t);x=p.x;y=Math.min(H,p.y+H*.56/z);}else if(game.phase==='settle'&&game.impact){x=game.impact.x;z=1.7*wideScale;}else x=game.players[game.active].x;if(wideScale>1&&game.phase!=='flight')y=ground(x,game.map)+viewH*.28/z;}
  z=Math.max(z,viewW/W);const half=viewW/2/z;x=rClamp(x,half,W-half);const snap=this.resized||this.lastPhase==='home'&&game.phase==='intro'||this.lastPhase!=='scout'&&game.phase==='scout';this.resized=false;const blend=snap?1:Math.min(1,dt*(game.phase==='scout'?8*2.6/game.scoutDuration:4));this.cam.z+=(z-this.cam.z)*blend;this.cam.x+=(x-this.cam.x)*blend;this.cam.y+=(y-this.cam.y)*blend;this.lastPhase=game.phase;const c=this.c;c.save();c.clearRect(0,0,viewW,viewH);const shake=game.shake?Math.sin(this.time*100)*game.shake*15:0;c.translate(viewW/2+shake,viewH);c.scale(this.cam.z,this.cam.z);c.translate(-this.cam.x,-this.cam.y);this.background(game.map,this.time);this.terrain(game);
- if(cinematic){this.cinematic(game);}else{this.objects(game);for(const point of game.trails){c.globalAlpha=Math.min(.6,point.t);this.rect(point.x,point.y,3,3,'#efd6a0');}c.globalAlpha=1;for(let i=0;i<(game.mode==='target'?1:2);i++)this.character(game.players[i],i,{time:this.time,angle:game.angles[i],drawn:game.active===i&&['aim','thinking'].includes(game.phase),dead:game.players[i].hp<=0,boss:i===1&&game.mode==='rogue'&&game.floor%3===0,bow:i===0&&game.mode==='rogue'?game.skill:'plain'});if(game.canAim){const p=game.players[game.active],b=launch(p,game.angles[game.active],game.powers[game.active]);for(let j=1;j<12;j++){const pt=position(b,j*.045);if(pt.y>=ground(pt.x,game.map))break;this.circle(pt.x,pt.y,2.2,'#f3e3c1aa');}this.rect(p.x-30,p.y-157,60,31,'#152d2bdb');this.text(game.angles[game.active]+'°',p.x,p.y-134,22,'#edd4a0');this.rect(p.x-27,p.y-129,54,3,'#557267');this.rect(p.x-27,p.y-129,54*game.powers[game.active]/100,3,'#e6c98c');this.poly([[p.x-7,p.y-120],[p.x+7,p.y-120],[p.x,p.y-113]],'#edd4a0');}
+ if(cinematic){this.cinematic(game);}else{this.objects(game);for(const point of game.trails){c.globalAlpha=Math.min(.6,point.t);this.rect(point.x,point.y,3,3,'#efd6a0');}c.globalAlpha=1;for(let i=0;i<(game.mode==='target'?1:2);i++)this.character(game.players[i],i,{time:this.time,angle:game.angles[i],drawn:game.active===i&&['aim','thinking'].includes(game.phase),dead:game.players[i].hp<=0,boss:i===1&&game.mode==='rogue'&&game.floor%3===0,bow:i===0&&game.mode==='rogue'?game.skill:'plain',emote:this.emote?.side===i?this.emote:null});if(game.canAim){const p=game.players[game.active],b=launch(p,game.angles[game.active],game.powers[game.active]);for(let j=1;j<12;j++){const pt=position(b,j*.045);if(pt.y>=ground(pt.x,game.map))break;this.circle(pt.x,pt.y,2.2,'#f3e3c1aa');}this.rect(p.x-30,p.y-157,60,31,'#152d2bdb');this.text(game.angles[game.active]+'°',p.x,p.y-134,22,'#edd4a0');this.rect(p.x-27,p.y-129,54,3,'#557267');this.rect(p.x-27,p.y-129,54*game.powers[game.active]/100,3,'#e6c98c');this.poly([[p.x-7,p.y-120],[p.x+7,p.y-120],[p.x,p.y-113]],'#edd4a0');}
  for(const b of game.arrows){const p=position(b,b.t),st=game.players[game.active].stats,color=st.fire?'#efaa62':st.ice?'#9ed5dc':st.poison?'#abc375':'#e4cc9e';this.arrow(p.x,p.y,Math.atan2(b.vy+G*b.t,b.vx),color);if(st.fire||st.ice||st.poison)this.circle(p.x-10,p.y,7,color+'35');}for(const e of game.effects){c.globalAlpha=Math.min(1,e.t);this.text(e.text,e.x,e.y,23,e.color);}c.globalAlpha=1;this.particles(game);}
  // Drifting leaves / ash / stars connect the foreground to the scene.
  for(let i=0;i<18;i++){const xx=(i*173+this.time*(game.map===2?6:15))%(W+100)-50,yy=270+(i*97+this.time*8)%380;this.rect(xx,yy,game.map===2?2:5,3,game.map===2?'#c0dcd66a':'#d6c48b38');}c.restore();
@@ -724,12 +757,13 @@ function pullGeometry(rect, pointerType = 'mouse') {
 }
 
 class AimInput {
-  constructor(canvas, game, {isPaused = () => false, onChange = () => {}, onTouch = () => {}} = {}) {
+  constructor(canvas, game, {isPaused = () => false, onChange = () => {}, onTouch = () => {}, onTap = () => {}} = {}) {
     this.canvas = canvas;
     this.game = game;
     this.isPaused = isPaused;
     this.onChange = onChange;
     this.onTouch = onTouch;
+    this.onTap = onTap;
     this.drag = null;
     canvas.addEventListener('pointerdown', event => this.start(event));
     canvas.addEventListener('pointermove', event => this.move(event));
@@ -758,6 +792,8 @@ class AimInput {
       screenY: (event.clientY - rect.top) / rect.height * this.canvas.height,
       screenScale: this.canvas.width / rect.width,
       ...pullGeometry(rect, event.pointerType), inside: true, moved: false,
+      maxDistance: 0, tapSlop: event.pointerType === 'mouse' ? 5 : 9,
+      startedAt: Number.isFinite(event.timeStamp) ? event.timeStamp : performance.now(),
     };
     try {this.canvas.setPointerCapture(event.pointerId);} catch {this.cancel(); return;}
     this.onChange();
@@ -772,6 +808,7 @@ class AimInput {
     const dx = (drag.x - event.clientX) * this.game.players[this.game.active].dir;
     const dy = event.clientY - drag.y;
     const distance = Math.hypot(dx, dy);
+    drag.maxDistance = Math.max(drag.maxDistance, distance);
     drag.inside = distance <= drag.cancelRadius;
     drag.moved = !drag.inside;
     if (drag.inside) this.game.aim(drag.angle, drag.power);
@@ -801,6 +838,10 @@ class AimInput {
     const old = this.drag;
     this.release(old);
     if (old.moved) this.game.shoot();
+    else {
+      const now = Number.isFinite(event.timeStamp) ? event.timeStamp : performance.now();
+      if (old.maxDistance <= old.tapSlop && now - old.startedAt <= 350) this.onTap();
+    }
   }
 }
 
@@ -858,7 +899,7 @@ const game=new Game({save:validSave(saved),onEvent:handleEvent});
 let viewStorage;try{viewStorage=globalThis.localStorage;}catch{}
 let viewPreference=readView(viewStorage),touchMode=false,seenTouch=Boolean(globalThis.navigator?.maxTouchPoints),lastViewKey='';
 const desktopHelp=$('controlHelp').innerHTML,desktopFooter=$('footerHint').textContent;
-const input=new AimInput(canvas,game,{isPaused:()=>paused,onChange:()=>updateTouchControls(),onTouch:()=>{seenTouch=true;if(viewPreference==='auto')applyDisplayMode();}});
+const input=new AimInput(canvas,game,{isPaused:()=>paused,onChange:()=>updateTouchControls(),onTap:()=>renderer.playEmote(game),onTouch:()=>{seenTouch=true;if(viewPreference==='auto')applyDisplayMode();}});
 function viewportInfo(){return {width:window.innerWidth||1280,height:window.innerHeight||720,coarse:Boolean(window.matchMedia?.('(pointer: coarse)').matches||seenTouch)};}
 function applyDisplayMode(){
  const env=viewportInfo(),view=resolveView(viewPreference,env),key=[view.layout,view.orientation,view.handset].join(':');
@@ -912,7 +953,7 @@ function renderUI(){const phase=game.phase;if(lastPhase!==phase){lastPhase=phase
  const gameplay=['scout','thinking','aim','flight','settle'].includes(phase);show('hud',gameplay);$('storageNote').textContent=stored?'本机自动存档':'当前浏览器无法保存进度';show('build',gameplay&&game.mode==='rogue'&&game.upgrades.length>0);show('sceneHint',gameplay&&!['scout','thinking'].includes(phase));$('chapterSub').textContent=modeName();$('chapterName').textContent=MAPS[game.map].name;$('turn').textContent='第 '+game.round+' 回合';$('name1').textContent=game.mode==='local'?'赤岩 · 玩家二':game.mode==='rogue'?(game.floor%3===0?'星墟守将':game.floor>=4?(game.floor%3===1?'青毒猎手':'焰羽游侠'):'赤岩'):'赤岩';$('name0').textContent=game.mode==='local'?'青松 · 玩家一':'青松';
  for(let i=0;i<2;i++){const p=game.players[i];$('hp'+i).textContent=Math.ceil(p.hp)+' / '+p.stats.maxHp;$('bar'+i).style.width=clamp(p.hp/p.stats.maxHp*100,0,100)+'%';const summary=statusSummary(p.status);$('status'+i).textContent=summary.replace(/ · 基础[0-9]+\/轮/g,'');$('status'+i).title=summary;}
  const threat=game.mode==='rogue'?enemySummary(game.players[1]):'';$('enemyTraits').textContent='对手能力 · '+threat;$('enemyTraits').title=threat;show('enemyTraits',!!threat&&['scout','thinking'].includes(phase));
- show('challengeInfo',gameplay&&game.mode==='target');$('challengeInfo').textContent='得分 '+game.targetScore+' · 落空 '+game.targetMisses+' / 3';document.querySelector('.health.right').hidden=game.mode==='target';show('skillButton',gameplay&&game.mode==='rogue'&&game.active===0&&(!touchMode||phase==='flight'));const bow=BOWS.find(b=>b.id===game.skill)||BOWS[0];$('skillName').textContent=bow.skill+ (game.skillUsed?' · 已施展':'');$('skillButton').disabled=!game.canSkill;$('skillHint').textContent=game.phase==='flight'?(touchMode?'点击施展':'空格 / 点击施展'):'射箭后，在飞行中施展';$('skillButton').title=bow.tip;let banner='';if(phase==='scout')banner=game.phaseTime<game.scoutDuration*.365?(game.mode==='target'?'观察靶标的位置':'观察对手的位置'):'镜头回到 '+(game.active===0?'青松':'赤岩');else if(phase==='thinking')banner=game.mode==='rogue'&&game.opponent.boss?'星墟守将 · '+game.players[1].stats.multi+'箭蓄力':$('name1').textContent+'正在寻找角度';show('turnBanner',!!banner);$('turnBanner').textContent=banner;$('sceneHint').textContent=phase==='scout'?(touchMode?'点击下方按钮可跳过观察':'空格跳过观察镜头'):phase==='aim'?(game.active===0?'青松':'赤岩')+(touchMode?'的回合 · 按住画面向后拉弓':'的回合 · 拖拽拉弓，松手射箭'):phase==='flight'?(game.volleyCount>1?'箭雨 ×'+game.volleyCount:'一箭已出'):'等待箭落';
+ show('challengeInfo',gameplay&&game.mode==='target');$('challengeInfo').textContent='得分 '+game.targetScore+' · 落空 '+game.targetMisses+' / 3';document.querySelector('.health.right').hidden=game.mode==='target';show('skillButton',gameplay&&game.mode==='rogue'&&game.active===0&&(!touchMode||phase==='flight'));const bow=BOWS.find(b=>b.id===game.skill)||BOWS[0];$('skillName').textContent=bow.skill+ (game.skillUsed?' · 已施展':'');$('skillButton').disabled=!game.canSkill;$('skillHint').textContent=game.phase==='flight'?(touchMode?'点击施展':'空格 / 点击施展'):'射箭后，在飞行中施展';$('skillButton').title=bow.tip;let banner='';if(phase==='scout')banner=game.phaseTime<game.scoutDuration*.365?(game.mode==='target'?'观察靶标的位置':'观察对手的位置'):'镜头回到 '+(game.active===0?'青松':'赤岩');else if(phase==='thinking')banner=game.mode==='rogue'&&game.opponent.boss?'星墟守将 · '+game.players[1].stats.multi+'箭蓄力':$('name1').textContent+'正在寻找角度';show('turnBanner',!!banner);$('turnBanner').textContent=banner;$('sceneHint').textContent=phase==='scout'?(touchMode?'点击下方按钮可跳过观察':'空格跳过观察镜头'):phase==='aim'?(game.active===0?'青松':'赤岩')+(touchMode?'的回合 · 拖拽拉弓，轻点互动':'的回合 · 拖拽拉弓，松手射箭 · 轻点做个小动作'):phase==='flight'?(game.volleyCount>1?'箭雨 ×'+game.volleyCount:'一箭已出'):'等待箭落';
  if(phase==='intro'){const beat=Math.min(2,Math.floor(game.phaseTime/game.storyBeatDuration));if(beat!==lastBeat){lastBeat=beat;const [speaker,line]=STORIES[game.stage-1][beat];$('storyChapter').textContent='第 '+game.stage+' 章 / '+MAPS[game.map].name;$('speaker').textContent=speaker;$('storyLine').dataset.full=line;$('storyDots').innerHTML=[0,1,2].map(i=>'<i class="'+(i===beat?'active':'')+'"></i>').join('');$('nextLine').textContent=beat===2?'开始试炼 ➜':'下一幕 ➜';}$('storyLine').textContent=($('storyLine').dataset.full||'');}
  $('pause').disabled=phase==='home';updateTouchControls();}
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
