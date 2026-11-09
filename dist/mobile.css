@@ -269,3 +269,11 @@ body[data-layout="mobile"] .transfer-card textarea { font-size: 16px; min-height
 body[data-layout="mobile"][data-orientation="landscape"] .enemy-traits { bottom: 64px; max-width: 55%; }
 body[data-layout="mobile"][data-orientation="landscape"] .upgrade-preview { font-size: 10px; padding: 6px; }
 body[data-layout="mobile"][data-orientation="landscape"] .quick-start { padding-top: 8px; }
+
+/* Player-selected names use the same scrollable settings card on both layouts. */
+#editNamesHome { margin-right: 16px; }
+.name-card { width: min(92%, 460px); }
+.name-card input { display: block; width: 100%; min-height: 46px; border: 1px solid #95a68a77; background: #10242c; color: #eee0bc; padding: 10px 12px; font-family: inherit; font-size: 16px; line-height: 1.5; }
+.name-card input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+#namesMessage { min-height: 3.4em; color: #e8d28d; }
+.health label b { min-width: 0; overflow-wrap: anywhere; }
