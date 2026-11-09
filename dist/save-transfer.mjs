@@ -1,11 +1,14 @@
 import {validSave} from './core.mjs';
+import {DEFAULT_NAMES,normalizeNames} from './names.mjs';
 
 const PROGRESS_PREFIX = 'HA2:';
 const PROGRESS_FIELDS = ['targetBest', 'checkpoint', 'best', 'embers', 'bow', 'life'];
 
 export function encodeProgress(save) {
-  // validSave contains only numbers, booleans and ASCII keys; btoa is sufficient.
-  return PROGRESS_PREFIX + btoa(JSON.stringify(validSave(save)));
+  // Escape non-ASCII characters, including surrogate pairs, so legacy HA2
+  // readers can decode Chinese/emoji nicknames with their existing atob parser.
+  const json = JSON.stringify(validSave(save)).replace(/[^\x20-\x7e]/g, character => '\\u' + character.charCodeAt(0).toString(16).padStart(4, '0'));
+  return PROGRESS_PREFIX + btoa(json);
 }
 
 export function decodeProgress(code) {
@@ -26,5 +29,7 @@ export function mergeProgress(current, incoming) {
   const merged = {...one, unlocked: one.unlocked || two.unlocked};
   // Importing twice must not duplicate currency or replace stronger progress.
   for (const key of PROGRESS_FIELDS) merged[key] = Math.max(one[key], two[key]);
+  const existing = normalizeNames(one.names), imported = normalizeNames(two.names);
+  merged.names = existing.map((name, i) => name === DEFAULT_NAMES[i] ? imported[i] : name);
   return validSave(merged);
 }
