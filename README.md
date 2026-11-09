@@ -69,7 +69,7 @@ npm run build   # 重新生成单文件离线版
 
 `dist/` 同时是可维护源码和部署目录，尚未拆分为单独的 `src/`。详细规则和数值见 [游戏设计说明](docs/GAME_DESIGN.md)。
 
-账号登录与自动云同步尚未接入，后续选择和存档边界见 [账号存档方案](docs/ACCOUNT_SAVES.md)。
+CloudBase 国内站开发管理连接已配置，环境为上海 PostgreSQL，见 [接入记录](docs/CLOUDBASE_SETUP.md)。游戏里的账号登录与自动云同步尚未接入，后续存档边界见 [账号存档方案](docs/ACCOUNT_SAVES.md)。
 
 ## 一起开发
 
