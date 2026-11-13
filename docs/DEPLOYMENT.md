@@ -62,3 +62,15 @@ GitHub 集成可能缺少开启 Pages 所需的管理权限。此仓库首次创
 - 当前没有可调用的浏览器控制工具，尚未验证真实手机帧率和真实浏览器完整操作；原站以官方部署成功状态确认，独立 HTTP 字节核验在备用站完成。
 
 本版字体由本站提供，离线 HTML 内嵌字体和完整许可，新增资源不需要字体 CDN、模型调用或后端资源。DeepSeek 仍为手动协作提示词，没有实际调用 harness。创意清单区分已实现与未来方案：https://shengjunqi.github.io/hillside-archers/comic-expedition-notes.txt 。
+
+## 0.15.0 高清场景发布
+
+- 游戏源码：`3998dc430a17f61ab6c8563fb763dd2a2e1b3df5`，PR：https://github.com/ShengJunqi/hillside-archers/pull/11 。[源码 CI](https://github.com/ShengJunqi/hillside-archers/actions/runs/43508041813)成功，未合并 main。
+- 原站已发布 Sites 第 18 版，原生部署工具返回 `succeeded`；静态源码提交 `9d0e148b05d7ffdad47a9a9741913158cf4f6ffc`。沿用原公开地址与访问方式。
+- 备用站 `gh-pages` 提交 `4fa381fc539083af1232b5d09e43d41fa09c5ddf`，已通过 [Pages 构建](https://github.com/ShengJunqi/hillside-archers/actions/runs/43508098829)。
+- 备用站 16 项产物均 HTTP 200 且 SHA-256 与本机一致：页面、app／render／scenery 模块、漫画 CSS、离线 HTML、五张高清背景、土岩纹理、公开云配置、高清说明、源码 ZIP 和 DeepSeek 提示词。六项图片 MIME 为 image/webp。
+- `npm test`、`npm run build`、`git diff --check` 通过；另外核对离线 HTML 内嵌六项图片的字节摘要与发布 WebP 一致，没有残留 art/ 外部图片请求。原账号配置、合作提示词和源码下载继续保留。
+- 五张背景原始尺寸 1672×941，土纹 1254×1254；离线包约 4.19 MB。主站与离线版不调用图片生成服务。已用原生 Canvas 检查五种风格及竖屏画面，并补浅色箭／瞄准点的细深色边提高云层中的可读性。
+- 浏览器控制入口不可调用，未宣称真实浏览器布局或手机 GPU 帧率验收。原站以官方部署成功状态确认，HTTP 字节核验在备用站完成。
+
+主页和暂停菜单均有「场景风格」，默认随赛场变化，支持五种固定风格与本机记忆。详细范围：https://shengjunqi.github.io/hillside-archers/hd-scenery-notes.txt 。
