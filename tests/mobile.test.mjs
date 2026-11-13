@@ -98,7 +98,7 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   const document = new Element('document'), window = new Element('window');
   document.body = new Element('body'); document.documentElement = new Element('html'); document.hidden = false;
   document.documentElement.dataset.offline = String(offline);
-  ids.get('namesPanel').hidden = true; ids.get('viewMenu').hidden = true; ids.get('transferPanel').hidden = true;
+  ids.get('namesPanel').hidden = true; ids.get('viewMenu').hidden = true; ids.get('transferPanel').hidden = true; ids.get('sceneryPanel').hidden = true;
   ids.get('viewPicker').append(ids.get('viewMode')); ids.get('viewPicker').append(ids.get('viewMenu'));
   document.getElementById = id => {assert.ok(ids.has(id), 'HTML element exists: ' + id); return ids.get(id);};
   document.createElement = tag => new Element(tag);
@@ -116,8 +116,8 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
     performance: {now: () => now}, requestAnimationFrame: fn => {nextFrame = fn;}};
   if (blockedStorage) Object.defineProperty(sandbox, 'localStorage', {get() {throw new Error('Storage access denied');}});
   const context = vm.createContext(sandbox);
-  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['names', 'combat', 'body', 'encounters', 'core', 'save-transfer', 'emotes', 'feedback', 'render', 'input', 'display', 'cloud-save', 'cloud-client', 'cloud-ui', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
-  vm.runInContext(code + '\nglobalThis.api={game,input,renderer,encodeProgress,archerName,get paused(){return paused;}};', context);
+  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['names', 'combat', 'body', 'encounters', 'core', 'save-transfer', 'emotes', 'feedback', 'scenery', 'render', 'input', 'display', 'cloud-save', 'cloud-client', 'cloud-ui', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
+  vm.runInContext(code + '\nglobalThis.api={game,input,renderer,encodeProgress,archerName,sceneryStorageKey:SCENERY_KEY,get paused(){return paused;}};', context);
   const api = context.api, $ = id => ids.get(id), frame = () => {now += 16.67; nextFrame(now);};
   frame();
   if (preference === 'desktop' && !blockedStorage) {
@@ -125,7 +125,20 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
     $('chooseAuto').click();
   }
   ok(document.body.classList.contains('touch-ui'), 'touch device gets touch UI');
-  $('editNamesHome').click();
+  const scenerySnapshot = () => JSON.stringify([api.game.phase,api.game.round,api.game.active,api.game.angles,api.game.save,api.game.players.map(p=>[p.x,p.y,p.hp])]);
+  const homeBeforeScenery = scenerySnapshot(); $('sceneryHome').click(); frame();
+  ok(!$('sceneryPanel').hidden && api.paused, 'home scenery dialog pauses underlying game updates');
+  equal($('sceneryCards').children.length, 6, 'scenery chooser offers automatic plus five painted directions');
+  const paperChoice = $('sceneryCards').children.find(b=>b.dataset.style==='paper');
+  ok(paperChoice && paperChoice.children[0].children[0].src, 'style card contains its actual artwork preview');
+  paperChoice.click(); frame(); equal(api.renderer.sceneryStyle, 'paper', 'choosing scenery applies renderer preference immediately');
+  equal($('sceneryCards').children.find(b=>b.dataset.style==='paper').attributes['aria-pressed'], true, 'selected scenery is exposed accessibly');
+  equal(scenerySnapshot(), homeBeforeScenery, 'style selection does not change phase, positions, health or permanent progress');
+  if(!blockedStorage)equal(memory.get(api.sceneryStorageKey), 'paper', 'scenery preference uses a separate browser key');
+  window.dispatch('keydown', {key:'Escape',target:$('sceneryBack')});
+  ok($('sceneryPanel').hidden && !api.paused, 'Escape closes homepage scenery without starting a game');
+  $('sceneryHome').click(); $('editNamesHome').click();
+  ok($('sceneryPanel').hidden, 'opening name settings closes scenery dialog');
   ok(!$('namesPanel').hidden, 'home opens character naming settings');
   $('archerName0').value = '小山🏹'; $('archerName1').value = '小红'; $('namesSave').click(); frame();
   equal(api.game.save.names.join('/'), '小山🏹/小红', 'both chosen names are stored');
@@ -278,7 +291,14 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   $('feedbackMode').click(); ok(api.renderer.feedback.mode !== originalFeedback, 'pause button cycles camera feedback');
   equal(JSON.stringify(api.game.save), beforeFeedback, 'camera preference does not modify progress or cloud balance');
   $('feedbackMode').click(); $('feedbackMode').click(); equal(api.renderer.feedback.mode, originalFeedback, 'feedback cycle includes all three modes');
-  $('resume').click(); frame();
+  const beforePlayingScenery = scenerySnapshot(); $('sceneryPause').click(); frame();
+  ok(!$('sceneryPanel').hidden && api.paused, 'pause menu opens scenery without resuming the match');
+  $('sceneryCards').children.find(b=>b.dataset.style==='harbor').click(); frame();
+  equal(scenerySnapshot(), beforePlayingScenery, 'changing scenery during a match preserves combat and progress');
+  window.dispatch('keydown', {key:'Escape',target:$('sceneryBack')});
+  ok($('sceneryPanel').hidden && api.paused, 'Escape returns to pause settings with match still paused');
+  $('sceneryPause').click(); $('sceneryClose').click(); frame();
+  ok($('sceneryPanel').hidden && !api.paused && $('pausePanel').hidden, 'primary scenery action returns directly to gameplay');
   api.game.floor = 15; api.game.setup(); api.game.setPhase('scout'); frame();
   ok(!$('enemyTraits').hidden && $('enemyTraits').textContent.includes(' · '), 'late enemy combinations are shown during observation');
   ok($('sceneHint').hidden, 'generic hint does not overlap enemy abilities during observation');
