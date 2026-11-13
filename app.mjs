@@ -1,3 +1,4 @@
+import {SCENERY_STYLES,SCENERY_IMAGES,writeScenery} from './scenery.mjs';
 import {FEEDBACK_MODES,FEEDBACK_KEY} from './feedback.mjs';
 import {setupCloudAccount} from './cloud-ui.mjs';
 import {DEFAULT_NAMES,MAX_NAME_LENGTH,normalizeNames,storyNames} from './names.mjs';
@@ -9,6 +10,7 @@ import {AimInput} from './input.mjs';
 import {readView,writeView,resolveView} from './display.mjs';
 const $=id=>document.getElementById(id),canvas=$('game'),renderer=new Renderer(canvas),SAVE_KEY='hillside-archers-save-v2';
 let cloudAccount;
+let sceneryWasPaused=false,sceneryButtons=[];
 let saved,storageReady=true;try{saved=localStorage.getItem(SAVE_KEY);}catch{storageReady=false;}let paused=false,soundOn=false,audio=null,toastUntil=0,lastPhase='',lastBeat=-1,lastNow=0,renderDirty=true,stored=storageReady;
 for(const face of ['oblique 400 32px "Smiley Sans"','700 32px "Barlow Condensed"'])document.fonts?.load(face).catch(()=>{});
 const game=new Game({save:validSave(saved),onEvent:handleEvent});
@@ -93,24 +95,55 @@ function fullScreenChanged(){const active=Boolean(document.fullscreenElement||do
 function fallbackFullscreen(){document.body.classList.toggle('immersive');fullScreenChanged();}
 async function toggleFullscreen(){cancelDrag();const exit=document.exitFullscreen||document.webkitExitFullscreen,request=$('gameShell').requestFullscreen||$('gameShell').webkitRequestFullscreen;$('fullscreen').disabled=true;try{if(document.fullscreenElement||document.webkitFullscreenElement){await exit.call(document);}else if(document.body.classList.contains('immersive')){fallbackFullscreen();}else if(request){try{await request.call($('gameShell'));}catch{fallbackFullscreen();}}else fallbackFullscreen();}catch{toast('未能切换全屏，请重试。');}finally{$('fullscreen').disabled=false;fullScreenChanged();}}
 document.addEventListener('fullscreenchange',fullScreenChanged);document.addEventListener('webkitfullscreenchange',fullScreenChanged);
-function setPaused(value){if(!value){closeTransfer(false);closeNames(false);cloudAccount?.close(false);}cancelDrag();paused=value;show('pausePanel',value);$('pause').textContent=value?'继续':'暂停';if(value){renderFeedbackSetting();$('resume').focus();}}
+function setPaused(value){if(!value){closeScenery(false);closeTransfer(false);closeNames(false);cloudAccount?.close(false);}cancelDrag();paused=value;show('pausePanel',value);$('pause').textContent=value?'继续':'暂停';if(value){renderFeedbackSetting();$('resume').focus();}}
 function home(){closeNames(false);closeTransfer(false);setPaused(false);game.goHome();}
 function skipTutorial(){setPaused(false);if(game.skipTutorial()){renderDirty=true;lastPhase='';toast(stored?'全部玩法已解锁，也可随时返回主线练习。':'玩法已解锁；浏览器无法保存，可导出迁移码备份。');}}
 function closeNames(focus=true){show('namesPanel',false);if(focus)$(game.phase==='home'?'editNamesHome':'editNamesPause').focus();}
-function openNames(){cloudAccount?.close(false);cancelDrag();closeViewMenu();closeTransfer(false);if(game.phase!=='home')setPaused(true);const names=normalizeNames(game.save.names);$('archerName0').value=names[0];$('archerName1').value=names[1];$('namesMessage').textContent='名字会用于对局、剧情和结算，也会随迁移码保存。';show('namesPanel',true);$('archerName0').focus();}
+function openNames(){closeScenery(false);cloudAccount?.close(false);cancelDrag();closeViewMenu();closeTransfer(false);if(game.phase!=='home')setPaused(true);const names=normalizeNames(game.save.names);$('archerName0').value=names[0];$('archerName1').value=names[1];$('namesMessage').textContent='名字会用于对局、剧情和结算，也会随迁移码保存。';show('namesPanel',true);$('archerName0').focus();}
 $('editNamesHome').onclick=openNames;$('editNamesPause').onclick=openNames;$('namesClose').onclick=()=>closeNames();
 $('namesReset').onclick=()=>{DEFAULT_NAMES.forEach((name,i)=>{$('archerName'+i).value=name;});$('namesMessage').textContent='已填入默认名字，点击保存生效。';};
 $('namesSave').onclick=()=>{const values=[$('archerName0').value,$('archerName1').value];if(values.some(value=>Array.from(value.trim()).length>MAX_NAME_LENGTH)){$('namesMessage').textContent='每个名字最多 '+MAX_NAME_LENGTH+' 个字符。';return;}game.save=validSave({...game.save,names:normalizeNames(values)});game.persist();lastPhase='';lastBeat=-1;renderDirty=true;closeNames();toast(stored?'弓手名字已保存。':'名字已应用；当前浏览器无法保存，可导出迁移码备份。');};
 function closeTransfer(focus=true){show('transferPanel',false);if(focus)$(game.phase==='home'?'transferHome':'transferPause').focus();}
-function openTransfer(){cloudAccount?.close(false);closeNames(false);cancelDrag();closeViewMenu();if(game.phase!=='home')setPaused(true);$('exportProgress').value=encodeProgress(game.save);$('importProgress').value='';$('transferMessage').textContent=game.phase==='home'?'导入会合并永久进度，不会降低已有纪录。':'请先返回旅营，再导入进度。当前进度仍可复制。';$('importProgressButton').disabled=game.phase!=='home';show('transferPanel',true);$('transferClose').focus();}
+function openTransfer(){closeScenery(false);cloudAccount?.close(false);closeNames(false);cancelDrag();closeViewMenu();if(game.phase!=='home')setPaused(true);$('exportProgress').value=encodeProgress(game.save);$('importProgress').value='';$('transferMessage').textContent=game.phase==='home'?'导入会合并永久进度，不会降低已有纪录。':'请先返回旅营，再导入进度。当前进度仍可复制。';$('importProgressButton').disabled=game.phase!=='home';show('transferPanel',true);$('transferClose').focus();}
 $('transferHome').onclick=openTransfer;$('transferPause').onclick=openTransfer;$('transferClose').onclick=()=>closeTransfer();
 $('copyProgress').onclick=async()=>{try{if(!globalThis.navigator?.clipboard?.writeText)throw new Error('manual');await navigator.clipboard.writeText($('exportProgress').value);$('transferMessage').textContent='已复制，去另一个游戏网址粘贴导入即可。';}catch{$('exportProgress').focus();$('exportProgress').select?.();$('transferMessage').textContent='请长按代码选择复制，或在电脑按 Ctrl/Cmd+C。';}};
 $('importProgressButton').onclick=()=>{if(game.phase!=='home'){$('transferMessage').textContent='请先返回旅营，再导入进度。';return;}try{game.save=mergeProgress(game.save,decodeProgress($('importProgress').value));game.persist();renderDirty=true;renderHome();$('exportProgress').value=encodeProgress(game.save);$('transferMessage').textContent=stored?'进度已合并，可以继续旅程。':'进度已合并，但当前浏览器无法保存；关闭页面前请复制新的进度代码。';}catch(error){$('transferMessage').textContent=error.message||'进度代码无效，请重新复制。';}};
 
+function renderSceneryChoices(){
+ const host=$('sceneryCards');host.replaceChildren();sceneryButtons=[];
+ for(const style of SCENERY_STYLES){
+  const button=document.createElement('button'),preview=document.createElement('span'),img=document.createElement('img'),copy=document.createElement('span'),name=document.createElement('b'),description=document.createElement('small'),state=document.createElement('span');
+  button.className='scenery-option';button.dataset.style=style.id;button.setAttribute('aria-pressed',renderer.sceneryStyle===style.id);button.setAttribute('type','button');
+  preview.className='scenery-preview';img.src=SCENERY_IMAGES[style.asset];img.alt='';img.loading='lazy';img.decoding='async';img.onerror=()=>{img.hidden=true;};preview.append(img);
+  copy.className='scenery-option-copy';name.textContent=style.name;description.textContent=style.description;state.className='scenery-state';state.textContent=renderer.sceneryStyle===style.id?'✓ 当前风格':'点选应用';
+  copy.append(name);copy.append(description);copy.append(state);button.append(preview);button.append(copy);
+  button.onclick=()=>{renderer.setSceneryStyle(style.id);const remembered=writeScenery(viewStorage,style.id);renderSceneryChoices();$('sceneryMessage').textContent='已使用「'+style.name+'」'+(remembered?'，下次打开会记住。':'；浏览器未允许记住偏好。');sceneryButtons.find(b=>b.dataset.style===style.id)?.focus();};
+  host.append(button);sceneryButtons.push(button);
+ }
+}
+function openScenery(){
+ cloudAccount?.close(false);closeNames(false);closeTransfer(false);closeViewMenu();cancelDrag();sceneryWasPaused=paused;
+ if(game.phase!=='home')setPaused(true);else paused=true;
+ renderSceneryChoices();$('sceneryMessage').textContent='只换风景，不影响当前回合和进度。';$('sceneryClose').textContent=game.phase==='home'?'选好了，返回旅营 ↗':'选好了，返回游戏 ↗';
+ show('sceneryPanel',true);$('sceneryBack').focus();
+}
+function closeScenery(focus=true,resume=false){
+ const wasOpen=!$('sceneryPanel').hidden;show('sceneryPanel',false);if(!wasOpen)return;
+ if(resume){if(game.phase==='home')paused=false;else setPaused(false);}else if(game.phase==='home')paused=sceneryWasPaused;
+ if(focus)$(game.phase==='home'?'sceneryHome':resume?'pause':'sceneryPause').focus();
+}
+$('sceneryHome').onclick=openScenery;$('sceneryPause').onclick=openScenery;$('sceneryBack').onclick=()=>closeScenery();$('sceneryClose').onclick=()=>closeScenery(true,true);
+function sceneryKey(e){
+ if($('sceneryPanel').hidden)return false;
+ if(e.key==='Escape'){e.preventDefault();closeScenery();return true;}
+ if(e.key==='Tab'){const controls=[$('sceneryBack'),...sceneryButtons,$('sceneryClose')],index=controls.indexOf(document.activeElement),step=e.shiftKey?-1:1;controls[(index+step+controls.length)%controls.length].focus();e.preventDefault();}
+ return true;
+}
+
 function renderFeedbackSetting(){const label={light:'轻',standard:'标准',off:'关'}[renderer.feedback.mode];$('feedbackMode').textContent='画面震动：'+label+(renderer.reducedMotion?'（跟随系统减少动态）':'');}
 $('feedbackMode').onclick=()=>{const f=renderer.feedback;f.mode=FEEDBACK_MODES[(FEEDBACK_MODES.indexOf(f.mode)+1)%FEEDBACK_MODES.length];f.reset();try{localStorage.setItem(FEEDBACK_KEY,f.mode);}catch{}renderFeedbackSetting();};renderFeedbackSetting();
 $('brand').onclick=e=>{e.preventDefault();if(game.phase==='home')return;setPaused(true);};$('campaignStart').onclick=()=>{setPaused(false);game.start('campaign',game.save.checkpoint);};$('campaignQuick').onclick=skipTutorial;$('rogueStart').onclick=()=>{if(game.save.unlocked){setPaused(false);game.setPhase('loadout');}};$('loadoutHome').onclick=home;$('targetStart').onclick=()=>{if(game.start('target',Number($('mapChoice').value)))setPaused(false);};$('skillButton').onclick=()=>{if(!paused)game.activateSkill();};$('duelStart').onclick=()=>{if(game.start('duel',Number($('mapChoice').value)))setPaused(false);};$('localStart').onclick=()=>{if(game.start('local',Number($('mapChoice').value)))setPaused(false);};$('buyBow').onclick=()=>{if(game.buy('bow'))toast('练弓完成：下次远征初始箭伤害提高。');};$('buyLife').onclick=()=>{if(game.buy('life'))toast('强身完成：下次远征初始生命提高。');};$('sound').onclick=()=>{soundOn=!soundOn;$('sound').textContent='声音：'+(soundOn?'开':'关');$('sound').setAttribute('aria-pressed',soundOn);tone(600,.1,'sine');};$('view').onclick=()=>{renderer.allView=!renderer.allView;$('view').setAttribute('aria-pressed',renderer.allView);$('view').textContent=renderer.allView?'跟随镜头':'全景';};$('pause').onclick=()=>setPaused(!paused);$('resume').onclick=()=>setPaused(false);$('pauseHome').onclick=home;$('restart').onclick=()=>{const mode=game.mode,stage=game.stage;setPaused(false);game.start(mode,stage,game.skill,game.characterId);};$('resultHome').onclick=home;$('resultNext').onclick=()=>game.resultNext();$('skipStory').onclick=()=>game.save.unlocked?game.skip():skipTutorial();$('nextLine').onclick=()=>game.introNext();$('fullscreen').onclick=toggleFullscreen;
-function onKey(e){if(cloudAccount?.key(e))return;if(e.repeat)return;if(e.key==='Escape'&&!$('namesPanel').hidden){e.preventDefault();closeNames();return;}if(e.key==='Escape'&&!$('transferPanel').hidden){e.preventDefault();closeTransfer();return;}if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if(e.key==='Escape'){e.preventDefault();if(!$('viewMenu').hidden){closeViewMenu(true);return;}if(input.drag)cancelDrag();else if(paused)setPaused(false);else if(game.phase!=='home')setPaused(true);return;}if(paused||e.target.tagName==='BUTTON')return;if([' ','ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();if(input.drag)return;if(e.key===' '){if(game.phase==='intro'&&!game.save.unlocked)skipTutorial();else if(['scout','intro'].includes(game.phase))game.skip();else if(game.canAim)game.shoot();else if(game.canSkill)game.activateSkill();}else if(game.canAim)game.aim(game.angles[game.active]+(e.key==='ArrowRight'?1:-1),game.powers[game.active]);}}
+function onKey(e){if(sceneryKey(e))return;if(cloudAccount?.key(e))return;if(e.repeat)return;if(e.key==='Escape'&&!$('namesPanel').hidden){e.preventDefault();closeNames();return;}if(e.key==='Escape'&&!$('transferPanel').hidden){e.preventDefault();closeTransfer();return;}if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if(e.key==='Escape'){e.preventDefault();if(!$('viewMenu').hidden){closeViewMenu(true);return;}if(input.drag)cancelDrag();else if(paused)setPaused(false);else if(game.phase!=='home')setPaused(true);return;}if(paused||e.target.tagName==='BUTTON')return;if([' ','ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();if(input.drag)return;if(e.key===' '){if(game.phase==='intro'&&!game.save.unlocked)skipTutorial();else if(['scout','intro'].includes(game.phase))game.skip();else if(game.canAim)game.shoot();else if(game.canSkill)game.activateSkill();}else if(game.canAim)game.aim(game.angles[game.active]+(e.key==='ArrowRight'?1:-1),game.powers[game.active]);}}
 window.addEventListener('keydown',onKey);window.addEventListener('blur',()=>{cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);}});
-cloudAccount=setupCloudAccount({storage:viewStorage,getSave:()=>game.save,applySave:progress=>{game.save=progress;game.persist();lastPhase='';lastBeat=-1;renderDirty=true;renderHome();},atCamp:()=>game.phase==='home',beforeOpen:()=>{cancelDrag();closeViewMenu();closeNames(false);closeTransfer(false);if(game.phase!=='home')setPaused(true);}});
+cloudAccount=setupCloudAccount({storage:viewStorage,getSave:()=>game.save,applySave:progress=>{game.save=progress;game.persist();lastPhase='';lastBeat=-1;renderDirty=true;renderHome();},atCamp:()=>game.phase==='home',beforeOpen:()=>{closeScenery(false);cancelDrag();closeViewMenu();closeNames(false);closeTransfer(false);if(game.phase!=='home')setPaused(true);}});
 function frame(now){const dt=Math.min((now-lastNow)/1000||0,.05);lastNow=now;if(!paused)game.update(dt);renderer.draw(game,dt,{drag:input.drag,paused});renderUI();if(toastUntil&&now>toastUntil){show('toast',false);toastUntil=0;}requestAnimationFrame(frame);}renderUI();requestAnimationFrame(frame);
