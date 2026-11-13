@@ -1,6 +1,6 @@
 {
   "name": "hillside-archers",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "private": true,
   "description": "坡地弓手 · 一箭过山河 — a pixel-art archery adventure and roguelike",
   "license": "MIT",
@@ -12,6 +12,6 @@
     "dev": "node scripts/serve.mjs",
     "build": "node scripts/build-cloud-config.mjs && node scripts/build-offline.mjs",
     "check": "node --check dist/names.mjs && node --check dist/combat.mjs && node --check dist/body.mjs && node --check dist/core.mjs && node --check dist/emotes.mjs && node --check dist/render.mjs && node --check dist/cloud-save.mjs && node --check dist/cloud-client.mjs && node --check dist/cloud-ui.mjs && node --check dist/app.mjs && node --check dist/input.mjs && node --check dist/display.mjs && node --check dist/save-transfer.mjs && node --check scripts/build-cloud-config.mjs && node --check scripts/serve.mjs && node --check scripts/build-offline.mjs",
-    "test": "npm run check && node tests/core.test.mjs && node tests/extensions.test.mjs && node tests/combat.test.mjs && node tests/progression.test.mjs && node tests/save-transfer.test.mjs && node tests/names-and-unlock.test.mjs && node tests/emotes.test.mjs && node tests/mobile.test.mjs && node tests/cloud-save.test.mjs && node tests/cloud-ui.test.mjs"
+    "test": "npm run check && node tests/core.test.mjs && node tests/extensions.test.mjs && node tests/combat.test.mjs && node tests/progression.test.mjs && node tests/save-transfer.test.mjs && node tests/names-and-unlock.test.mjs && node tests/emotes.test.mjs && node tests/mobile.test.mjs && node tests/cloud-save.test.mjs && node tests/cloud-ui.test.mjs && node tests/render-state.test.mjs"
   }
 }
