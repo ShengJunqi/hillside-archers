@@ -43,3 +43,11 @@ GitHub 集成可能缺少开启 Pages 所需的管理权限。此仓库首次创
 - 备用站已发布 `gh-pages` 提交 `d51c418839ecd75c82f47e140e970264e8ad74f0`：https://shengjunqi.github.io/hillside-archers/ 。[Pages 构建](https://github.com/ShengJunqi/hillside-archers/actions/runs/42671999913)成功。
 - 已核对备用站的页面、两个账号模块、云配置及浏览器 SDK 共五个文件，与本机已验证构建的摘要一致；模块返回 JavaScript MIME。两个站点来源的 CloudBase API 跨域响应已核对，未登录访问被拒绝。
 - 当前执行环境的原站 HTTP 探测收到 Cloudflare `1010` 拒绝，因此原站只确认原生发布工具成功，未独立复核页面。真实浏览器／手机登录与邮箱收码仍待玩家实测；DOM 表单验证不等同于浏览器验收。
+
+## 0.13.0 原创画面与特效发布
+
+原站已发布 Sites 第 16 版，原生发布工具返回 succeeded，静态源码提交 `c24dc8d690c5a7c8b1c3cd69da1d55bf358b6d71`。备用站发布 `gh-pages` 提交 `5f42223fa87ea1796338d2b69bc2da3d2ea6f33c`，Actions 构建成功：https://github.com/ShengJunqi/hillside-archers/actions/runs/43379808039 。
+
+已按 SHA-256 比对备用站 render.mjs、download.html、index.html 与本机构建，结果一致；DeepSeek 提示词下载与文档字节一致。原有协作提示词及源码 ZIP 继续保留。1160 项检查及离线构建通过，三图／角色／元素效果已用原生 Canvas 出图检查；真实浏览器和手机性能仍待实测。
+
+手动协作提示词：https://shengjunqi.github.io/hillside-archers/deepseek-art-prompt.txt 。当前会话没有调用 DeepSeek harness，没有增加游戏运行时 AI 请求或服务费用。
