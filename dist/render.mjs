@@ -1,3 +1,4 @@
+import {SceneryAssets,readScenery,validScenery,sceneryAssetFor,SCENERY_PALETTES} from './scenery.mjs';
 import {ImpactFeedback,readFeedback} from './feedback.mjs';
 import {EMOTES,emotePose} from './emotes.mjs';
 import {bodyPose,attachedArrowPose} from './body.mjs';
@@ -10,9 +11,9 @@ const ART=[
 ];
 const rClamp=(v,a,b)=>Math.max(a,Math.min(b,v));const rEase=t=>t*t*(3-2*t);
 export class Renderer{
- constructor(canvas){this.canvas=canvas;canvas.width=W;canvas.height=H;this.c=canvas.getContext('2d');this.c.imageSmoothingEnabled=false;this.cam={x:W/2,y:H,z:1};this.lastPhase='';this.allView=false;this.time=0;this.emote=null;this.emoteIndex=0;const motion=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');this.reducedMotion=Boolean(motion?.matches);motion?.addEventListener?.('change',e=>{this.reducedMotion=e.matches;this.feedback?.reset();});this.dust=[];this.lastImpact=null;this.lastRound=0;let storage;try{storage=globalThis.localStorage;}catch{}this.feedback=new ImpactFeedback(readFeedback(storage));this.hitFocus=null;}
+ constructor(canvas){this.canvas=canvas;canvas.width=W;canvas.height=H;this.c=canvas.getContext('2d');this.c.imageSmoothingEnabled=true;this.cam={x:W/2,y:H,z:1};this.lastPhase='';this.allView=false;this.time=0;this.emote=null;this.emoteIndex=0;const motion=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');this.reducedMotion=Boolean(motion?.matches);motion?.addEventListener?.('change',e=>{this.reducedMotion=e.matches;this.feedback?.reset();});this.dust=[];this.lastImpact=null;this.lastRound=0;let storage;try{storage=globalThis.localStorage;}catch{}this.feedback=new ImpactFeedback(readFeedback(storage));this.hitFocus=null;this.sceneryStyle=readScenery(storage);this.scenery=new SceneryAssets();this.sceneryAssetId=null;}
  playEmote(game){if(!game.canAim||game.players[game.active].hp<=0||game.players[game.active].body?.active)return false;const choice=EMOTES[this.emoteIndex++%EMOTES.length];this.emote={kind:choice.id,duration:choice.duration,time:0,side:game.active};return true;}
- resize(width,height){if(!width||!height)return;const nextW=Math.round(H*width/height);if(this.canvas.width===nextW&&this.canvas.height===H)return;this.canvas.width=nextW;this.canvas.height=H;this.c.imageSmoothingEnabled=false;this.resized=true;}
+ resize(width,height){if(!width||!height)return;const nextW=Math.round(H*width/height);if(this.canvas.width===nextW&&this.canvas.height===H)return;this.canvas.width=nextW;this.canvas.height=H;this.c.imageSmoothingEnabled=true;this.resized=true;}
  rect(x,y,w,h,color){this.c.fillStyle=color;this.c.fillRect(Math.round(x),Math.round(y),w,h);}
  line(points,color,width=2){const c=this.c;c.beginPath();c.strokeStyle=color;c.lineWidth=width;points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.stroke();}
  poly(points,color){const c=this.c;c.fillStyle=color;c.beginPath();points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.fill();}
@@ -32,7 +33,22 @@ export class Renderer{
   this.poly([[x+w*.24,y-h*.98],[x+w*.48,y-h*.56],[x+w*.5,y],[x+w*.13,y]],'#101e2620');
   this.line([[x-w*.2,y-h*.73],[x+w*.08,y-h*.69],[x-w*.02,y-h*.46]],'#172a2833',2);
  }
+ setSceneryStyle(id){this.sceneryStyle=validScenery(id);this.terrainArtKey=null;this.backdropKey=null;}
+ hdBackdrop(map,encounter){
+  this.sceneryAssetId=sceneryAssetFor(this.sceneryStyle,map,encounter);const profile=SCENERY_PALETTES[this.sceneryAssetId],image=this.scenery.get(this.sceneryAssetId);
+  if(!image)return false;
+  const c=this.c,g=c.createLinearGradient(0,-900,0,750);g.addColorStop(0,profile.sky[0]);g.addColorStop(1,profile.sky[1]);c.fillStyle=g;c.fillRect(-1500,-5000,4600,7000);
+  const key=this.sceneryAssetId+':'+this.scenery.revision;
+  if(this.backdropKey!==key){
+   this.backdropKey=key;this.backdropLayer=null;
+   const layer=this.surfaceFactory?.(1800,1013)??(typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(1800,1013):globalThis.document?.createElement?.('canvas'));
+   if(layer?.getContext){layer.width=1800;layer.height=1013;const l=layer.getContext('2d');if(l){l.imageSmoothingEnabled=true;l.imageSmoothingQuality='high';l.drawImage(image,0,0,1800,1013);l.globalCompositeOperation='destination-in';const fade=l.createLinearGradient(0,0,0,1013);fade.addColorStop(0,'#00000000');fade.addColorStop(.13,'#000000');fade.addColorStop(1,'#000000');l.fillStyle=fade;l.fillRect(0,0,1800,1013);l.globalCompositeOperation='source-over';this.backdropLayer=layer;}}
+  }
+  c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';const shift=(this.cam.x-W/2)*.12;c.drawImage(this.backdropLayer||image,-100+shift,-220,1800,1013);c.restore();
+  return true;
+ }
  background(map,t,encounter=null){
+  if(this.hdBackdrop(map,encounter))return;
   const c=this.c,m=ART[map],g=c.createLinearGradient(0,-200,0,780);g.addColorStop(0,m.sky[0]);g.addColorStop(1,m.sky[1]);c.fillStyle=g;c.fillRect(-1500,-5000,4600,7000);
   // Flat print colors and quieter background silhouettes leave shots readable.
   const sunX=map===0?1160:map===1?1280:1240,sunY=map===2?150:190;
@@ -131,31 +147,38 @@ export class Renderer{
   c.restore();
  }
  terrainBase(game){
-  const m=ART[game.map],pts=[[0,H+700]];for(let x=0;x<=W;x+=4)pts.push([x,Math.round(ground(x,game.world)/2)*2]);pts.push([W,H+700]);this.poly(pts,m.soil);
-  // Continuous shelves make soil read as mass rather than a flat plastic slab.
-  for(let band=0;band<5;band++){
-   const top=[],bottom=[];for(let x=0;x<=W;x+=20){const y=ground(x,game.world)+28+band*50+Math.sin(x/88+band*2)*9;top.push([x,y]);bottom.unshift([x,y+10+band*3]);}this.poly([...top,...bottom],band%2?'#15292b20':'#e1ba7720');
+  const c=this.c,m=SCENERY_PALETTES[this.sceneryAssetId||sceneryAssetFor(this.sceneryStyle,game.map,game.encounter)],pts=[[0,H+700]];
+  for(let x=0;x<=W;x+=2)pts.push([x,ground(x,game.world)]);pts.push([W,H+700]);
+  c.save();c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.clip();
+  const soil=c.createLinearGradient(0,610,0,1100);soil.addColorStop(0,m.soil[0]);soil.addColorStop(.3,m.soil[1]);soil.addColorStop(1,m.soil[2]);c.fillStyle=soil;c.fillRect(0,550,W,1100);
+  if(this.terrainTexture){c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.globalCompositeOperation='soft-light';c.globalAlpha=.92;c.drawImage(this.terrainTexture,0,550,W,1100);c.restore();}
+  // Irregular geological beds follow the actual slope, with shaded crevices.
+  for(let band=0;band<6;band++){
+   const upper=[],lower=[];for(let x=0;x<=W;x+=14){const y=ground(x,game.world)+28+band*69+Math.sin(x/(120+band*19)+band*3.8)*(9+band*2)+Math.sin(x/43+band)*3;upper.push([x,y]);lower.unshift([x,y+22+band*5]);}
+   this.poly([...upper,...lower],band%2?m.rock+'28':m.shade+'38');this.line(upper,band%2?m.light+'30':m.shade+'70',1.5);
   }
-  for(let i=0;i<80;i++){
-   const x=rHash(i*3+19)*W,y=ground(x,game.world)+22+rHash(i*5+18)*220,w=18+rHash(i+7)*36,h=10+rHash(i+29)*27;
-   this.poly([[x-w/2,y],[x-w/3,y-h/2],[x+w/5,y-h],[x+w/2,y-h/5],[x+w/3,y+4]],i%3?m.rock+'55':m.shade+'88');
-   if(i%3===0)this.line([[x-w/3,y-h/2],[x+w/5,y-h]],m.edge+'22',2);
+  // Large, varied stone faces use curves and facet highlights, not repeated tiles.
+  for(let i=0;i<(this.terrainTexture?14:88);i++){
+   const x=rHash(i*7+63)*W,y=ground(x,game.world)+28+rHash(i*3+81)*330,w=9+rHash(i+11)*70,h=6+rHash(i+53)*31;
+   c.save();c.translate(x,y);c.rotate((rHash(i+3)-.5)*.35);c.beginPath();c.moveTo(-w/2,1);c.quadraticCurveTo(-w*.65,-h*.7,-w*.23,-h);c.quadraticCurveTo(w*.23,-h*1.18,w*.5,-h*.48);c.lineTo(w*.4,3);c.quadraticCurveTo(-w*.1,h*.2,-w/2,1);c.fillStyle=i%3?m.rock+'55':m.shade+'66';c.fill();
+   this.line([[-w*.37,-h*.65],[-w*.16,-h*.9],[w*.2,-h*.82]],m.light+'45',1);this.line([[w*.18,-h*.6],[w*.36,-h*.34],[w*.3,1]],m.shade+'88',1);c.restore();
   }
-  for(let x=0;x<W;x+=4){const y=Math.round(ground(x,game.world)/2)*2,drop=6+Math.floor(rHash(x+7)*8);
-   this.rect(x,y+2,4,drop,m.shade);this.rect(x,y-1,4,4,m.edge);this.rect(x,y+3,4,3,game.map===1?'#b18752':'#8d9962');
-   if(x%28===0){this.poly([[x,y+5],[x+9,y+5],[x+7,y+18],[x+3,y+12]],m.shade);}
+  // Deterministic grain is baked once into the cached soil surface.
+  for(let i=0;i<(this.terrainTexture?450:3900);i++){const x=rHash(i*5+906)*W,y=ground(x,game.world)+6+rHash(i*11+431)*490;c.globalAlpha=.07+rHash(i+19)*.12;this.rect(x,y,1+rHash(i+7)*2,1,i%3?m.light:m.shade);}c.globalAlpha=1;
+  c.restore();
+  const lip=[];for(let x=0;x<=W;x+=2)lip.push([x,ground(x,game.world)+4]);this.line(lip,m.shade,11);this.line(lip,m.grass,7);this.line(lip.map(([x,y])=>[x,y-3]),m.edge,2.4);
+  for(let i=0;i<330;i++){
+   const x=rHash(i*3+61)*W,y=ground(x,game.world),h=3+rHash(i+19)*12,lean=(rHash(i+31)-.5)*11;
+   this.line([[x-2,y+2],[x+lean,y-h]],i%4?m.grass:m.edge,1.1+rHash(i)*1.3);
+   if(i%9===0){this.line([[x+2,y],[x+5,y-10],[x+11,y-14]],m.grass,1.4);this.circle(x+11,y-14,1.7,m.light);}
   }
-  for(let i=0;i<36;i++){const x=30+rHash(i+321)*1540,y=ground(x,game.world)+32+rHash(i+421)*145;this.line([[x,y],[x+9,y-7]],m.shade+'44',1.5);this.line([[x+5,y+4],[x+14,y-3]],m.shade+'44',1.5);}
-  for(let i=0;i<60;i++){
-   const x=12+rHash(i+66)*(W-24),y=ground(x,game.world),h=5+rHash(i+88)*12;
-   if(i%4===0){this.stone(x,y+1,12+rHash(i)*12,6+rHash(i+1)*6,m.rock,i);continue;}
-   this.poly([[x-7,y],[x-10,y-h],[x-2,y-3],[x,y-h-4],[x+2,y-3],[x+8,y-h*.7],[x+6,y]],game.map===1?'#bea16a':'#729772');
-   if(i%7===0){this.rect(x+7,y-h-1,4,4,game.map===2?'#b7e5cd':'#e9c17f');this.rect(x+6,y-h+3,2,h-3,'#536c49');}
-  }
+  for(let i=0;i<22;i++){const x=12+rHash(i+801)*(W-24),y=ground(x,game.world)+1;this.stone(x,y,7+rHash(i)*16,4+rHash(i+13)*7,m.rock,i);}
  }
  terrain(game){
-  if(this.terrainMap!==game.map||this.terrainKey!==game.world){
-   this.terrainMap=game.map;this.terrainKey=game.world;this.terrainLayer=null;
+  this.terrainTexture=this.scenery.get('earth');
+  const artKey=this.sceneryStyle+':'+this.sceneryAssetId+':'+this.scenery.revision;
+  if(this.terrainMap!==game.map||this.terrainKey!==game.world||this.terrainArtKey!==artKey){
+   this.terrainMap=game.map;this.terrainKey=game.world;this.terrainArtKey=artKey;this.terrainLayer=null;
    const surface=this.surfaceFactory?.(W,1600)??(typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(W,1600):globalThis.document?.createElement?.('canvas'));
    if(surface?.getContext){surface.width=W;surface.height=1600;const c=surface.getContext('2d');if(c){const original=this.c;this.c=c;this.terrainBase(game);this.c=original;this.terrainLayer=surface;}}
   }

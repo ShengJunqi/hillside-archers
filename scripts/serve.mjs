@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 const root = fileURLToPath(new URL('../dist/', import.meta.url));
 const host = process.env.HOST || '127.0.0.1';
 const port = Number(process.env.PORT || 8080);
-const types = {'.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.txt': 'text/plain; charset=utf-8'};
+const types = {'.html': 'text/html; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.ttf': 'font/ttf', '.txt': 'text/plain; charset=utf-8'};
 const server = createServer(async (req, res) => {
   if (!['GET', 'HEAD'].includes(req.method)) {
     res.writeHead(405, {Allow: 'GET, HEAD'}).end();

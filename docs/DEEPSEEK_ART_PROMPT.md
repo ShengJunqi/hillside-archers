@@ -5,13 +5,13 @@
 ```text
 请直接改进这个浏览器弓箭游戏的原创美术和动效，并交付可审查的 PR。
 仓库：https://github.com/ShengJunqi/hillside-archers
-先阅读 feat/comic-expedition 分支和 AGENTS.md、README.md、docs/GAME_DESIGN.md、docs/COMIC_EXPEDITION.md，再从它另开 feat/deepseek-art 分支。不要覆盖其他作者正在修改的文件。
+先阅读 feat/hd-scenery 分支和 AGENTS.md、README.md、docs/GAME_DESIGN.md、docs/COMIC_EXPEDITION.md，再从它另开 feat/deepseek-art 分支。不要覆盖其他作者正在修改的文件。
 
 用户反馈：人物像塑料／木偶，地图单薄重复，特效不够。
 参考 Bowmasters 的鲜明角色剪影、受力动作、分层场景和出手—飞行—命中节奏。角色、美术、音乐、代码必须原创，不搬运原作素材。
 
-当前 0.14.0 已实现用户选择的“荒诞漫画竞技”：暖纸色海报、得意黑标题和 Barlow 数字；青蓝／珊瑚红弓手；八种独立场景剪影和地形；选路、四种敌人打法、事件衰减震动设置、命中拟声字。请基于实际最新版继续，不回退成金色衬线字卡片或仅换颜色的同一座山。
-涉及模块是 render.mjs、encounters.mjs、feedback.mjs、arena.css；game.world 是实际地形，game.map 只是地图色系。遇到同名绘制方法先检查覆盖，避免新效果实际未被执行。
+当前 0.15.0 已实现用户选择的“荒诞漫画竞技”：暖纸色海报、得意黑标题和 Barlow 数字；青蓝／珊瑚红弓手；八种独立场景剪影和地形；选路、四种敌人打法、事件衰减震动设置、命中拟声字。请基于实际最新版继续，不回退成金色衬线字卡片或仅换颜色的同一座山。
+新增五种本地高清场景和 ground() 裁切土岩材质，主页／暂停可切换，详见 docs/HD_SCENERY.md；不要把高清远景重新盖回简单多边形。涉及模块是 render.mjs、scenery.mjs、encounters.mjs、feedback.mjs、arena.css；game.world 是实际地形，game.map 只是地图色系。遇到同名绘制方法先检查覆盖，避免新效果实际未被执行。
 可优先做：
 1. 独立角色皮肤或面部表情、蓄力和受击恢复动作，遵循 body.mjs 的关节位置，避免美术轮廓与命中部位明显脱节。
 2. 三张地图的局部手工地标、近远景和非重复材质。

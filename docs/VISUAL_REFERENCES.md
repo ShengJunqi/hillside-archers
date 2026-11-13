@@ -27,3 +27,14 @@
 - [Xbox Accessibility Guideline 117: Visual distractions](https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/117)：提供减弱／关闭冲击，减少同时大范围运动；系统减少动态效果优先。
 
 排查确认旧版类内重复的 `particles` 方法覆盖了新版效果，已移除。新的回归检查直接验证漫画命中字确实由当前粒子方法绘制。
+
+## 0.15.0 高清场景方向
+
+本轮生成五种原创绘景和一种土岩材质，以真实素材代替大块平填几何；没有下载商业游戏的画面作素材。以下公开参考只用于分析构图、景深与材质，不代表完整观看了讲座视频，也不照搬角色或关卡。
+
+- [Rayman Legends: The Design Process（GDC）](https://www.gdcvault.com/play/1020398/Rayman-Legends-The-Design-Process)：夸张手绘景观与清楚的活动空间。
+- [The Art of Ori（GDC）](https://gdcvault.com/play/1027035/The-Art-of-Ori-and)、[官方合作美术书](https://www.future-press.com/books/the-art-of-ori-and-the-will-of-the-wisps/)：空气透视、冷暖焦点、材质细节。
+- [Media Molecule 官方 Tearaway 介绍](https://www.mediamolecule.com/blog/article/announcing_tearaway_unfolded_for_playstation_4)：纸纤维、厚度、折痕和层间阴影，而非只有多边形轮廓。
+- [Thunder Lotus 官方 Spiritfarer 页面](https://thunderlotusgames.com/games/spiritfarer/)：手绘港湾、建筑剪影、暖窗灯与开阔天空。
+
+完成内容、图片原始尺寸、选择入口及验证边界见 [高清场景说明](HD_SCENERY.md)。
