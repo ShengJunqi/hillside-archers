@@ -60,7 +60,7 @@ for (const mode of ['campaign', 'rogue', 'duel']) {
 }
 {
   const g = create('campaign', 3), angle = g.chooseAI();
-  const hit = trace(g.players[1], g.players[0], angle, g.obs, g.map);
+  const hit = trace(g.players[1], g.players[0], angle, g.obs, g.world);
   ok(angle > 45 && hit.kind === 'hit' && hit.part !== 'head', 'AI can choose high body route when low cover only exposes the head');
 }
 
