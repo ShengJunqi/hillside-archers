@@ -16,3 +16,14 @@
 已运行完整规则检查、离线构建、渲染状态纯度检查，并用原生 Canvas 实际导出三张地图、角色特写和元素效果图。图像留在忽略的 work/visual-pass/，不是浏览器验收。当前没有可调用的 cua_repl.js；未安装替代浏览器或绕过环境限制，手机帧率与浏览器真实操作仍待实测。
 
 当前没有 DeepSeek harness 工具或命令入口，未声称已调用。可手动交给 DeepSeek 的提示词见 DEEPSEEK_ART_PROMPT.md。
+
+## 0.14.0 荒诞漫画竞技
+
+用户选择了夸张漫画竞技方向。当前实现与创意清单见 [COMIC_EXPEDITION.md](COMIC_EXPEDITION.md)。场景剪影按赛场分别绘制：林间看台、水面码头、夜市楼群、桥下峡谷、气球领奖台；降低背景轮廓强度，用粗黑边的箱／黄条木桩标明可破坏物。
+
+- [得意黑官方仓库](https://github.com/atelier-anchor/smiley-sans)：短标题自带倾斜，不额外 skew，不伪造粗体；原始 WOFF2 与完整 OFL 随站提供。
+- [Barlow Condensed 官方 Google Fonts 目录](https://github.com/google/fonts/tree/main/ofl/barlowcondensed)：窄体竞技数字，用于血量等读数，正文保留系统中文字体。
+- [The Art of Screenshake](https://www.youtube.com/watch?v=AJdEqssNZ-U)、[Math for Game Programmers: Juicing Your Cameras With Math](https://gdcvault.com/play/1023146/Math-for-Game-Programmers-Juicing)：借鉴事件触发与衰减思路，本项目强度与时长自行设定，独立测试，不是照抄所谓通用最佳参数。
+- [Xbox Accessibility Guideline 117: Visual distractions](https://learn.microsoft.com/en-us/gaming/accessibility/xbox-accessibility-guidelines/117)：提供减弱／关闭冲击，减少同时大范围运动；系统减少动态效果优先。
+
+排查确认旧版类内重复的 `particles` 方法覆盖了新版效果，已移除。新的回归检查直接验证漫画命中字确实由当前粒子方法绘制。

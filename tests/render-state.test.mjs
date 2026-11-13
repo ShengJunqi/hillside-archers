@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {Game,launch,ground} from '../dist/core.mjs';
+import {encounterFor} from '../dist/encounters.mjs';
 import {Renderer} from '../dist/render.mjs';
 
 let checks=0,randomCalls=0,borders=0;
@@ -32,4 +33,14 @@ const renderer=new Renderer(makeCanvas());renderer.surfaceFactory=makeCanvas;
 for(let i=0;i<25;i++){game.impact={x:200+i,y:ground(200+i,game.map)};renderer.draw(game,0);}
 assert.ok(renderer.dust.length<=8,'ground impact effects have a bounded queue');checks++;
 const before=renderer.time;renderer.draw(game,.1,{paused:true});equal(renderer.time,before,'pause freezes decorative animation time');
+{
+ const g=new Game({save:{unlocked:true},rng:()=>.5});g.start('rogue');const r=new Renderer(makeCanvas());r.surfaceFactory=makeCanvas;r.draw(g,.016);const terrain=r.terrainLayer;
+ g.floor=2;g.encounterFloor=0;g.pendingEncounter=encounterFor(7,2);g.pendingEncounter.map=g.map;g.setup();r.draw(g,.016);
+ assert.notEqual(r.terrainLayer,terrain,'same biome with new slope rebuilds cached collision surface');checks++;
+ const p=g.players[1];g.setPhase('flight');g.hitTarget({...launch(g.players[0],20),t:0},{part:'head',damage:42},{x:p.x,y:p.y-96});r.draw(g,.016);
+ assert.ok(r.comicLabel?.head,'actual impact rendering includes comic headshot emphasis');checks++;
+ const label=r.comicLabel;g.hitTarget({...launch(g.players[0],20),t:0},{part:'body',damage:26},{x:p.x,y:p.y-60});r.draw(g,.016);equal(r.comicLabel,label,'extra arrows do not restart comic emphasis');
+ let stroked=0;const old=r.c.strokeText;r.c.strokeText=()=>{stroked++;};g.effects=[];r.particles(g);r.c.strokeText=old;
+ assert.ok(stroked>0,'active particle implementation actually draws the comic label, not the obsolete override');checks++;
+}
 console.log(checks+' renderer purity, random-sequence, caching and reduced-motion checks passed.');

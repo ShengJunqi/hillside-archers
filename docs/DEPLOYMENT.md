@@ -1,6 +1,6 @@
 # 免费备用入口与离线分享
 
-游戏不需要服务器程序、外部字体、模型 API 或 ChatGPT 登录。把 `dist/` 中的文件完整放在静态网站根目录即可；页面和模块使用相对路径，也能放在 `/hillside-archers/` 子目录。
+游戏不需要服务器程序、外部字体服务、模型 API 或 ChatGPT 登录。把 `dist/` 中的文件完整放在静态网站根目录即可；页面和模块使用相对路径，也能放在 `/hillside-archers/` 子目录。
 
 ## GitHub Pages
 
@@ -51,3 +51,14 @@ GitHub 集成可能缺少开启 Pages 所需的管理权限。此仓库首次创
 已按 SHA-256 比对备用站 render.mjs、download.html、index.html 与本机构建，结果一致；DeepSeek 提示词下载与文档字节一致。原有协作提示词及源码 ZIP 继续保留。1160 项检查及离线构建通过，三图／角色／元素效果已用原生 Canvas 出图检查；真实浏览器和手机性能仍待实测。
 
 手动协作提示词：https://shengjunqi.github.io/hillside-archers/deepseek-art-prompt.txt 。当前会话没有调用 DeepSeek harness，没有增加游戏运行时 AI 请求或服务费用。
+
+## 0.14.0 荒诞漫画巡回赛发布
+
+- 游戏源码：`7f25f5cc5c0e5eb8ab26830edef24e40c9a7badd`，PR：https://github.com/ShengJunqi/hillside-archers/pull/10 。基于上一轮画面分支提交，未合并 main。[源码 CI](https://github.com/ShengJunqi/hillside-archers/actions/runs/43504030836)成功。
+- 原站发布 Sites 第 17 版，原生工具返回 `succeeded`，静态源码提交 `518e7b2706737cb2959e623f83cdd22b84f0820e`。保留原公开入口与访问方式。
+- 备用站 `gh-pages` 最终提交 `7a83ae4a02edd249f1cfe567ea33202ce1462c45`，构建：https://github.com/ShengJunqi/hillside-archers/actions/runs/43504158521 。
+- 对备用站 14 项产物逐一 HTTP 读取并比对 SHA-256：入口、渲染／场地／反馈模块、漫画 CSS、离线 HTML、两种字体、字体许可、公开云配置、DeepSeek 提示词、创意说明、源码 ZIP 和合作提示词，全部为 200 且与发布文件一致。字体与模块 MIME 正确。
+- `npm test`、`npm run build`、`git diff --check` 通过。除原有规则／账号／输入回归外，增加双方整数弹道、选路、首领场景轮换、三类特殊 AI 意图、机关、震动衰减、多箭反馈和地形缓存检查。原生 Canvas 检查八种场地、角色近景与命中帧。
+- 当前没有可调用的浏览器控制工具，尚未验证真实手机帧率和真实浏览器完整操作；原站以官方部署成功状态确认，独立 HTTP 字节核验在备用站完成。
+
+本版字体由本站提供，离线 HTML 内嵌字体和完整许可，新增资源不需要字体 CDN、模型调用或后端资源。DeepSeek 仍为手动协作提示词，没有实际调用 harness。创意清单区分已实现与未来方案：https://shengjunqi.github.io/hillside-archers/comic-expedition-notes.txt 。

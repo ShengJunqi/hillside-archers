@@ -116,7 +116,7 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
     performance: {now: () => now}, requestAnimationFrame: fn => {nextFrame = fn;}};
   if (blockedStorage) Object.defineProperty(sandbox, 'localStorage', {get() {throw new Error('Storage access denied');}});
   const context = vm.createContext(sandbox);
-  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['names', 'combat', 'body', 'core', 'save-transfer', 'emotes', 'render', 'input', 'display', 'cloud-save', 'cloud-client', 'cloud-ui', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
+  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['names', 'combat', 'body', 'encounters', 'core', 'save-transfer', 'emotes', 'feedback', 'render', 'input', 'display', 'cloud-save', 'cloud-client', 'cloud-ui', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
   vm.runInContext(code + '\nglobalThis.api={game,input,renderer,encodeProgress,archerName,get paused(){return paused;}};', context);
   const api = context.api, $ = id => ids.get(id), frame = () => {now += 16.67; nextFrame(now);};
   frame();
@@ -267,6 +267,18 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   api.game.choices = [{id: 'fire', name: '焰羽', tag: '火焰', icon: '焰', desc: '强化火焰'}, {id: 'poison', name: '青毒', tag: '毒素', icon: '毒', desc: '强化毒素'}];
   api.game.setPhase('upgrade'); frame();
   ok($('upgradeCards').children[0].innerHTML.includes('2 → 3') && $('upgradeCards').children[1].innerHTML.includes('3 → 4'), 'repeated elemental choices show current and next tier benefits');
+  api.game.complete(true); frame(); $('resultNext').click(); frame();
+  equal($('routeCards').children.length, 2, 'upgrade screen offers two route buttons');
+  const routeId = api.game.nextRoutes[1].id; $('routeCards').children[1].click();
+  equal(api.game.selectedRoute, routeId, 'touching route ticket selects its physical encounter');
+  equal($('routeCards').children[1].attributes['aria-pressed'], true, 'route selection is exposed accessibly');
+  $('upgradeCards').children[0].click(); frame();
+  equal(api.game.encounter.id, routeId, 'relic card begins the selected route without another menu');
+  $('pause').click(); frame(); const originalFeedback = api.renderer.feedback.mode, beforeFeedback = JSON.stringify(api.game.save);
+  $('feedbackMode').click(); ok(api.renderer.feedback.mode !== originalFeedback, 'pause button cycles camera feedback');
+  equal(JSON.stringify(api.game.save), beforeFeedback, 'camera preference does not modify progress or cloud balance');
+  $('feedbackMode').click(); $('feedbackMode').click(); equal(api.renderer.feedback.mode, originalFeedback, 'feedback cycle includes all three modes');
+  $('resume').click(); frame();
   api.game.floor = 15; api.game.setup(); api.game.setPhase('scout'); frame();
   ok(!$('enemyTraits').hidden && $('enemyTraits').textContent.includes(' · '), 'late enemy combinations are shown during observation');
   ok($('sceneHint').hidden, 'generic hint does not overlap enemy abilities during observation');
