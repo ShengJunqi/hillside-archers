@@ -1,14 +1,18 @@
-// A run combines authored, shootable arenas instead of random walls.
-// This PRNG is separate from combat: previews and drawing never change a shot.
+// Authored physical arenas: distances and elevations are gameplay, not backdrops.
+// Profile nodes use a monotone smooth interpolation so each shelf is walkable.
 export const ARENAS=Object.freeze([
- {id:'yard',name:'歪旗训练场',shape:'slope',xs:[180,1420],landmark:'stands',tip:'低箱掩体，先找身体的落点',cover:[[620,'crate',74,58],[990,'crate',74,58]]},
- {id:'bowl',name:'碗底俱乐部',shape:'bowl',xs:[150,1450],landmark:'bowl',tip:'两边高，中间低；低弧线也能过',cover:[[710,'crate',90,62],[870,'crate',74,58]]},
- {id:'dock',name:'歪脖子码头',shape:'flat',xs:[120,1480],landmark:'crane',tip:'长距离，拆箱打开直射路线',cover:[[470,'crate',78,64],[810,'post',32,88],[1140,'crate',78,64]]},
- {id:'ridge',name:'巨龟背上',shape:'ridge',xs:[200,1400],landmark:'turtle',tip:'缓坡隆起，抬一点角度越过龟背',cover:[[690,'crate',68,52],[930,'crate',68,52]]},
- {id:'market',name:'打烊夜市',shape:'reverse',xs:[170,1430],landmark:'market',tip:'一高一低，别照抄上一场的角度',cover:[[560,'crate',76,62],[1020,'post',30,78]]},
- {id:'bridge',name:'纸箱收费站',shape:'bowl',xs:[230,1370],landmark:'bridge',tip:'近身赛场；第五回合中央路障会倒',rule:'collapse',cover:[[660,'crate',68,60],[800,'post',34,96],[950,'crate',68,60]]},
- {id:'signs',name:'路标全写反了',shape:'steps',xs:[120,1480],landmark:'signs',tip:'双台地长距离，薄路障一箭就倒',cover:[[550,'post',28,70],[1050,'post',28,70]]},
- {id:'festival',name:'空碗颁奖台',shape:'flat',xs:[210,1390],landmark:'podium',tip:'开阔短场，补给偏爱心，拼命中节奏',supply:'hearts',cover:[[800,'crate',92,54]]}
+ {id:'yard',name:'歪旗训练场',kind:'近距浅谷',xs:[520,1080],landmark:'stands',tip:'近距离对射；浅谷给低抛留出空间，半力也能打出好落点',profile:[[0,735],[350,735],[470,690],[580,690],[800,735],[1020,690],[1130,690],[1250,735],[1600,735]],cover:[[800,'crate',72,54]],recommendedPower:70},
+ {id:'bowl',name:'碗底俱乐部',kind:'高岸深谷',xs:[360,1240],landmark:'bowl',tip:'左岸高、右岸低，中间深谷；下坡试着收力，上坡抬角度',profile:[[0,650],[180,650],[300,560],[450,560],[800,755],[1140,680],[1300,680],[1470,740],[1600,740]],cover:[[730,'crate',80,58],[940,'post',30,70]],recommendedPower:85},
+ {id:'dock',name:'歪脖子码头',kind:'超远平岸',xs:[140,1460],landmark:'crane',tip:'长距离双岸；先打薄木桩，也能越过低箱直达身体',profile:[[0,730],[90,670],[280,670],[620,710],[1020,710],[1320,670],[1510,670],[1600,730]],cover:[[500,'crate',76,64],[800,'post',32,86],[1110,'crate',76,64]],recommendedPower:100},
+ {id:'ridge',name:'巨龟背上',kind:'仰攻高台',xs:[260,1340],landmark:'turtle',tip:'右侧高出两层楼；仰攻要抬角，顶上的对手也得重新算落点',profile:[[0,750],[140,680],[390,680],[650,630],[920,570],[1210,470],[1400,470],[1600,650]],cover:[[630,'crate',68,52],[1030,'post',28,65]],recommendedPower:100},
+ {id:'market',name:'打烊夜市',kind:'陡岸俯射',xs:[300,1300],landmark:'market',tip:'左高右低；高处不代表稳赢，近乎直射的满力箭容易飞过',profile:[[0,650],[80,650],[240,470],[420,470],[650,580],[920,715],[1160,650],[1360,650],[1600,750]],cover:[[720,'crate',76,60],[1030,'post',30,72]],recommendedPower:85},
+ {id:'bridge',name:'纸箱收费站',kind:'短桥双坡',xs:[440,1160],landmark:'bridge',tip:'双岸短距离；第五回合中央路障会倒，别一直等同一个角度',rule:'collapse',profile:[[0,740],[220,740],[350,650],[540,650],[800,755],[1060,650],[1240,650],[1400,740],[1600,740]],cover:[[700,'crate',66,55],[800,'post',32,96],[925,'crate',66,55]],recommendedPower:85},
+ {id:'signs',name:'路标全写反了',kind:'落差长坡',xs:[180,1420],landmark:'signs',tip:'两侧相差240高度；左侧俯射，右侧仰射，照搬角度一定歪',profile:[[0,610],[130,470],[330,470],[610,590],[900,590],[1260,710],[1470,710],[1600,760]],cover:[[580,'post',28,66],[1020,'post',28,66]],recommendedPower:100},
+ {id:'festival',name:'空碗颁奖台',kind:'贴身快打',xs:[540,1060],landmark:'podium',tip:'最短赛场；力度很重要，补给更偏爱心，抓住对手失误',supply:'hearts',profile:[[0,700],[300,700],[480,640],[620,640],[800,680],[980,640],[1120,640],[1300,700],[1600,700]],cover:[[800,'crate',82,50]],recommendedPower:65},
+ {id:'switchback',name:'弯路不包邮',kind:'错层上坡',xs:[280,1320],landmark:'signs',tip:'先越矮岭再上高台；掩体倒下后，用较低弧线逼对手失衡',profile:[[0,770],[100,770],[220,710],[410,710],[640,650],[810,750],[1120,530],[1390,530],[1600,700]],cover:[[620,'crate',72,52],[970,'post',30,68]],recommendedPower:100},
+ {id:'sinkhole',name:'漏风碗底',kind:'双崖深沟',xs:[400,1200],landmark:'bowl',tip:'两岸齐平，中间陷得很深；看清地形，低抛不会被谷底吞掉',profile:[[0,730],[120,730],[330,620],[500,620],[760,770],[880,770],[1100,620],[1270,620],[1490,730],[1600,730]],cover:[[720,'crate',72,55],[890,'crate',72,55]],recommendedPower:80},
+ {id:'balcony',name:'楼上请收箭',kind:'高台远投',xs:[160,1440],landmark:'market',tip:'右台很高、距离也远；打出稳定仰角，再抢下空中补给',profile:[[0,735],[100,650],[310,650],[700,700],[970,610],[1290,440],[1480,440],[1600,610]],cover:[[660,'crate',78,62],[1090,'post',30,62]],recommendedPower:100},
+ {id:'crossing',name:'上下班交界',kind:'阶梯中场',xs:[380,1220],landmark:'stands',tip:'右边高一层，中间有缓台；身体命中也能把对手推离好位置',profile:[[0,730],[80,730],[320,650],[490,650],[710,590],[900,625],[1100,560],[1290,560],[1530,680],[1600,680]],cover:[[720,'crate',70,54],[980,'post',28,62]],recommendedPower:85}
 ]);
 export const ENEMY_STYLES=Object.freeze([
  {id:'steady',name:'认真打工人',tip:'偏好低弧线与身体落点'},
@@ -17,18 +21,34 @@ export const ENEMY_STYLES=Object.freeze([
  {id:'forager',name:'追心鬼',tip:'受伤时会优先争抢爱心'}
 ]);
 const encounterHash=n=>{n=Math.imul(n^(n>>>16),0x45d9f3b);n=Math.imul(n^(n>>>16),0x45d9f3b);return (n^(n>>>16))>>>0;};
+const encounterEase=t=>t*t*(3-2*t);
+const encounterProfileY=(x,profile)=>{
+ if(x<=profile[0][0])return profile[0][1];
+ for(let i=1;i<profile.length;i++)if(x<=profile[i][0]){const a=profile[i-1],b=profile[i],t=encounterEase((x-a[0])/(b[0]-a[0]));return a[1]+(b[1]-a[1])*t;}
+ return profile[profile.length-1][1];
+};
 export function encounterFor(seed,floor=1,route=0,previousId=''){
- floor=Math.max(1,Math.floor(floor));const offset=encounterHash(seed) % ARENAS.length;
- let index=(offset+floor-1+route*3)%ARENAS.length;if(ARENAS[index].id===previousId)index=(index+1)%ARENAS.length;
+ floor=Math.max(1,Math.floor(floor));const offset=encounterHash(seed)%ARENAS.length;
+ let index=(offset+floor-1+route*5)%ARENAS.length;if(ARENAS[index].id===previousId)index=(index+1)%ARENAS.length;
  const a=ARENAS[index],map=(encounterHash(seed+91)%3+floor-1+Math.floor((floor-1)/3)+route)%3;
- const style=ENEMY_STYLES[(encounterHash(seed+507)+floor+route)%ENEMY_STYLES.length];
- return {id:`${seed}:${floor}:${route}:${a.id}`,layoutId:a.id,name:a.name,map,terrain:{shape:a.shape,map,key:`${a.shape}:${map}`},xs:[...a.xs],cover:a.cover.map(c=>[...c]),landmark:a.landmark,tip:a.tip,rule:a.rule||'none',supply:a.supply||(route?'hearts':'mixed'),enemy:{...style},boss:floor%3===0};
+ const style=ENEMY_STYLES[(encounterHash(seed+507)+floor+route)%ENEMY_STYLES.length],profile=a.profile.map(p=>[...p]);
+ const terrain={shape:'profile',profile,map,key:`${a.id}:${map}`};
+ const leftY=encounterProfileY(a.xs[0],profile),rightY=encounterProfileY(a.xs[1],profile),heightDelta=Math.round(leftY-rightY);
+ const geometry={distance:a.xs[1]-a.xs[0],leftY,rightY,heightDelta,relief:Math.max(...profile.map(p=>p[1]))-Math.min(...profile.map(p=>p[1])),kind:a.kind,recommendedPower:a.recommendedPower};
+ return {id:`${seed}:${floor}:${route}:${a.id}`,layoutId:a.id,name:a.name,map,terrain,xs:[...a.xs],cover:a.cover.map(c=>[...c]),landmark:a.landmark,tip:a.tip,rule:a.rule||'none',supply:a.supply||(route?'hearts':'mixed'),enemy:{...style},boss:floor%3===0,geometry,preview:{profile:profile.map(p=>[...p]),xs:[...a.xs]}};
 }
 export function encounterRoutes(seed,floor,previousId=''){
- const a=encounterFor(seed,floor,0,previousId),b=encounterFor(seed,floor,1,previousId);
- if(a.layoutId===b.layoutId)return [a,encounterFor(seed,floor,2,previousId)];return [a,b];
+ const a=encounterFor(seed,floor,0,previousId);
+ // Tickets differ in an actual shot constraint: range or platform elevation.
+ for(let route=1;route<ARENAS.length;route++){
+  const b=encounterFor(seed,floor,route,previousId);
+  if(a.layoutId!==b.layoutId&&(Math.abs(a.geometry.distance-b.geometry.distance)>=180||Math.abs(a.geometry.heightDelta-b.geometry.heightDelta)>=90))return [a,b];
+ }
+ return [a,encounterFor(seed,floor,1,previousId)];
 }
 export function encounterGround(x,terrain){
+ if(Array.isArray(terrain.profile)&&terrain.profile.length>1)return encounterProfileY(x,terrain.profile);
+ // Retain numeric-shape compatibility for older callers and isolated previews.
  const n=Math.max(0,Math.min(1,x/1600)),wave=Math.sin(x/180)*4;
  switch(terrain.shape){
  case 'slope':return 700-60*n+wave;

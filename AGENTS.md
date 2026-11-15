@@ -49,3 +49,5 @@ CloudBase 管理连接已配置：国内站、上海，已有环境见 `.cloudba
 账号与云存档模块为 `dist/cloud-save.mjs`、`dist/cloud-client.mjs`、`dist/cloud-ui.mjs`；不把 SDK/网络耦合进纯游戏物理。CloudBase 匿名登录保持禁用，本机游客不创建云身份。读存档走 RLS，写存档只走 `archer_save_for_account`，必须传 expected_owner、版本号与幂等请求 ID；禁止直接 update/upsert 或将余烬按 max 合并。首次关联、账号切换和冲突都需玩家在旅营选整组修行与余额；替换前留本机备份。`.env.local` 与生成的 `dist/cloud-config.json` 不提交；只允许 Publishable Key 进入发布产物。新增 SQL 用 `cloudbase/migrations/` 版本化，不编辑已应用迁移。
 
 账号入口按用户要求只保留账号密码登录（兼容邮箱密码）与验证邮箱注册；不恢复验证码登录或自助密码重置。找回入口联系 sheng.327@osu.edu，管理员核对注册邮箱后只改原用户密码，不删号重建，避免 UID 变化导致丢云存档。新账号注册保留一次邮箱验证，不能用前端管理密钥绕过 CloudBase 认证。
+
+0.16起 `game.world` / `game.arena.terrain` 才是真实物理地形，`game.map` 仅区域／美术色系；不要把新地图接成只换背景。自由模式使用12个arenaChoice，重开须保留。AI chooseAI会设置本轮power，不得在readyTurn/shoot前写回100。受击同volley共享位移边界；起身保留落点，动态碰撞跟真实nodes。站位建立／改变后调用syncGroundContact采样双脚（射靶x220覆盖也要同步）。悬赏、重选、finisher均是局内临时状态，不写永久存档。KO只在真实HP归零触发一次，退出清除；非战斗预览的睁眼／起身只改视觉副本。

@@ -1,6 +1,6 @@
 # 添加角色和技能
 
-目前仍使用现有的青松、赤岩，尚未增加角色选择页面。先维护原有主线和三张弓的入口；不要为角色扩展清空旧存档。
+无尽出发页现可选青松、磐石、灵雀，之后独立选择三张弓之一；赤岩仍为兼容的对手ID。角色选择不清空永久进度，自定义名字与角色ID分开。
 
 ## 三种独立来源
 
@@ -9,6 +9,8 @@
 | 角色初始天赋 | `combat.mjs` 的 `CHARACTERS`，`player.skills.initial` | 角色携带；每场的使用次数在 `skills.used` |
 | 选择的弓术 | `core.mjs` 的 `BOWS`，`player.skills.weapon` | 本次远征；现有 `game.skill` 继续兼容 |
 | 额外遗物能力 | `UPGRADES`、`game.upgrades`、`player.skills.extra` | 远征中叠加，重开清除 |
+
+磐石的「重弦」通过 `hitKnockbackScale()` 提供1.2倍率，只增加真实击退；灵雀的「拾光」通过 `pickupSkillHealing()` 在每场首次带伤拾球时额外回复8，满血保留。每个场地重新建立 `skills.used`；临时次数不写入v2存档。
 
 现有「沉着」在 `turnSkillHealing()` 执行：当自己的回合到来，首次生命不高于 35% 时回复 10 点。青松和赤岩都有此天赋，同机双人仍对称。
 

@@ -41,8 +41,12 @@ export function rogueEnemyStats(floor, base) {
 // Existing characters remain the defaults. Adding a character does not replace
 // the selected bow, acquired relics or the save format.
 export const CHARACTERS = [
-  {id: 'qingsong', name: '青松', initialSkills: ['composure'], description: '沉着：首次危急时，在自己的回合回复 10 点生命。'},
-  {id: 'chiyan', name: '赤岩', initialSkills: ['composure'], description: '沉着：首次危急时，在自己的回合回复 10 点生命。'},
+  {id: 'qingsong', name: '青松', playable: true, initialSkills: ['composure'], description: '沉着：首次危急时，在自己的回合回复 10 点生命。'},
+  {id: 'chiyan', name: '赤岩', playable: false, initialSkills: ['composure'], description: '沉着：首次危急时，在自己的回合回复 10 点生命。'},
+  {id: 'panshi', name: '磐石', playable: true, initialSkills: ['heavystring'], description: '重弦：射出的箭造成的击退提高 20%，不额外增加伤害。',
+    palette: {cloak:'#c69a4c',fold:'#756247',rim:'#f0d69b',cloth:'#dedbc8',leather:'#665243',skin:'#dbad84',hair:'#414b4a'}},
+  {id: 'lingque', name: '灵雀', playable: true, initialSkills: ['lightgather'], description: '拾光：每场首次带伤拾球，额外回复 8 点生命；满血时保留。',
+    palette: {cloak:'#6d9e81',fold:'#3e6658',rim:'#e7d092',cloth:'#f0eadb',leather:'#74604d',skin:'#edbc93',hair:'#3d5356'}},
 ];
 export function characterById(id) {return CHARACTERS.find(c => c.id === id) || CHARACTERS[0];}
 export function createSkillState(characterId) {
@@ -55,4 +59,20 @@ export function turnSkillHealing(player) {
     skills.used.push('composure'); return 10;
   }
   return 0;
+}
+
+// Passive knockback only: the caller applies this multiplier to the impact,
+// never to damage, arrow count, aiming accuracy or the NPC volley budget.
+export function hitKnockbackScale(player) {
+  return Array.isArray(player?.skills?.initial)&&player.skills.initial.includes('heavystring')?1.2:1;
+}
+
+// The first pickup while injured earns the bonus. The caller applies normal
+// heart healing first; a full recovery keeps this charge for a later pickup.
+// Returned healing still goes through Game.heal(); previews must not call it.
+export function pickupSkillHealing(player) {
+  const skills=player?.skills;
+  if(!(player?.hp>0&&player.hp<player.stats?.maxHp)||!Array.isArray(skills?.initial)||!skills.initial.includes('lightgather')||Array.isArray(skills.used)&&skills.used.includes('lightgather'))return 0;
+  if(!Array.isArray(skills.used))skills.used=[];
+  skills.used.push('lightgather');return 8;
 }

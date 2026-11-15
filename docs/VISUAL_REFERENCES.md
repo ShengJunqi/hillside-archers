@@ -38,3 +38,7 @@
 - [Thunder Lotus 官方 Spiritfarer 页面](https://thunderlotusgames.com/games/spiritfarer/)：手绘港湾、建筑剪影、暖窗灯与开阔天空。
 
 完成内容、图片原始尺寸、选择入口及验证边界见 [高清场景说明](HD_SCENERY.md)。
+
+## 0.16.0 战斗空间与致命一箭
+
+本轮侧重实体地形和受力，参考Bowmasters的布娃娃收尾、Worms的角度／蓄力与快速继续、Tank Stars的站位约束，以及Into the Breach的可读意图；具体来源、已实现边界与验证限制见 [战术地形说明](TACTICAL_TERRAIN.md)。没有以同图滤镜代替物理变化，也不复制参考游戏素材。
