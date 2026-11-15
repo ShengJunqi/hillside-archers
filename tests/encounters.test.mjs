@@ -3,7 +3,7 @@ import {Game,trace,ground,launch,position,collision,validSave} from '../dist/cor
 import {ARENAS,encounterFor,encounterRoutes} from '../dist/encounters.mjs';
 let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;},eq=(a,b,m)=>{assert.deepEqual(a,b,m);checks++;};
 const make=()=>{const g=new Game({save:{unlocked:true},rng:()=>.5});g.start('rogue');return g;};
-// Enumerate actual full-power integer shots, including cover and terrain.
+// Enumerate actual integer shots and useful strength bands, including cover and terrain.
 // Every authored venue must offer a non-head route in both directions.
 for(const seed of [0,42,9173]){
  const seen=new Set(),bossBiomes=new Set();let previous='';
@@ -18,15 +18,15 @@ for(const seed of [0,42,9173]){
    eq(g.orbs.length,0,'every new venue starts without balls');
    for(let side=0;side<2;side++){
     const p=g.players[side];ok(p.x>=100&&p.x<=1500,'station has knockback margin at world edges');eq(p.y,ground(p.x,g.world),'physics station sits on generated terrain');
-    const bodyAngles=[];for(let a=5;a<=75;a++){const r=trace(p,g.players[1-side],a,g.obs,g.world);if(r.kind==='hit'&&r.part!=='head')bodyAngles.push(a);}
-    ok(bodyAngles.length>0,`floor ${floor} ${encounter.layoutId} side ${side}: body or limb shot clears real cover`);
+    let bodyShot=null;outer:for(const power of new Set([encounter.geometry.recommendedPower,100,85,70,55,40]))for(let a=5;a<=75;a++){const r=trace(p,g.players[1-side],a,g.obs,g.world,power);if(r.kind==='hit'&&r.part!=='head'){bodyShot={angle:a,power};break outer;}}
+    ok(bodyShot,`floor ${floor} ${encounter.layoutId} side ${side}: body or limb shot clears real cover`);
     for(const o of g.obs)ok(Math.abs(o.x-p.x)>80+o.w/2,'cover does not trap a player or overlap recovery space');
    }
-   for(let x=0;x<=1600;x+=20)ok(Number.isFinite(ground(x,g.world))&&ground(x,g.world)>600&&ground(x,g.world)<740,'terrain stays inside visible playable bounds');
+   for(let x=0;x<=1600;x+=20)ok(Number.isFinite(ground(x,g.world))&&ground(x,g.world)>=430&&ground(x,g.world)<=780,'terrain stays inside visible playable bounds');
   }
   seen.add(routes[0].layoutId);if(floor%3===0)bossBiomes.add(routes[0].map);previous=routes[0].layoutId;
  }
- eq(seen.size,ARENAS.length,'24 floors visit all eight authored venues');eq(bossBiomes.size,3,'boss rounds rotate across all three biomes');
+ eq(seen.size,ARENAS.length,'24 floors visit all authored physical venues');eq(bossBiomes.size,3,'boss rounds rotate across all three biomes');
 }
 {
  const g=make();g.players[0].hp=51;const save=JSON.stringify(validSave(g.save));g.complete(true);g.resultNext();
@@ -36,7 +36,7 @@ for(const seed of [0,42,9173]){
  eq(g.encounter.id,alternative.id,'selected route determines next physical encounter');ok(g.players[0].hp>=51,'health carried into route');eq(g.orbs.length,0,'chosen route still starts empty');
  ok(!g.chooseRoute(alternative.id),'route cannot change during a match');
  const keys=Object.keys(validSave(g.save));ok(!keys.includes('encounter')&&!keys.includes('runSeed'),'route state never changes v2 save schema');
- g.start('campaign');eq(g.encounter,null,'campaign clears temporary expedition terrain');eq(g.world,g.map,'campaign uses original terrain');
+ const expeditionTerrain=g.world;g.start('campaign');eq(g.encounter,null,'campaign clears temporary expedition descriptor');eq(g.world,g.arena.terrain,'campaign also uses the actual authored collision profile');eq(g.arena.layoutId,'yard','campaign tutorial selects its intended physical arena');ok(g.world!==expeditionTerrain,'campaign does not keep the previous expedition ground');
 }
 {
  const g=make();g.complete(true);g.resultNext();const defaultId=g.nextRoutes[0].id;g.chooseUpgrade(g.choices[0].id);eq(g.encounter.id,defaultId,'existing one-click relic flow uses sensible default route');
@@ -47,12 +47,12 @@ for(const seed of [0,42,9173]){
 }
 {
  const g=make();g.encounter.enemy.id='breaker';g.obs=[{id:0,type:'post',x:800,y:ground(800,g.world),w:40,h:200,hp:1,maxHp:1,state:'standing'}];
- const angle=g.chooseAI();eq(trace(g.players[1],g.players[0],angle,g.obs,g.world).kind,'obstacle','breaker intentionally targets real blocking cover');
+ const angle=g.chooseAI();eq(trace(g.players[1],g.players[0],angle,g.obs,g.world,g.powers[1]).kind,'obstacle','breaker intentionally targets real blocking cover');
 }
 {
- const g=make();g.obs=[];g.encounter.enemy.id='loft';const angle=g.chooseAI(),r=trace(g.players[1],g.players[0],angle,g.obs,g.world);ok(angle>=45&&r.kind==='hit'&&r.part!=='head','high-arc archetype uses a real non-head window');
+ const g=make();g.obs=[];g.encounter.enemy.id='loft';const angle=g.chooseAI(),r=trace(g.players[1],g.players[0],angle,g.obs,g.world,g.powers[1]);ok(angle>=45&&r.kind==='hit'&&r.part!=='head','high-arc archetype uses a real non-head window');
  g.encounter.enemy.id='forager';g.players[1].hp=20;const b=launch(g.players[1],40),orb={...position(b,.6),type:'heart',r:25,used:false};g.orbs=[orb];
- const heartAngle=g.chooseAI(),hb=launch(g.players[1],heartAngle);let collected=false;
+ const heartAngle=g.chooseAI(),hb=launch(g.players[1],heartAngle,g.powers[1]);let collected=false;
  for(let t=1/300;t<12;t+=1/300){const p=position(hb,t);if(collision(p,g.players[0],[],g.world))break;if(Math.hypot(p.x-orb.x,p.y-orb.y)<orb.r){collected=true;break;}}
  ok(collected,'injured heart-seeker takes a reachable heart instead of guaranteed player damage');
 }

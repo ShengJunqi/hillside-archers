@@ -116,8 +116,8 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
     performance: {now: () => now}, requestAnimationFrame: fn => {nextFrame = fn;}};
   if (blockedStorage) Object.defineProperty(sandbox, 'localStorage', {get() {throw new Error('Storage access denied');}});
   const context = vm.createContext(sandbox);
-  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['names', 'combat', 'body', 'encounters', 'core', 'save-transfer', 'emotes', 'feedback', 'scenery', 'render', 'input', 'display', 'cloud-save', 'cloud-client', 'cloud-ui', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
-  vm.runInContext(code + '\nglobalThis.api={game,input,renderer,encodeProgress,archerName,sceneryStorageKey:SCENERY_KEY,get paused(){return paused;}};', context);
+  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['names', 'combat', 'body', 'encounters', 'bounties', 'core', 'save-transfer', 'emotes', 'feedback', 'scenery', 'render', 'input', 'display', 'cloud-save', 'cloud-client', 'cloud-ui', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
+  vm.runInContext(code + '\nglobalThis.api={game,input,renderer,encodeProgress,archerName,sceneryStorageKey:SCENERY_KEY,playableCharacters:CHARACTERS.filter(c=>c.playable).map(c=>({id:c.id,initialSkills:c.initialSkills})),bowIds:BOWS.map(b=>b.id),arenaIds:ARENAS.map(a=>a.id),get paused(){return paused;}};', context);
   const api = context.api, $ = id => ids.get(id), frame = () => {now += 16.67; nextFrame(now);};
   frame();
   if (preference === 'desktop' && !blockedStorage) {
@@ -125,6 +125,8 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
     $('chooseAuto').click();
   }
   ok(document.body.classList.contains('touch-ui'), 'touch device gets touch UI');
+  equal($('mapChoice').children.length, 12, 'free-mode selector offers all twelve physical arenas');
+  equal(new Set($('mapChoice').children.map(option=>option.value)).size, 12, 'free-mode choices have distinct stable arena ids');
   const scenerySnapshot = () => JSON.stringify([api.game.phase,api.game.round,api.game.active,api.game.angles,api.game.save,api.game.players.map(p=>[p.x,p.y,p.hp])]);
   const homeBeforeScenery = scenerySnapshot(); $('sceneryHome').click(); frame();
   ok(!$('sceneryPanel').hidden && api.paused, 'home scenery dialog pauses underlying game updates');
@@ -174,6 +176,39 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   ok($('transferPanel').hidden, 'Escape closes migration while typing');
   ok($('campaignQuick').hidden, 'already-unlocked players no longer see the tutorial skip entry');
   api.game.goHome(); frame();
+  for(const [mode,button,choice] of [['local','localStart',11],['duel','duelStart',12]]){
+    $('mapChoice').value=String(choice);$(''+button).click();frame();
+    equal(api.game.mode,mode,'free-mode button starts the requested match type');
+    equal(api.game.arenaChoice,choice,'selected map is passed to the actual Game for '+mode);
+    equal(api.game.arena.layoutId,api.arenaIds[choice-1],'free choice resolves to its actual physical template instead of wrapping to three maps: '+mode);
+    const arenaBeforeRestart=JSON.stringify([api.game.arena.layoutId,api.game.arena.xs,api.game.arena.terrain]);
+    $('pause').click();$('restart').click();frame();
+    equal(api.game.arenaChoice,choice,'restart retains a free map beyond the original three slots: '+mode);
+    equal(JSON.stringify([api.game.arena.layoutId,api.game.arena.xs,api.game.arena.terrain]),arenaBeforeRestart,'restart retains physical distance and elevation: '+mode);
+    $('pause').click();$('pauseHome').click();frame();
+  }
+  $('mapChoice').value='1';
+  for(let characterIndex=0;characterIndex<3;characterIndex++){
+    $('rogueStart').click();frame();equal(api.game.phase,'loadout','rogue entry opens initial-character and bow selection');
+    equal($('characterCards').children.length,3,'loadout exposes the three playable initial skill choices');
+    const character=api.playableCharacters[characterIndex],bow=api.bowIds[characterIndex];
+    $('characterCards').children[characterIndex].click();
+    equal($('characterCards').children[characterIndex].attributes['aria-pressed'],true,'initial-character selection exposes its current state');
+    ok($('characterCards').children.every((card,index)=>Boolean(card.attributes['aria-pressed'])===(index===characterIndex)),'only one initial character is selected');
+    $('bowCards').children[characterIndex].click();frame();
+    equal(api.game.characterId,character.id,'chosen initial character reaches Game.start');
+    equal(api.game.players[0].characterId,character.id,'spawned archer keeps the chosen character id');
+    equal(api.game.players[0].skills.initial.join('/'),character.initialSkills.join('/'),'chosen character keeps its real initial skills');
+    equal(api.game.skill,bow,'bow selection stays independent from initial-character choice');
+    equal(api.game.players[0].skills.weapon,bow,'spawned archer retains the chosen airborne bow skill');
+    const saveBeforeRestart=JSON.stringify(api.game.save);api.game.upgrades=['fire'];api.game.stats.fire=4;api.game.rerolls=2;
+    $('pause').click();$('restart').click();frame();
+    equal(api.game.floor,1,'restarting begins a new expedition');equal(api.game.upgrades.length,0,'new expedition clears temporary relics');
+    equal(api.game.stats.fire,0,'new expedition clears temporary element ranks');equal(api.game.rerolls,0,'new expedition clears unspent temporary rerolls');
+    equal(api.game.characterId,character.id,'new expedition preserves the chosen initial character');equal(api.game.skill,bow,'new expedition preserves the chosen bow');
+    equal(JSON.stringify(api.game.save),saveBeforeRestart,'restarting an expedition does not rewrite permanent progress');
+    $('pause').click();$('pauseHome').click();frame();
+  }
   $('campaignStart').click(); frame();
   equal(api.game.phase, 'intro', 'normal story entry remains available');
   equal($('speaker').textContent, '小山🏹', 'renamed speaker remains after progress import');
@@ -200,6 +235,25 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   ok(!$('touchControls').hidden, 'human turn has a touch control bar');
   const angle = api.game.angles[0]; $('angleUp').click(); frame(); equal(api.game.angles[0], angle + 1, 'touch + changes angle by one degree');
   $('angleDown').click(); frame(); equal(api.game.angles[0], angle, 'touch minus changes angle by one degree');
+  const powerAngle=api.game.angles[api.game.active],powerBeforeControls=api.game.powers[api.game.active],powerRound=api.game.round;
+  api.game.aim(powerAngle,100);frame();const powerCycle=[];
+  for(let step=0;step<4;step++){$('powerMode').click();frame();powerCycle.push(api.game.powers[api.game.active]);}
+  equal(powerCycle.join('/'),'45/65/85/100','power button cycles light, half, strong and full draw');
+  equal(api.game.angles[api.game.active],powerAngle,'power presets do not change the integer aim angle');
+  equal(api.game.phase,'aim','power presets never fire an arrow');equal(api.game.round,powerRound,'changing power never spends a turn');equal(api.game.arrows.length,0,'power presets do not create a volley');
+  const key=key=>window.dispatch('keydown',{key,target:cv});
+  api.game.aim(powerAngle,98);key('ArrowUp');equal(api.game.powers[api.game.active],100,'keyboard power increase clamps at full draw');
+  key('ArrowUp');equal(api.game.powers[api.game.active],100,'repeated increase cannot pass full draw');
+  api.game.aim(powerAngle,22);key('ArrowDown');equal(api.game.powers[api.game.active],20,'keyboard power decrease clamps at minimum draw');
+  key('ArrowDown');equal(api.game.powers[api.game.active],20,'repeated decrease cannot pass minimum draw');
+  api.game.aim(powerAngle,65);key('ArrowUp');equal(api.game.powers[api.game.active],70,'keyboard increases power by a small integer step');key('ArrowDown');equal(api.game.powers[api.game.active],65,'keyboard decreases power without changing angle');
+  equal(api.game.angles[api.game.active],powerAngle,'vertical keys leave the selected angle intact');key('ArrowRight');equal(api.game.angles[api.game.active],powerAngle+1,'horizontal keys still adjust angle by one degree');key('ArrowLeft');equal(api.game.angles[api.game.active],powerAngle,'horizontal key adjustment is reversible');
+  ok(Number.isInteger(api.game.powers[api.game.active])&&Number.isInteger(api.game.angles[api.game.active]),'keyboard controls keep angle and power integral');
+  $('pause').click();frame();const pausedPower=api.game.powers[api.game.active];$('powerMode').onclick();key('ArrowUp');key('ArrowDown');equal(api.game.powers[api.game.active],pausedPower,'paused power handler and keyboard cannot alter the shot');$('resume').click();frame();
+  cv.dispatch('pointerdown',pointer(210,300));cv.dispatch('pointermove',pointer(110,355));
+  const heldPower=api.game.powers[api.game.active],heldAngle=api.game.angles[api.game.active];$('powerMode').onclick();key('ArrowUp');key('ArrowDown');
+  equal(api.game.powers[api.game.active],heldPower,'held drag owns power until it is released or canceled');equal(api.game.angles[api.game.active],heldAngle,'power shortcuts cannot alter an active drag angle');equal(api.game.phase,'aim','power shortcuts during drag never release a shot');
+  api.input.cancel();cv.dispatch('pointerup',pointer(110,355,{buttons:0}));api.game.aim(powerAngle,powerBeforeControls);frame();
   const state = JSON.stringify([api.game.save, api.game.players, api.game.round, api.game.active, api.game.mode]);
   const oldPower = api.game.powers[0];
   cv.dispatch('pointerdown', pointer(210, 300)); cv.dispatch('pointermove', pointer(110, 355));
@@ -280,8 +334,17 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   api.game.choices = [{id: 'fire', name: '焰羽', tag: '火焰', icon: '焰', desc: '强化火焰'}, {id: 'poison', name: '青毒', tag: '毒素', icon: '毒', desc: '强化毒素'}];
   api.game.setPhase('upgrade'); frame();
   ok($('upgradeCards').children[0].innerHTML.includes('2 → 3') && $('upgradeCards').children[1].innerHTML.includes('3 → 4'), 'repeated elemental choices show current and next tier benefits');
-  api.game.complete(true); frame(); $('resultNext').click(); frame();
+  api.game.rerolls=1;api.game.complete(true); frame(); $('resultNext').click(); frame();
   equal($('routeCards').children.length, 2, 'upgrade screen offers two route buttons');
+  for(const ticket of $('routeCards').children){const preview=ticket.children.find(node=>node.tagName==='CANVAS');ok(preview&&preview.width>0&&preview.height>0,'route choice contains a real nonempty-size terrain preview canvas');}
+  ok(!$('rerollUpgrades').hidden,'earned reroll credit exposes the upgrade reroll action');
+  const choicesBeforeReroll=api.game.choices.map(c=>c.id),saveBeforeReroll=JSON.stringify(api.game.save),floorBeforeReroll=api.game.floor;
+  $('rerollUpgrades').click();frame();equal(api.game.rerolls,0,'upgrade reroll spends exactly one earned credit');
+  equal(api.game.choices.length,3,'reroll offers three new relics');equal(new Set(api.game.choices.map(c=>c.id)).size,3,'rerolled choices remain unique');
+  ok(api.game.choices.every(c=>!choicesBeforeReroll.includes(c.id)),'reroll replaces all previous offers when alternatives are available');
+  equal(JSON.stringify(api.game.save),saveBeforeReroll,'upgrade reroll does not spend permanent currency or change account progress');equal(api.game.floor,floorBeforeReroll,'reroll does not skip a stage');
+  ok($('rerollUpgrades').hidden,'spent credit hides the reroll action');const choicesAfterReroll=api.game.choices.map(c=>c.id).join('/');$('rerollUpgrades').onclick();
+  equal(api.game.choices.map(c=>c.id).join('/'),choicesAfterReroll,'reroll handler without credit cannot replace choices');equal(api.game.rerolls,0,'creditless reroll cannot underflow');
   const routeId = api.game.nextRoutes[1].id; $('routeCards').children[1].click();
   equal(api.game.selectedRoute, routeId, 'touching route ticket selects its physical encounter');
   equal($('routeCards').children[1].attributes['aria-pressed'], true, 'route selection is exposed accessibly');
@@ -308,6 +371,10 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   api.game.emit('phase'); frame();
   ok($('status0').textContent.includes('12层') && $('status0').textContent.includes('余3轮'), 'HUD distinguishes accumulated poison stacks from remaining turns');
   ok($('status0').title.includes('60/轮') && $('inventory').textContent.includes('基础60/轮'), 'full elemental tick damage remains available in pause details');
+  api.game.start('rogue');api.game.complete(true);api.game.phaseTime=.1;frame();const rewardedSave=JSON.stringify(api.game.save);
+  window.dispatch('keydown',{key:' ',target:cv});equal(api.game.phase,'victory','early key press does not cut the first finishing beat');
+  api.game.phaseTime=.5;window.dispatch('keydown',{key:' ',target:$('resultHome')});equal(api.game.phase,'victory','result shortcut does not steal a focused button action');window.dispatch('keydown',{key:'Enter',target:cv});frame();equal(api.game.phase,'upgrade','Enter quickly continues a completed result');
+  equal(JSON.stringify(api.game.save),rewardedSave,'quick continue does not grant duplicate rewards');
 }
 const phone = {width: 390, height: 740, coarse: true}, desktop = {width: 1440, height: 900};
 equal(resolveView('auto', phone).layout, 'mobile', 'auto recognizes phone');

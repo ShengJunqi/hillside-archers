@@ -25,7 +25,7 @@ for (const stage of [1, 2, 3]) {
 }
 {
   const g = create('campaign', 3); g.active = 1; g.phase = 'thinking'; g.obs = []; g.angles[1] = 29;
-  g.shoot(); const origin = launch(g.players[1], 29);
+  g.shoot(); const origin = launch(g.players[1], 29, g.powers[1]);
   g.orbs = [.6, 1.2].map(t => ({...position(origin, t), type: 'plus', used: false, r: 25}));
   for (let i = 0; i < 1200 && ['flight', 'settle'].includes(g.phase); i++) g.update(1 / 60);
   eq(g.volleyCount, 3, 'real flight passes two balls and creates exactly three arrows');
@@ -58,10 +58,27 @@ for (const mode of ['campaign', 'rogue', 'duel']) {
   eq(rogue.players[1].stats.multi, 2, 'guardian keeps its two-arrow attack');
   ok(rogue.players[1].hp > 130 && rogue.players[1].hp < 180, 'guardian is durable without the old health spike');
 }
+// Difficulty errors are zero at rng=.5. Each campaign must produce a real
+// body/limb solution using the power selected by the two-dimensional planner.
+for (const stage of [1, 2, 3]) {
+  const g = create('campaign', stage); g.arena.enemy.id = 'steady';
+  const angle = g.chooseAI(), power = g.powers[1];
+  const result = trace(g.players[1], g.players[0], angle, g.obs, g.world, power);
+  ok(Number.isInteger(angle) && Number.isInteger(power) && power >= 20 && power <= 100, 'AI chooses legal integer angle and strength: chapter ' + stage);
+  ok(result.kind === 'hit' && result.part !== 'head', 'AI can hit a non-head window on the actual elevation: chapter ' + stage);
+}
 {
-  const g = create('campaign', 3), angle = g.chooseAI();
-  const hit = trace(g.players[1], g.players[0], angle, g.obs, g.world);
-  ok(angle > 45 && hit.kind === 'hit' && hit.part !== 'head', 'AI can choose high body route when low cover only exposes the head');
+  const g = create('campaign', 3); g.arena.enemy.id = 'loft';
+  g.arena.terrain = {shape: 'profile', profile: [[0, 700], [1600, 700]]};
+  for (const [i, x] of [200, 1400].entries()) Object.assign(g.players[i], {x, homeX: x, y: 700, groundSlope: 0});
+  g.obs = [{id: 0, type: 'post', x: 800, y: 700, w: 36, h: 200, hp: 1, maxHp: 1, state: 'standing'}];
+  const angle = g.chooseAI(), power = g.powers[1], result = trace(g.players[1], g.players[0], angle, g.obs, g.world, power);
+  ok(angle >= 45 && result.kind === 'hit' && result.part !== 'head', 'high-arc archetype finds a real non-head route over tall cover');
+  ok(power < 100, 'high arc can use a reduced-strength solution instead of only full power');
+  g.active = 1; g.readyTurn();
+  eq(g.phase, 'flight', 'computer still releases immediately without a scouting or thinking delay');
+  const expected = launch(g.players[1], g.angles[1], g.powers[1]);
+  ok(g.powers[1] < 100 && Math.abs(g.arrows[0].vx - expected.vx) < 1e-9 && Math.abs(g.arrows[0].vy - expected.vy) < 1e-9, 'instant NPC release preserves the planned strength');
 }
 
 // Initial character skills, weapon skills and acquired upgrades have separate

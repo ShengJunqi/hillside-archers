@@ -74,3 +74,15 @@ GitHub 集成可能缺少开启 Pages 所需的管理权限。此仓库首次创
 - 浏览器控制入口不可调用，未宣称真实浏览器布局或手机 GPU 帧率验收。原站以官方部署成功状态确认，HTTP 字节核验在备用站完成。
 
 主页和暂停菜单均有「场景风格」，默认随赛场变化，支持五种固定风格与本机记忆。详细范围：https://shengjunqi.github.io/hillside-archers/hd-scenery-notes.txt 。
+
+## 0.16.0 战术地形与元素收尾发布
+
+- 游戏源码：`e8199f952d595da13dfb00c49f784ddedd2c31fc`，PR：https://github.com/ShengJunqi/hillside-archers/pull/12 ，基于 `feat/hd-scenery`，未合并 main。[源码 CI](https://github.com/ShengJunqi/hillside-archers/actions/runs/43688076403)成功。
+- 原站已发布 Sites 第 19 版，原生部署工具返回 `succeeded`；静态源码提交 `cc8c0869bdd75681041dee7cf38413676f68193a`。沿用原公开网址、账号配置、协作提示词与下载入口。
+- 备用站 `gh-pages` 提交 `8716aed8a9231f86c0bfc8ce971169dd9d84dcf4`，已通过 [Pages 构建](https://github.com/ShengJunqi/hillside-archers/actions/runs/43688197000)。
+- 备用站 21 项产物均 HTTP 200 且 SHA-256 与发布文件一致：入口、app／core／body／combat／encounters／bounties／render 模块、漫画 CSS、离线 HTML、公开云配置、六项 WebP、新版玩法说明、源码 ZIP、DeepSeek 提示词和原协作提示词。图片 MIME 为 `image/webp`。
+- `npm run build`、`npm test`、`git diff --check` 通过；另以实际弹道检查十二种地形的 600 个击退后站位，均保留反击线路。回归覆盖动态肢体命中、坡面脚底接触、电脑力度规划、手机力度输入、角色技能／悬赏奖励和 KO 生命周期；原生 Canvas 检查高低地图、竖屏视角、倒地动作与元素收尾。
+- 十二种实体坡形用于各模式，站距 520–1320、最大出生高差 240。新增持续击退、青松／磐石／灵雀选择、局内悬赏和重选，以及短元素 KO 收尾。没有新增运行时模型调用、后端资源或永久存档字段。
+- 当前没有可调用的浏览器控制工具，尚未验收真实浏览器完整操作或手机 GPU 帧率。原站以官方部署成功状态确认，独立 HTTP 字节核验在备用站完成。
+
+新版说明：https://shengjunqi.github.io/hillside-archers/tactical-terrain-notes.txt 。离线 HTML 约 4.24 MB，包含六项高清图片与字体许可，不依赖原站或外部图片服务。
