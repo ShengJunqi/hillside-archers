@@ -1,4 +1,5 @@
 import {characterById} from './combat.mjs';
+import {arenaBounds} from './encounters.mjs';
 import {SceneryAssets,readScenery,validScenery,sceneryAssetFor,SCENERY_PALETTES} from './scenery.mjs';
 import {ImpactFeedback,readFeedback} from './feedback.mjs';
 import {EMOTES,emotePose} from './emotes.mjs';
@@ -69,7 +70,10 @@ export class Renderer{
    const layer=this.surfaceFactory?.(1800,1013)??(typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(1800,1013):globalThis.document?.createElement?.('canvas'));
    if(layer?.getContext){layer.width=1800;layer.height=1013;const l=layer.getContext('2d');if(l){l.imageSmoothingEnabled=true;l.imageSmoothingQuality='high';l.drawImage(image,0,0,1800,1013);l.globalCompositeOperation='destination-in';const fade=l.createLinearGradient(0,0,0,1013);fade.addColorStop(0,'#00000000');fade.addColorStop(.13,'#000000');fade.addColorStop(1,'#000000');l.fillStyle=fade;l.fillRect(0,0,1800,1013);l.globalCompositeOperation='source-over';this.backdropLayer=layer;}}
   }
-  c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';const shift=(this.cam.x-W/2)*.12;c.drawImage(this.backdropLayer||image,-100+shift,-220,1800,1013);c.restore();
+  // Follow distant stations and cover a zoomed-out view without exposing the
+  // source image's vertical edges. Keep its base at the same ground horizon.
+  const parallax=(this.cam.x-W/2)*.15,artWidth=Math.max(1800,this.canvas.width/Math.max(.001,this.cam.z)+Math.abs(parallax)*2+160),artHeight=artWidth*1013/1800;
+  c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(this.backdropLayer||image,this.cam.x-parallax-artWidth/2,793-artHeight,artWidth,artHeight);c.restore();
   return true;
  }
  background(map,t,encounter=null){
@@ -172,47 +176,51 @@ export class Renderer{
   c.restore();
  }
  terrainBase(game){
-  const c=this.c,m=SCENERY_PALETTES[this.sceneryAssetId||sceneryAssetFor(this.sceneryStyle,game.map,game.arena||game.encounter)],pts=[[0,H+700]];
-  for(let x=0;x<=W;x+=2)pts.push([x,ground(x,game.world)]);pts.push([W,H+700]);
+  const c=this.c,m=SCENERY_PALETTES[this.sceneryAssetId||sceneryAssetFor(this.sceneryStyle,game.map,game.arena||game.encounter)],{left,right,width}=arenaBounds(game.world),density=width/W,pts=[[left,H+700]];
+  for(let x=left;x<=right;x+=2)pts.push([x,ground(x,game.world)]);pts.push([right,H+700]);
   c.save();c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.clip();
-  let top=H;for(let x=0;x<=W;x+=24)top=Math.min(top,ground(x,game.world));
-  const soil=c.createLinearGradient(0,top,0,top+650);soil.addColorStop(0,m.soil[0]);soil.addColorStop(.3,m.soil[1]);soil.addColorStop(1,m.soil[2]);c.fillStyle=soil;c.fillRect(0,0,W,H+700);
-  if(this.terrainTexture){c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.globalCompositeOperation='soft-light';c.globalAlpha=.92;c.drawImage(this.terrainTexture,0,Math.max(0,top-30),W,1100);c.restore();}
-  for(let x=0;x<W;x+=8){const y=ground(x,game.world),next=ground(x+8,game.world),slope=(next-y)/8;c.globalAlpha=rClamp(Math.abs(slope)*.24,0,.25);this.poly([[x,y+4],[x+8,next+4],[x+8,next+64],[x,y+64]],slope>0?m.shade:m.light);}c.globalAlpha=1;
+  let top=H;for(let x=left;x<=right;x+=24)top=Math.min(top,ground(x,game.world));
+  const soil=c.createLinearGradient(0,top,0,top+650);soil.addColorStop(0,m.soil[0]);soil.addColorStop(.3,m.soil[1]);soil.addColorStop(1,m.soil[2]);c.fillStyle=soil;c.fillRect(left,0,width,H+700);
+  if(this.terrainTexture){c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.globalCompositeOperation='soft-light';c.globalAlpha=.92;for(let x=left;x<right;x+=W)c.drawImage(this.terrainTexture,x,Math.max(0,top-30),W,1100);c.restore();}
+  for(let x=left;x<right;x+=8){const y=ground(x,game.world),next=ground(x+8,game.world),slope=(next-y)/8;c.globalAlpha=rClamp(Math.abs(slope)*.24,0,.25);this.poly([[x,y+4],[x+8,next+4],[x+8,next+64],[x,y+64]],slope>0?m.shade:m.light);}c.globalAlpha=1;
   // Irregular geological beds follow the actual slope, with shaded crevices.
   for(let band=0;band<6;band++){
-   const upper=[],lower=[];for(let x=0;x<=W;x+=14){const y=ground(x,game.world)+28+band*69+Math.sin(x/(120+band*19)+band*3.8)*(9+band*2)+Math.sin(x/43+band)*3;upper.push([x,y]);lower.unshift([x,y+22+band*5]);}
+   const upper=[],lower=[];for(let x=left;x<=right;x+=14){const y=ground(x,game.world)+28+band*69+Math.sin(x/(120+band*19)+band*3.8)*(9+band*2)+Math.sin(x/43+band)*3;upper.push([x,y]);lower.unshift([x,y+22+band*5]);}
    this.poly([...upper,...lower],band%2?m.rock+'28':m.shade+'38');this.line(upper,band%2?m.light+'30':m.shade+'70',1.5);
   }
   // Large, varied stone faces use curves and facet highlights, not repeated tiles.
-  for(let i=0;i<(this.terrainTexture?14:88);i++){
-   const x=rHash(i*7+63)*W,y=ground(x,game.world)+28+rHash(i*3+81)*330,w=9+rHash(i+11)*70,h=6+rHash(i+53)*31;
+  for(let i=0;i<Math.ceil((this.terrainTexture?14:88)*density);i++){
+   const x=left+rHash(i*7+63)*width,y=ground(x,game.world)+28+rHash(i*3+81)*330,w=9+rHash(i+11)*70,h=6+rHash(i+53)*31;
    c.save();c.translate(x,y);c.rotate((rHash(i+3)-.5)*.35);c.beginPath();c.moveTo(-w/2,1);c.quadraticCurveTo(-w*.65,-h*.7,-w*.23,-h);c.quadraticCurveTo(w*.23,-h*1.18,w*.5,-h*.48);c.lineTo(w*.4,3);c.quadraticCurveTo(-w*.1,h*.2,-w/2,1);c.fillStyle=i%3?m.rock+'55':m.shade+'66';c.fill();
    this.line([[-w*.37,-h*.65],[-w*.16,-h*.9],[w*.2,-h*.82]],m.light+'45',1);this.line([[w*.18,-h*.6],[w*.36,-h*.34],[w*.3,1]],m.shade+'88',1);c.restore();
   }
   // Deterministic grain is baked once into the cached soil surface.
-  for(let i=0;i<(this.terrainTexture?450:3900);i++){const x=rHash(i*5+906)*W,y=ground(x,game.world)+6+rHash(i*11+431)*490;c.globalAlpha=.07+rHash(i+19)*.12;this.rect(x,y,1+rHash(i+7)*2,1,i%3?m.light:m.shade);}c.globalAlpha=1;
+  for(let i=0;i<Math.ceil((this.terrainTexture?450:3900)*density);i++){const x=left+rHash(i*5+906)*width,y=ground(x,game.world)+6+rHash(i*11+431)*490;c.globalAlpha=.07+rHash(i+19)*.12;this.rect(x,y,1+rHash(i+7)*2,1,i%3?m.light:m.shade);}c.globalAlpha=1;
+  const deep=c.createLinearGradient(0,H+500,0,H+700);deep.addColorStop(0,m.soil[2]+'00');deep.addColorStop(1,m.soil[2]);c.fillStyle=deep;c.fillRect(left,H+500,width,200);
   c.restore();
-  const lip=[];for(let x=0;x<=W;x+=2)lip.push([x,ground(x,game.world)+4]);this.line(lip,m.shade,11);this.line(lip,m.grass,7);this.line(lip.map(([x,y])=>[x,y-3]),m.edge,2.4);
-  for(let i=0;i<330;i++){
-   const x=rHash(i*3+61)*W,y=ground(x,game.world),h=3+rHash(i+19)*12,slope=rClamp((ground(x+3,game.world)-ground(x-3,game.world))/6,-1.5,1.5),lean=(rHash(i+31)-.5)*11+slope*h*.38;
+  const lip=[];for(let x=left;x<=right;x+=2)lip.push([x,ground(x,game.world)+4]);this.line(lip,m.shade,11);this.line(lip,m.grass,7);this.line(lip.map(([x,y])=>[x,y-3]),m.edge,2.4);
+  for(let i=0;i<Math.ceil(330*density);i++){
+   const x=left+rHash(i*3+61)*width,y=ground(x,game.world),h=3+rHash(i+19)*12,slope=rClamp((ground(x+3,game.world)-ground(x-3,game.world))/6,-1.5,1.5),lean=(rHash(i+31)-.5)*11+slope*h*.38;
    this.line([[x-2,y+2],[x+lean,y-h]],i%4?m.grass:m.edge,1.1+rHash(i)*1.3);
    if(i%9===0){this.line([[x+2,y],[x+5,y-10],[x+11,y-14]],m.grass,1.4);this.circle(x+11,y-14,1.7,m.light);}
   }
-  for(let i=0;i<22;i++){const x=12+rHash(i+801)*(W-24),y=ground(x,game.world)+1;this.stone(x,y,7+rHash(i)*16,4+rHash(i+13)*7,m.rock,i);}
+  for(let i=0;i<Math.ceil(22*density);i++){const x=left+12+rHash(i+801)*(width-24),y=ground(x,game.world)+1;this.stone(x,y,7+rHash(i)*16,4+rHash(i+13)*7,m.rock,i);}
  }
  terrain(game){
   this.terrainTexture=this.scenery.get('earth');
+  const {left,right,width}=arenaBounds(game.world);
   const artKey=this.sceneryStyle+':'+this.sceneryAssetId+':'+this.scenery.revision;
   if(this.terrainMap!==game.map||this.terrainKey!==game.world||this.terrainArtKey!==artKey){
    this.terrainMap=game.map;this.terrainKey=game.world;this.terrainArtKey=artKey;this.terrainLayer=null;
-   const surface=this.surfaceFactory?.(W,1600)??(typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(W,1600):globalThis.document?.createElement?.('canvas'));
-   if(surface?.getContext){surface.width=W;surface.height=1600;const c=surface.getContext('2d');if(c){const original=this.c;this.c=c;this.terrainBase(game);this.c=original;this.terrainLayer=surface;}}
+   const surface=this.surfaceFactory?.(width,1600)??(typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(width,1600):globalThis.document?.createElement?.('canvas'));
+   if(surface?.getContext){surface.width=width;surface.height=1600;const c=surface.getContext('2d');if(c){const original=this.c;this.c=c;c.save();c.translate(-left,0);this.terrainBase(game);c.restore();this.c=original;this.terrainLayer=surface;}}
   }
-  const edge=SCENERY_PALETTES[this.sceneryAssetId||sceneryAssetFor(this.sceneryStyle,game.map,game.arena||game.encounter)];this.rect(-W,ground(0,game.world),W,H+700,edge.soil[1]);this.rect(W,ground(W,game.world),W,H+700,edge.soil[1]);
-  if(this.terrainLayer)this.c.drawImage(this.terrainLayer,0,0);else this.terrainBase(game);
+  const edge=SCENERY_PALETTES[this.sceneryAssetId||sceneryAssetFor(this.sceneryStyle,game.map,game.arena||game.encounter)];this.rect(left-W,ground(left,game.world),W,H+700,edge.soil[1]);this.rect(right,ground(right,game.world),W,H+700,edge.soil[1]);
+  // Extreme portrait overview can look below the cached 1600px soil layer.
+  if(this.cam.y>H+700)this.rect(left-W,H+700,width+W*2,this.cam.y-(H+700)+2,edge.soil[2]);
+  if(this.terrainLayer)this.c.drawImage(this.terrainLayer,left,0);else this.terrainBase(game);
   for(const mark of this.skidMarks||[]){this.c.save();this.c.globalAlpha=Math.min(.45,mark.t*.45);this.line([[mark.x,ground(mark.x,game.world)+1],[mark.to,ground(mark.to,game.world)+1]],edge.shade,3);this.c.restore();}
-  const stations=(game.arena||game.encounter)?.xs||game.players.map(p=>p.homeX??p.x);for(const [side,station]of stations.entries()){const x=rClamp(station+(side?64:-64),28,W-28);const y=ground(x,game.world);this.line([[x,y],[x,y-111]],'#2a3731',6);this.line([[x-1,y],[x-1,y-111]],'#9b8861',2);const flap=Math.sin(this.time*2.8+x)*6;
+  const stations=(game.arena||game.encounter)?.xs||game.players.map(p=>p.homeX??p.x);for(const [side,station]of stations.entries()){const x=rClamp(station+(side?64:-64),left+28,right-28);const y=ground(x,game.world);this.line([[x,y],[x,y-111]],'#2a3731',6);this.line([[x-1,y],[x-1,y-111]],'#9b8861',2);const flap=Math.sin(this.time*2.8+x)*6;
    this.inkpoly([[x+1,y-110],[x+41,y-104+flap*.2],[x+31,y-91+flap*.4],[x+43,y-79+flap],[x+1,y-84]],game.map===1?'#b76c44':'#376c5a',ART[game.map].ink,2);this.line([[x+6,y-104],[x+28,y-99+flap*.2]],'#f1d49366',2);this.stone(x,y+2,19,7,ART[game.map].rock,x);}
  }
  arrow(x,y,a,color='#e7d5a7',size=1){const c=this.c;c.save();c.translate(x,y);c.rotate(a);c.scale(size,size);this.line([[-30,.5],[8,.5]],'#20323ad9',5);this.rect(-29,-1,37,3,color);this.inkpoly([[8,-5],[17,0],[8,5]],'#e1e7d7','#20323ad9',1);this.poly([[-28,-1],[-36,-7],[-24,-5],[-19,-1]],color);this.poly([[-28,1],[-36,7],[-24,5],[-19,1]],color);c.restore();}
@@ -477,7 +485,7 @@ export class Renderer{
  }
  overviewCamera(game){
   const viewW=this.canvas.width,viewH=this.canvas.height,players=game.mode==='target'?[game.players[0],...(game.targets||[]).filter(t=>!t.used).map(t=>({x:t.x,y:t.y+55}))]:game.players;
-  const left=Math.max(0,Math.min(...players.map(p=>p.x))-115),right=Math.min(W,Math.max(...players.map(p=>p.x))+115);
+  const bounds=arenaBounds(game.world),left=Math.max(bounds.left,Math.min(...players.map(p=>p.x))-115),right=Math.min(bounds.right,Math.max(...players.map(p=>p.x))+115);
   let top=Math.min(...players.map(p=>p.y-160)),bottom=Math.max(...players.map(p=>p.y+30));
   for(let xx=left;xx<=right;xx+=24){const yy=ground(xx,game.world);top=Math.min(top,yy-35);bottom=Math.max(bottom,yy+50);}
   const z=Math.min(viewW/Math.max(480,right-left),viewH*.6/Math.max(240,bottom-top),1.28*Math.max(1,viewW/W));
@@ -524,7 +532,7 @@ export class Renderer{
   return self;
  }
  draw(game,dt,{drag=null,paused=false}={}){this.time+=paused?0:dt;this.observeVisuals(game,paused?0:dt);if(this.emote){if(!game.canAim||drag||game.active!==this.emote.side||game.players[this.emote.side].body?.active)this.emote=null;else if(!paused){this.emote.time+=dt;if(this.emote.time>=this.emote.duration)this.emote=null;}}const viewW=this.canvas.width,viewH=this.canvas.height,cinematic=['home','intro','victory','defeat','upgrade','loadout'].includes(game.phase),plan=this.cameraPlan(game),finishing=this.finisherFrame(game);let {x,y,z}=plan;
- z=rClamp(z,.18,2.8);const half=viewW/2/z;x=half>=W/2?W/2:rClamp(x,half,W-half);
+ const bounds=arenaBounds(game.world);z=rClamp(z,Math.min(.18,viewW/bounds.width),2.8);const half=viewW/2/z;x=half>=bounds.width/2?(bounds.left+bounds.right)/2:rClamp(x,bounds.left+half,bounds.right-half);
  const changed=this.lastPhase!==game.phase,snap=this.resized||!this.lastPhase||changed&&(['scout','aim'].includes(game.phase)||this.lastPhase==='home'&&game.phase==='intro')||this.reducedMotion&&game.phase==='scout';this.resized=false;
  const rate=game.phase==='scout'?13:game.phase==='flight'?6.5:game.phase==='settle'?8:7,blend=snap?1:1-Math.exp(-(paused?0:dt)*rate);this.cam.z+=(z-this.cam.z)*blend;this.cam.x+=(x-this.cam.x)*blend;this.cam.y+=(y-this.cam.y)*blend;this.lastPhase=game.phase;const c=this.c;c.save();c.clearRect(0,0,viewW,viewH);const cssH=this.canvas.getBoundingClientRect?.().height||viewH,shake=this.feedback.update(paused?0:dt,{reduced:this.reducedMotion,scale:viewH/cssH});c.translate(viewW/2+shake.x,viewH+shake.y);c.scale(this.cam.z,this.cam.z);c.translate(-this.cam.x,-this.cam.y);this.background(game.map,this.time,game.arena||game.encounter);this.terrain(game);
  if(cinematic){this.cinematic(game);}else{this.objects(game);this.finisherWorld(game);for(const point of game.trails){c.globalAlpha=Math.min(.6,point.t);this.rect(point.x,point.y,3,3,'#efd6a0');}c.globalAlpha=1;for(let i=0;i<(game.mode==='target'?1:2);i++)this.character(game.players[i],i,{time:this.time,angle:game.angles[i],drawn:game.active===i&&['aim','thinking'].includes(game.phase),dead:game.players[i].hp<=0,boss:i===1&&game.mode==='rogue'&&game.floor%3===0,bow:i===0&&game.mode==='rogue'?game.skill:'plain',emote:this.emote?.side===i?this.emote:null});if(game.canAim){const p=game.players[game.active],b=launch(p,game.angles[game.active],game.powers[game.active]);for(let j=1;j<12;j++){const pt=position(b,j*.045);if(pt.y>=ground(pt.x,game.world))break;this.circle(pt.x,pt.y,3.2,'#20323abf');this.circle(pt.x,pt.y,1.9,'#fff0d4');}const strength=game.powers[game.active];this.rect(p.x-41,p.y-157,82,31,'#152d2bdb');this.text(game.angles[game.active]+'°',p.x-12,p.y-134,22,'#edd4a0');this.line([[p.x+10,p.y-151],[p.x+10,p.y-134]],'#8baa8155',1);this.text(strength<=50?'轻':strength<=75?'半':strength<=90?'强':'满',p.x+25,p.y-136,13,'#c6e5cb');this.rect(p.x-37,p.y-129,74,3,'#557267');this.rect(p.x-37,p.y-129,74*strength/100,3,'#e6c98c');this.poly([[p.x-7,p.y-120],[p.x+7,p.y-120],[p.x,p.y-113]],'#edd4a0');}
