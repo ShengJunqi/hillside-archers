@@ -1,6 +1,7 @@
+import {AUTHOR_CODE,validCollection,hasCollectionData,claimCollection,recordCollectionResult,purchaseCollection,equipCollection,makePracticeCollection} from './collection.mjs';
 import {NEW_RELICS,RETIRED_RELICS,newRelicCap,newRelicEligible,applyNewRelic,newRelicPreview,fuseDamage,applyRewardUpgrade} from './relics.mjs';
 import {bountyFor,createBountyState,recordBounty,rewardBounty} from './bounties.mjs';
-import {ARENAS,arenaBounds,encounterFor,encounterRoutes,encounterGround,encounterObstacles} from './encounters.mjs';
+import {ARENAS,arenaBounds,encounterFor,encounterRoutes,encounterGround,encounterObstacles,varyEncounter} from './encounters.mjs';
 import {DEFAULT_NAMES,normalizeNames} from './names.mjs';
 import {opponentProfile,rogueEnemyStats,characterById,createSkillState,turnSkillHealing,hitKnockbackScale,pickupSkillHealing} from './combat.mjs';
 import {bodyCollision,bodyPose,impactBody,updateBody,attachArrow,syncGroundContact} from './body.mjs';
@@ -75,7 +76,7 @@ export function enemySummary(player){
  const pairs=synergies(s);if(pairs.length)traits.push('组合：'+pairs.map(pair=>pair.name).join(' / '));
  return traits.length?traits.join(' · '):'基础弓术';
 }
-export function validSave(raw){let a;try{a=typeof raw==='string'?JSON.parse(raw):raw;}catch{}a=a&&typeof a==='object'?a:{};const num=(v,min,max)=>Number.isFinite(v)?Math.max(min,Math.min(max,Math.floor(v))):min;const result={version:2,targetBest:num(a.targetBest,0,999999),unlocked:a.unlocked===true,checkpoint:num(a.checkpoint,1,3),best:num(a.best,0,9999),embers:num(a.embers,0,99999),bow:num(a.bow,0,5),life:num(a.life,0,5)};const names=normalizeNames(a.names);if(names.some((name,i)=>name!==DEFAULT_NAMES[i]))result.names=names;return result;}
+export function validSave(raw){let a;try{a=typeof raw==='string'?JSON.parse(raw):raw;}catch{}a=a&&typeof a==='object'?a:{};const num=(v,min,max)=>Number.isFinite(v)?Math.max(min,Math.min(max,Math.floor(v))):min;const result={version:2,targetBest:num(a.targetBest,0,999999),unlocked:a.unlocked===true,checkpoint:num(a.checkpoint,1,3),best:num(a.best,0,9999),embers:num(a.embers,0,99999),bow:num(a.bow,0,5),life:num(a.life,0,5)};const names=normalizeNames(a.names);if(names.some((name,i)=>name!==DEFAULT_NAMES[i]))result.names=names;if(Object.prototype.hasOwnProperty.call(a,'collection')&&hasCollectionData(a.collection))result.collection=validCollection(a.collection);return result;}
 export function zones(p){return [{part:'head',x:p.x-12,y:p.y-108,w:24,h:25,damage:42},{part:'body',x:p.x-17,y:p.y-83,w:34,h:43,damage:26},{part:'legs',x:p.x-15,y:p.y-40,w:30,h:30,damage:18},{part:'feet',x:p.x-20,y:p.y-10,w:40,h:11,damage:12}];}
 export function launch(p,angle,power=100){const a=angle*Math.PI/180;return {x:p.x+p.dir*32,y:p.y-66,vx:p.dir*SPEED*power/100*Math.cos(a),vy:-SPEED*power/100*Math.sin(a)};}
 export function position(b,t){return {x:b.x+b.vx*t,y:b.y+b.vy*t+G*t*t/2};}
@@ -104,13 +105,20 @@ export function collision(p,target,obs,map,ignored=new Set()){
 }
 export function trace(p,target,angle,obs,map,power=100){const b=launch(p,angle,power);for(let t=1/240;t<12;t+=1/240){const r=collision(position(b,t),target,obs,map);if(r)return r;}return {kind:'miss'};}
 // The same physical descriptors power campaign, local duels and expeditions.
-export function arenaForMode(mode,stage=1,choice=1){
+export function arenaForMode(mode,stage=1,choice=1,seed=null){
  const campaignIds=['yard','dock','signs'];
  const index=mode==='campaign'?ARENAS.findIndex(a=>a.id===campaignIds[Math.max(0,Math.min(2,stage-1))]):Math.max(0,Math.min(ARENAS.length-1,Math.floor(choice)-1));
- const arena=encounterFor(0,index+1);arena.map=mode==='campaign'?stage-1:index%3;arena.terrain.map=arena.map;arena.boss=false;if(mode==='campaign'){arena.name=['歪旗热身场','赤砂长谷','星灯高低台'][stage-1];arena.landmark=['stands','gorge','ruin'][stage-1];}return arena;
+ const arena=encounterFor(0,index+1);arena.map=mode==='campaign'?stage-1:index%3;arena.terrain.map=arena.map;arena.boss=false;if(mode==='campaign'){arena.name=['歪旗热身场','赤砂长谷','星灯高低台'][stage-1];arena.landmark=['stands','gorge','ruin'][stage-1];}return seed===null||mode==='campaign'&&stage===1?arena:varyEncounter(arena,seed);
+}
+export function routesForRun(seed,floor,previousId=''){
+ const base=encounterRoutes(seed,floor,previousId),stance=(seed^Math.imul(floor,0x9e3779b1))>>>0;
+ const a=varyEncounter(base[0],stance),different=b=>Math.abs(a.geometry.distance-b.geometry.distance)>=180||Math.abs(a.geometry.heightDelta-b.geometry.heightDelta)>=90;
+ for(let attempt=0;attempt<10;attempt++){const b=varyEncounter(base[1],(stance+Math.imul(attempt+1,0x85ebca6b))>>>0);if(different(b))return [a,b];}
+ if(different(base[1]))return [a,base[1]];
+ return base;
 }
 export class Game{
- constructor({save={},rng=Math.random,onEvent=()=>{}}={}){this.save=validSave(save);this.rng=rng;this.onEvent=onEvent;this.mode='campaign';this.stage=1;this.floor=1;this.upgrades=[];this.characterId='qingsong';this.stats=baseStats();this.effects=[];this.arrows=[];this.orbs=[];this.phase='home';this.phaseTime=0;this.totalTime=0;this.setup(true);this.phase='home';}
+ constructor({save={},rng=Math.random,onEvent=()=>{}}={}){this.save=validSave(save);const initialCollection=claimCollection(this.save.collection,this.save).profile;if(hasCollectionData(initialCollection))this.save.collection=initialCollection;this.authorMode=false;this.assistedRun=false;this._authorBackup=null;this.rng=rng;this.onEvent=onEvent;this.mode='campaign';this.stage=1;this.floor=1;this.upgrades=[];this.characterId='qingsong';this.stats=baseStats();this.effects=[];this.arrows=[];this.orbs=[];this.phase='home';this.phaseTime=0;this.totalTime=0;this.setup(true);this.phase='home';}
  emit(type,data={}){
   const event={type,shooterSide:this.active,volleyId:this.shotSerial,skillUsed:this.skillUsed,...data};
   if(this.bounty&&recordBounty(this.bounty,event)){
@@ -119,17 +127,65 @@ export class Game{
   }
   this.onEvent(event);
  }
- persist(){this.emit('save',{save:this.save});}
+ get collection(){return validCollection(this.save.collection);}
+ get permanentSave(){return this.authorMode||this.assistedRun?this._authorBackup||this.save:this.save;}
+ applyPermanentSave(progress){
+  const next=validSave(progress),claimed=claimCollection(next.collection,next).profile;if(hasCollectionData(claimed))next.collection=claimed;
+  if(this.authorMode||this.assistedRun)this._authorBackup=next;else{this.save=next;if(this.players?.[0])this.players[0].skinId=this.collection.skin;}
+  return true;
+ }
+ refreshCollection(){
+  if(this.authorMode||this.assistedRun)return this.collection;
+  const {profile,awards}=claimCollection(this.save.collection,this.save);
+  if(awards.length){this.save.collection=profile;for(const achievement of awards)this.emit('achievement',{achievement,name:achievement.name});this.emit('save',{save:this.save});}
+  return this.collection;
+ }
+ persist(){
+  if(this.authorMode||this.assistedRun){this.emit('practice-save');return;}
+  const {profile,awards}=claimCollection(this.save.collection,this.save);
+  if(hasCollectionData(profile))this.save.collection=profile;
+  for(const achievement of awards)this.emit('achievement',{achievement,name:achievement.name});
+  this.emit('save',{save:this.save});
+ }
+ recordStyle(kind,amount=1){
+  if(this.authorMode||this.assistedRun||!['campaign','duel','rogue'].includes(this.mode))return false;
+  const before=this.collection,{profile,awards}=recordCollectionResult(before,kind,amount,this.save);
+  if(JSON.stringify(before)===JSON.stringify(profile))return false;
+  this.save.collection=profile;for(const achievement of awards)this.emit('achievement',{achievement,name:achievement.name});this.persist();return true;
+ }
+ buyCollection(id){
+  if(this.phase!=='home'){this.lastCollectionMessage='回到旅营后再购买。';return false;}
+  this.refreshCollection();const result=purchaseCollection(this.collection,id);this.lastCollectionMessage=result.message;
+  if(!result.ok)return false;this.save.collection=result.profile;this.persist();return true;
+ }
+ equipCollection(id){
+  if(this.phase!=='home'){this.lastCollectionMessage='回到旅营后再装备。';return false;}
+  const result=equipCollection(this.collection,id);this.lastCollectionMessage=result.message;if(!result.ok)return false;
+  this.save.collection=result.profile;if(this.players?.[0])this.players[0].skinId=result.profile.skin;this.persist();return true;
+ }
+ enterAuthorMode(code){
+  if(this.phase!=='home'||this.authorMode||typeof code!=='string'||code.trim().toUpperCase()!==AUTHOR_CODE){this.lastCollectionMessage='请在旅营输入正确的作者练习码。';return false;}
+  this._authorBackup=validSave(this.save);this.authorMode=true;this.assistedRun=true;
+  this.save=validSave({...this.save,unlocked:true,embers:9999,collection:makePracticeCollection(this.save.collection)});this.setup(true);this.phase='home';this.emit('practice',{active:true});return true;
+ }
+ exitAuthorMode(){
+  if(!this.authorMode||this.phase!=='home')return false;
+  this.save=validSave(this._authorBackup);this._authorBackup=null;this.authorMode=false;this.assistedRun=false;
+  this.mode='campaign';this.stage=this.save.checkpoint;this.stats=baseStats();this.setup(true);this.phase='home';this.emit('practice',{active:false});return true;
+ }
+ get arrowType(){return this.mode==='rogue'&&this.specialAmmo>0?this._arrowType||'special':'normal';}
+ selectArrowType(type){if(!this.canAim||this.mode!=='rogue'||!['normal','special'].includes(type)||type==='special'&&!(this.specialAmmo>0))return false;this._arrowType=type;this.emit('arrow-type',{arrowType:this.arrowType});return true;}
+
  get world(){return this.arena?.terrain??this.encounter?.terrain??this.map;}
  setup(fresh=true){
   if(this.mode==='rogue'){
-   if(this.encounterFloor!==this.floor){this.encounter=this.pendingEncounter||encounterFor(this.runSeed||0,this.floor,0,this.encounter?.layoutId);this.encounterFloor=this.floor;this.pendingEncounter=null;}
+   if(this.encounterFloor!==this.floor){this.encounter=this.pendingEncounter||varyEncounter(encounterFor(this.runSeed||0,this.floor,0,this.encounter?.layoutId),((this.runSeed||0)^Math.imul(this.floor,0x9e3779b1))>>>0);this.encounterFloor=this.floor;this.pendingEncounter=null;}
    this.arena=this.encounter;
-  }else{this.encounter=null;this.encounterFloor=0;this.arena=arenaForMode(this.mode,this.stage,this.arenaChoice||this.stage);}
-  this.map=this.arena.map;const close=this.mode==='campaign'&&this.stage===1,xs=this.arena.xs;
+  }else{this.encounter=null;this.encounterFloor=0;this.arena=arenaForMode(this.mode,this.stage,this.arenaChoice||this.stage,this.runSeed??null);}
+  this.arenaCompleted=false;this.breachUsed=false;this.map=this.arena.map;const close=this.mode==='campaign'&&this.stage===1,xs=this.arena.xs;
   let enemyStats=baseStats();this.opponent=opponentProfile(this.mode,this.stage,this.floor,this.stats.maxHp);if(this.mode!=='local')enemyStats.damage=this.opponent.damage;if(this.mode==='rogue')enemyStats=rogueEnemyStats(this.floor,enemyStats);
- const hp=fresh?this.stats.maxHp:Math.min(this.stats.maxHp,this.players?.[0]?.hp??this.stats.maxHp);this.players=xs.map((x,i)=>({x,homeX:x,y:ground(x,this.world),groundSlope:(ground(x+3,this.world)-ground(x-3,this.world))/6,characterId:i===0?this.characterId:'chiyan',skills:{...createSkillState(i===0?this.characterId:'chiyan'),weapon:i===0&&this.mode==='rogue'?this.skill:null,extra:i===0?[...this.upgrades]:[]},body:null,dir:i===0?1:-1,hp:i===0?hp:this.mode==='campaign'&&this.stage===1?50:enemyStats.maxHp,stats:i===0?this.stats:enemyStats,status:{burn:0,burnTurns:0,poison:0,poisonTurns:0,ice:0},stuck:[],recoil:0,deadTime:0}));this.players.forEach(p=>syncGroundContact(p,x=>ground(x,this.world)));this.obs=encounterObstacles(this.arena,x=>ground(x,this.world));this.bounty=this.mode==='rogue'?createBountyState(bountyFor(this.encounter,this.floor)):null;if(this.bounty&&this.floor%2===0)this.bounty.spec.reward={kind:'reroll'};this.bountyPrize=null;this.ruleTriggered=false;this.nextRoutes=[];this.selectedRoute=null;this.orbs=[];this.lastSupplyRound=null;this.coverAmmoRefunded=false;this.headAmmoRefunded=false;this.arrows=[];this.effects=[];this.trails=[];this.active=0;this.round=1;this.angles=close?[19,14]:[31,31];this.powers=[this.arena.geometry.recommendedPower,this.arena.geometry.recommendedPower];this.volleyCount=0;this.phaseTime=0;this.notice='';this.impact=null;this.finisher=null;this.shake=0;this.choices=[];this.lastDamage=0;this.lastHeal=0;this.npcVolleyDamage=0;this.npcHeadHits=0;this.icePenalty=0;this.vfx=[];this.skillUsed=false;this.skillAim=null;this.hitStop=0;this.targets=[];this.targetHits=0;this.targetScore=0;this.targetMisses=0;this.volleyTargetHits=0;if(this.mode==='target'){this.obs=[];this.players[0].x=220;this.players[0].y=ground(220,this.world);this.players[0].homeX=220;syncGroundContact(this.players[0],x=>ground(x,this.world));this.newTargets();}}
- start(mode,stage=1,skill='split',characterId='qingsong'){if(mode!=='campaign'&&!this.save.unlocked)return false;this.mode=mode;this.characterId=characterById(characterId).id;this.skill=BOWS.some(b=>b.id===skill)?skill:'split';this.arenaChoice=Math.max(1,Math.min(ARENAS.length,Math.floor(Number(stage))||1));this.stage=mode==='rogue'?1:mode==='campaign'?Math.max(1,Math.min(3,stage)):(this.arenaChoice-1)%3+1;this.floor=1;this.specialAmmo=mode==='rogue'?2:0;this.rerolls=0;this.shotSerial=0;this.encounterFloor=0;this.encounter=null;this.pendingEncounter=null;this.runSeed=mode==='rogue'?Math.floor(this.rng()*0x100000000)>>>0:0;this.upgrades=[];this.stats=baseStats(mode==='rogue'?this.save:{});this.setup();this.setPhase(mode==='campaign'?'intro':'scout');this.emit('start');return true;}
+ const hp=fresh?this.stats.maxHp:Math.min(this.stats.maxHp,this.players?.[0]?.hp??this.stats.maxHp);this.players=xs.map((x,i)=>({x,homeX:x,y:ground(x,this.world),groundSlope:(ground(x+3,this.world)-ground(x-3,this.world))/6,characterId:i===0?this.characterId:'chiyan',skinId:i===0?this.collection.skin:'base',skills:{...createSkillState(i===0?this.characterId:'chiyan'),weapon:i===0&&this.mode==='rogue'?this.skill:null,extra:i===0?[...this.upgrades]:[]},body:null,dir:i===0?1:-1,hp:i===0?hp:this.mode==='campaign'&&this.stage===1?50:enemyStats.maxHp,stats:i===0?this.stats:enemyStats,status:{burn:0,burnTurns:0,poison:0,poisonTurns:0,ice:0},stuck:[],recoil:0,deadTime:0}));this.players.forEach(p=>syncGroundContact(p,x=>ground(x,this.world)));this.obs=encounterObstacles(this.arena,x=>ground(x,this.world));this.bounty=this.mode==='rogue'?createBountyState(bountyFor(this.encounter,this.floor)):null;if(this.bounty&&this.floor%2===0)this.bounty.spec.reward={kind:'reroll'};this.bountyPrize=null;this.ruleTriggered=false;this.nextRoutes=[];this.selectedRoute=null;this.orbs=[];this.lastSupplyRound=null;this.coverAmmoRefunded=false;this.headAmmoRefunded=false;this.arrows=[];this.effects=[];this.trails=[];this.active=0;this.round=1;this.angles=close?[19,14]:[31,31];this.powers=[this.arena.geometry.recommendedPower,this.arena.geometry.recommendedPower];this.volleyCount=0;this.phaseTime=0;this.notice='';this.impact=null;this.finisher=null;this.shake=0;this.choices=[];this.lastDamage=0;this.lastHeal=0;this.npcVolleyDamage=0;this.npcHeadHits=0;this.icePenalty=0;this.vfx=[];this.skillUsed=false;this.skillAim=null;this.hitStop=0;this.targets=[];this.targetHits=0;this.targetScore=0;this.targetMisses=0;this.volleyTargetHits=0;if(this.mode==='target'){this.obs=[];this.players[0].x=220;this.players[0].y=ground(220,this.world);this.players[0].homeX=220;syncGroundContact(this.players[0],x=>ground(x,this.world));this.newTargets();}}
+ start(mode,stage=1,skill='split',characterId='qingsong'){if(mode!=='campaign'&&!this.save.unlocked)return false;this.mode=mode;this.characterId=characterById(characterId).id;this.skill=BOWS.some(b=>b.id===skill)?skill:'split';this.arenaChoice=Math.max(1,Math.min(ARENAS.length,Math.floor(Number(stage))||1));this.stage=mode==='rogue'?1:mode==='campaign'?Math.max(1,Math.min(3,stage)):(this.arenaChoice-1)%3+1;this.floor=1;this.assistedRun=Boolean(this.authorMode);this.talentId=mode==='rogue'?this.collection.talent:'none';this._arrowType='special';this.volleyArrowType='normal';this.specialAmmo=mode==='rogue'?(this.authorMode?5:this.talentId==='talent_quiver'?3:2):0;this.rerolls=0;this.shotSerial=0;this.encounterFloor=0;this.encounter=null;this.pendingEncounter=null;this.runSeed=Math.floor(this.rng()*0x100000000)>>>0;this.upgrades=[];this.stats=baseStats(mode==='rogue'?this.save:{});this.setup();this.setPhase(mode==='campaign'?'intro':'scout');this.emit('start');return true;}
  setPhase(p){if(p!=='flight')this.cancelSkillAim();this.phase=p;this.phaseTime=0;this.emit('phase',{phase:p});}
  goHome(){this.arrows=[];this.finisher=null;this.hitStop=0;this.setPhase('home');}
  skipTutorial(){if(!['home','intro'].includes(this.phase))return false;const changed=!this.save.unlocked;this.save.unlocked=true;if(changed)this.persist();this.goHome();return true;}
@@ -141,8 +197,8 @@ export class Game{
  readyTurn(){const p=this.players[this.active],heal=turnSkillHealing(p);if(heal){this.heal(p,heal);this.pop(p.x,p.y-165,'沉着 · 回息','#b4d8a2');}if(this.active===1&&this.mode!=='local'){this.setPhase('thinking');this.angles[1]=this.chooseAI();this.shoot();}else this.setPhase('aim');}
  get canAim(){return this.phase==='aim';}
  aim(angle,power){if(!this.canAim)return;this.angles[this.active]=Math.max(5,Math.min(75,Math.round(angle)));this.powers[this.active]=Math.max(20,Math.min(100,Math.round(power)));}
- shoot(){if(!this.canAim&&this.phase!=='thinking')return false;const p=this.players[this.active];if(this.active===1){this.npcVolleyDamage=0;this.npcHeadHits=0;}this.shotSerial=(this.shotSerial||0)+1;this.volleyCount=0;this.volleyImpactPeak=0;this.trails=[];this.arrows=[];this.impact=null;this.skillUsed=false;this.skillAim=null;this.volleyTargetHits=0;this.echoTriggered=false;this.fuseTriggered=false;this.icePenalty=Math.min(.45,p.status.ice*.15);p.status.ice=0;const n=p.stats.multi;for(let i=0;i<n;i++){const b=launch(p,this.angles[this.active]+(i-(n-1)/2)*.65,this.powers[this.active]);this.addArrow(b);}this.emit('shoot');this.setPhase('flight');return true;}
- addArrow(b){if(this.volleyCount>=MAX_ARROWS)return false;this.arrows.push({scale:1,t:0,pierce:this.players[this.active].stats.pierce,ignored:new Set(),bomb:this.mode==='rogue'&&this.active===0&&this.skill==='burst'&&this.specialAmmo>0,...b,dead:false,id:++this.volleyCount});return true;}
+ shoot(){if(!this.canAim&&this.phase!=='thinking')return false;const p=this.players[this.active];if(this.active===1){this.npcVolleyDamage=0;this.npcHeadHits=0;}this.shotSerial=(this.shotSerial||0)+1;this.volleyCount=0;this.volleyImpactPeak=0;this.trails=[];this.arrows=[];this.impact=null;this.skillUsed=false;this.skillAim=null;this.volleyTargetHits=0;this.echoTriggered=false;this.fuseTriggered=false;this.volleyArrowType=this.active===0?this.arrowType:'normal';this.icePenalty=Math.min(.45,p.status.ice*.15);p.status.ice=0;const breach=this.mode==='rogue'&&this.active===0&&this.talentId==='talent_breach'&&!this.breachUsed,n=p.stats.multi;for(let i=0;i<n;i++){const b=launch(p,this.angles[this.active]+(i-(n-1)/2)*.65,this.powers[this.active]);if(breach)b.pierce=p.stats.pierce+1;this.addArrow(b);}if(breach)this.breachUsed=true;this.emit('shoot');this.setPhase('flight');return true;}
+ addArrow(b){if(this.volleyCount>=MAX_ARROWS)return false;this.arrows.push({scale:1,t:0,pierce:this.players[this.active].stats.pierce,ignored:new Set(),skinId:this.players[this.active].skinId||'base',bomb:this.volleyArrowType==='special'&&this.mode==='rogue'&&this.active===0&&this.skill==='burst'&&this.specialAmmo>0,...b,dead:false,id:++this.volleyCount});return true;}
  get specialAmmoMax(){return 5;}
  get hasRelicReward(){return this.mode==='rogue'&&this.floor%2===0;}
  gainSpecialAmmo(amount,reason='pickup'){
@@ -150,11 +206,11 @@ export class Game{
   const before=Math.max(0,Math.min(this.specialAmmoMax,Math.floor(this.specialAmmo||0)));
   this.specialAmmo=Math.min(this.specialAmmoMax,before+Math.max(0,Math.floor(amount)));
   const gained=this.specialAmmo-before;
-  if(gained){if(reason==='cover'||reason==='headshot')this.fx('ammo',this.players[0].x,this.players[0].y-130,'#a9dfd4',{reason,amount:gained});if(this.phase==='flight'&&this.skill==='burst'&&!this.skillUsed)for(const b of this.arrows)b.bomb=true;this.emit('ammo',{amount:gained,ammo:this.specialAmmo,reason});}
+  if(gained){if(reason==='cover'||reason==='headshot')this.fx('ammo',this.players[0].x,this.players[0].y-130,'#a9dfd4',{reason,amount:gained});if(this.phase==='flight'&&this.active===0&&this.volleyArrowType==='special'&&this.skill==='burst'&&!this.skillUsed)for(const b of this.arrows)b.bomb=true;this.emit('ammo',{amount:gained,ammo:this.specialAmmo,reason});}
   return gained;
  }
- get canSkill(){return this.mode==='rogue'&&this.specialAmmo>0&&this.active===0&&this.phase==='flight'&&!this.skillUsed&&this.arrows.some(b=>!b.dead&&(this.skillAim||b.t>.12));}
- get timeScale(){return this.skillAim&&this.phase==='flight'?1/3:1;}
+ get canSkill(){return this.mode==='rogue'&&this.volleyArrowType==='special'&&this.specialAmmo>0&&this.active===0&&this.phase==='flight'&&!this.skillUsed&&this.arrows.some(b=>!b.dead&&(this.skillAim||b.t>.12));}
+ get timeScale(){return this.skillAim&&this.phase==='flight'?1/3:this.phase==='flight'&&this.active===1&&!['local','target'].includes(this.mode)?1.7:1;}
  beginSkillAim(){if(!this.canSkill||this.skill!=='dive'||this.skillAim)return false;this.skillAim={tilt:0};return true;}
  aimSkill(tilt){if(!this.skillAim||!Number.isFinite(tilt))return false;this.skillAim.tilt=Math.max(-35,Math.min(35,Math.round(tilt)));return true;}
  cancelSkillAim(){const aiming=Boolean(this.skillAim);this.skillAim=null;return aiming;}
@@ -174,7 +230,7 @@ export class Game{
  }
  activateSkill(tilt=0){
   if(!this.canSkill)return false;
-  this.skillAim=null;this.skillUsed=true;this.specialAmmo--;this.emit('ammo',{amount:-1,ammo:this.specialAmmo,reason:'skill'});
+  this.skillAim=null;this.skillUsed=true;if(!this.authorMode)this.specialAmmo--;this.recordStyle('casts');this.emit('ammo',{amount:-1,ammo:this.specialAmmo,reason:'skill'});
   for(const b of [...this.arrows]){
    b.special=true;
    const p=position(b,b.t),vy=b.vy+G*b.t,scale=b.scale??1;
@@ -212,7 +268,7 @@ export class Game{
  fx(kind,x,y,color,detail={}){this.vfx.push({kind,x,y,color,t:.7,life:.7,...detail});if(this.vfx.length>80)this.vfx.shift();}
  newTargets(){this.targets=[];const x=760+this.rng()*560;for(let i=0;i<3;i++){const xx=Math.min(W-95,x+(i-1)*90),yy=ground(xx,this.world)-100-i*76;this.targets.push({x:xx,baseY:yy,y:yy,r:27,used:false,gold:i===2,seed:this.rng()*6});}}
  hitTargetBoard(target){if(target.used)return;target.used=true;this.volleyTargetHits++;this.targetHits++;const points=(target.gold?150:100)*(1+Math.min(4,Math.floor(this.targetHits/3)));this.targetScore+=points;this.fx('shards',target.x,target.y,'#e3c278');this.pop(target.x,target.y-35,'+'+points,'#f3d293');this.emit('target',{points});}
- hitObstacle(o,dir){if(o.state!=='standing')return;o.hp--;o.dir=dir;if(o.hp<=0){o.state=o.type==='post'?'falling':'broken';if(this.mode==='rogue'&&this.active===0&&this.stats.pierce>0&&!this.coverAmmoRefunded){if(this.gainSpecialAmmo(1,'cover')){this.coverAmmoRefunded=true;}}}this.fx('shards',o.x,o.y-o.h/2,'#be935f');this.emit('break',{x:o.x,y:o.y-o.h/2,kind:o.type,broken:o.hp<=0,obstacleId:o.id});this.pop(o.x,o.y-o.h-15,o.hp>0?'裂开':'击破','#e8b86c');}
+ hitObstacle(o,dir){if(o.state!=='standing')return;o.hp--;o.dir=dir;if(o.hp<=0){o.state=o.type==='post'?'falling':'broken';if(this.active===0)this.recordStyle('covers');if(this.mode==='rogue'&&this.active===0&&this.stats.pierce>0&&!this.coverAmmoRefunded){if(this.gainSpecialAmmo(1,'cover')){this.coverAmmoRefunded=true;}}}this.fx('shards',o.x,o.y-o.h/2,'#be935f');this.emit('break',{x:o.x,y:o.y-o.h/2,kind:o.type,broken:o.hp<=0,obstacleId:o.id});this.pop(o.x,o.y-o.h-15,o.hp>0?'裂开':'击破','#e8b86c');}
  pop(x,y,text,color='#edd6ad'){this.effects.push({x,y,text,color,t:1.6,life:1.6});}
  heal(p,n,x=p.x,y=p.y-135){const delta=Math.max(0,Math.min(n,p.stats.maxHp-p.hp));p.hp+=delta;if(delta>0)this.pop(x,y,'♥ +'+Math.round(delta),'#a5e0ad');return delta;}
  damage(target,raw,source=null,{leech=true}={}){
@@ -246,6 +302,7 @@ export class Game{
    if(target.hp>0)for(let i=0;i<echo;i++)this.addArrow({x:target.x+(i-(echo-1)/2)*14,y:target.y-230,vx:0,vy:540,t:0,scale:.45,pierce:st.pierce,ignored:new Set(),echo:true,special:false,bomb:false});
   }
   if(playerRelics&&b.special&&r.part==='head'&&st.reclaim>0&&!this.headAmmoRefunded&&this.gainSpecialAmmo(1,'headshot')){this.headAmmoRefunded=true;}
+  if(this.active===0&&r.part==='head'&&!b.noStick)this.recordStyle('heads');
   const impactAngle=Math.atan2(b.vy+G*b.t,b.vx);
   if(!b.noStick){target.stuck.push(attachArrow(target,p,impactAngle,this.angles[1-this.active]));if(target.stuck.length>12)target.stuck.shift();}
   impactBody(target,{point:p,vx:b.vx,vy:b.vy+G*b.t,damage:target.hp<=0?Math.max(dealt,Math.min(60,raw)):dealt,part:r.part,angle:this.angles[1-this.active],volleyId:this.shotSerial,forceScale:(1+(st.impact||0)*.15)*(this.active===0?hitKnockbackScale(shooter):1)/(1+(target.stats.balance||0)*.18)});
@@ -291,8 +348,8 @@ export class Game{
   }
  }
  nextTurn(){if(this.mode==='target'){if(!this.volleyTargetHits)this.targetMisses++;if(this.targetMisses>=3){this.save.targetBest=Math.max(this.save.targetBest,this.targetScore);this.persist();this.win=false;this.winner=0;this.setPhase('defeat');return;}this.round++;this.active=0;if(this.targets.every(t=>t.used))this.newTargets();this.setPhase('scout');return;}if(this.players[1-this.active].hp<=0){this.complete(this.active===0||this.mode==='local');return;}this.active=1-this.active;this.round++;this.applyArenaRule();this.spawnOrbs();const p=this.players[this.active],source=this.players[1-this.active],poisonActive=p.status.poisonTurns>0,burning=p.status.burnTurns>0;let tick=0;if(p.status.burnTurns>0){tick+=p.status.burn*5;p.status.burnTurns--;if(!p.status.burnTurns)p.status.burn=0;}if(p.status.poisonTurns>0){tick+=p.status.poison*(burning?5:3);p.status.poisonTurns--;if(!p.status.poisonTurns)p.status.poison=0;}if(tick){const dealt=this.damage(p,tick,source,{leech:poisonActive});if(dealt)this.pop(p.x,p.y-145,'持续伤害 −'+dealt,'#c2d784');}if(p.hp<=0){this.beginFinisher(p,{part:'body',element:poisonActive&&burning?'venomfire':poisonActive?'poison':'fire',dir:source.dir,cause:'status',arrows:0});impactBody(p,{point:{x:p.x,y:p.y-60},vx:source.dir*50,vy:20,damage:tick,part:'body',angle:this.angles[this.active]});this.complete(this.active!==0||this.mode==='local');return;}if(p.stats.cleanse){const before=p.status.burn+p.status.poison;for(const key of ['burn','poison'])p.status[key]=Math.ceil(p.status[key]*(1-p.stats.cleanse));if(p.status.burn+p.status.poison<before)this.pop(p.x,p.y-170,'净化 · 保留 '+Math.round((1-p.stats.cleanse)*100)+'% 层数','#b1d2d9');}if(p.stats.regen)this.heal(p,p.stats.regen*5+p.stats.armor*2);if(this.active===1&&this.mode!=='local')this.readyTurn();else this.setPhase('scout');}
- complete(win){this.win=win;this.winner=this.mode==='local'?(this.players[0].hp>0?0:1):win?0:1;if(win&&this.mode==='campaign'){if(this.stage===3){this.save.unlocked=true;this.save.checkpoint=1;}else this.save.checkpoint=Math.max(this.save.checkpoint,this.stage+1);this.persist();}if(this.mode==='rogue'){if(win){this.save.best=Math.max(this.save.best,this.floor);this.save.embers+=this.floor%3===0?3:1;this.persist();}this.emit('run',{floor:this.floor,win});}this.emit(win?'victory':'defeat');this.setPhase(win?'victory':'defeat');}
- resultNext(){if(!['victory','defeat'].includes(this.phase))return false;if(this.phase==='victory'&&this.mode==='rogue'){this.choices=this.hasRelicReward?this.rollUpgrades():[];this.nextRoutes=encounterRoutes(this.runSeed,this.floor+1,this.encounter?.layoutId);this.selectedRoute=this.nextRoutes[0].id;this.setPhase('upgrade');return;}if(this.phase==='victory'&&this.mode==='campaign'&&this.stage<3){this.stage++;this.stats=baseStats();this.setup();this.setPhase('intro');return;}if(this.phase==='defeat'&&this.mode==='campaign'){this.setup();this.setPhase('scout');return;}this.goHome();}
+ complete(win){if(this.arenaCompleted)return false;this.arenaCompleted=true;this.win=win;this.winner=this.mode==='local'?(this.players[0].hp>0?0:1):win?0:1;if(win&&this.mode==='campaign'){if(this.stage===3){this.save.unlocked=true;this.save.checkpoint=1;}else this.save.checkpoint=Math.max(this.save.checkpoint,this.stage+1);this.persist();}if(this.mode==='rogue'){if(win){this.save.best=Math.max(this.save.best,this.floor);this.save.embers+=this.floor%3===0?3:1;this.persist();}this.emit('run',{floor:this.floor,win});}if(win&&['campaign','duel','rogue'].includes(this.mode)){this.recordStyle('wins');if(this.mode==='rogue'&&this.floor%3===0)this.recordStyle('bosses');}this.emit(win?'victory':'defeat');this.setPhase(win?'victory':'defeat');}
+ resultNext(){if(!['victory','defeat'].includes(this.phase))return false;if(this.phase==='victory'&&this.mode==='rogue'){this.choices=this.hasRelicReward?this.rollUpgrades():[];this.nextRoutes=routesForRun(this.runSeed,this.floor+1,this.encounter?.layoutId);this.selectedRoute=this.nextRoutes[0].id;this.setPhase('upgrade');return;}if(this.phase==='victory'&&this.mode==='campaign'&&this.stage<3){this.stage++;this.stats=baseStats();this.setup();this.setPhase('intro');return;}if(this.phase==='defeat'&&this.mode==='campaign'){this.setup();this.setPhase('scout');return;}this.goHome();}
  rollUpgrades(exclude=[]){const ids=UPGRADES.filter(u=>!RETIRED_RELICS.includes(u.id)&&!exclude.includes(u.id)&&(!newRelicCap(u.id)||newRelicEligible(this.stats,u.id))&&!(u.id==='pierce'&&this.stats.pierce>=3)&&!(['impact','balance'].includes(u.id)&&this.stats[u.id]>=3)&&!(u.id==='multi'&&this.stats.multi>=8)&&!(u.id==='ice'&&this.stats.ice>=3)&&!(u.id==='crit'&&this.stats.crit>=.75)&&!(u.id==='leech'&&this.stats.leech>=.6)&&!(['fire','poison'].includes(u.id)&&this.stats[u.id]>=MAX_ELEMENT_LEVEL));const result=[];const partner=SYNERGIES.flatMap(s=>s.needs.some(k=>this.stats[k]>0)&&!s.needs.every(k=>this.stats[k]>0)?s.needs.filter(k=>!this.stats[k]):[]);if(partner.length){const id=partner[Math.min(partner.length-1,Math.floor(this.rng()*partner.length))],i=ids.findIndex(u=>u.id===id);if(i>=0)result.push(ids.splice(i,1)[0]);}while(result.length<3&&ids.length){const i=Math.min(ids.length-1,Math.floor(this.rng()*ids.length));result.push(ids.splice(i,1)[0]);}return result;}
  rerollUpgrades(){if(this.phase!=='upgrade'||!this.hasRelicReward||!(this.rerolls>0))return false;this.choices=this.rollUpgrades(this.choices.map(c=>c.id));this.rerolls--;this.emit('reroll');return true;}
  chooseRoute(id){if(this.phase!=='upgrade'||!this.nextRoutes.some(r=>r.id===id))return false;this.selectedRoute=id;this.emit('route',{id});return true;}

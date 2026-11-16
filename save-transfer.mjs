@@ -29,6 +29,13 @@ export function mergeProgress(current, incoming) {
   const merged = {...one, unlocked: one.unlocked || two.unlocked};
   // Importing twice must not duplicate currency or replace stronger progress.
   for (const key of PROGRESS_FIELDS) merged[key] = Math.max(one[key], two[key]);
+  // Purchases and style-token balance form one snapshot. Unioning inventories
+  // with a maximum balance would refund spent tokens or create free items.
+  if (one.collection || two.collection) {
+    const chosen = !one.collection ? two.collection : !two.collection ? one.collection :
+      two.collection.revision > one.collection.revision ? two.collection : one.collection;
+    merged.collection = chosen;
+  }
   const existing = normalizeNames(one.names), imported = normalizeNames(two.names);
   merged.names = existing.map((name, i) => name === DEFAULT_NAMES[i] ? imported[i] : name);
   return validSave(merged);
