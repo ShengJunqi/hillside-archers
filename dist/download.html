@@ -666,21 +666,300 @@ DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 
---></head><body data-layout="desktop"><main class="shell" id="gameShell"><header><a class="brand" href="#" id="brand"><span class="brand-mark">➶</span><span>坡地弓手<small>HILLSIDE ARCHERS</small></span></a><span class="edition">一箭过山河 <i>山路巡回赛 · COMIC TOUR</i></span><nav><div class="view-picker" id="viewPicker"><button id="viewMode" aria-expanded="false" aria-controls="viewMenu" title="切换电脑版或手机版">自动 ▾</button><div class="view-menu" id="viewMenu" role="group" aria-label="显示方式" hidden><button id="chooseAuto" aria-pressed="true">自动识别<small id="autoViewHint"></small></button><button id="chooseDesktop" aria-pressed="false">电脑版<small>宽屏布局 · 鼠标和键盘</small></button><button id="chooseMobile" aria-pressed="false">手机版<small>大按钮 · 触屏操作</small></button><p>切换保留当前对局和进度</p></div></div><button id="sound" aria-pressed="false">声音：关</button><button id="view" aria-pressed="false">全景</button><button id="pause">暂停</button><button id="fullscreen">全屏 ↗</button></nav></header><section class="arena" id="arena" aria-label="弓箭游戏"><canvas id="game" tabindex="0" width="1600" height="900" aria-label="拖拽拉弓，松手射箭；拉回取消圈、右键或 Esc 取消"></canvas><div class="vignette"></div>
+--><style>/* The arena owns combat controls. Settings and detailed information live in pause. */
+.shell > header { height:68px; gap:20px; }
+.shell > footer { height:36px; }
+.settings-button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:9px 16px; color:var(--paper); background:#2b414a; border:2px solid #0f2029; border-radius:8px; box-shadow:0 3px 0 #0f2029; font-size:13px; font-weight:700; }
+.settings-button svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linejoin:round; }
+.settings-button:hover { background:#3a5660; }
+.settings-button:active { transform:translateY(2px); box-shadow:0 1px 0 #0f2029; }
+.in-match .shell > header { height:52px; }
+.in-match .edition { font-size:12px; }
+.in-match .edition i { display:none; }
+
+/* A real, thumb-sized pause button, outside the health-bar grid. */
+.combat-pause { position:absolute; top:18px; right:16px; z-index:6; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; width:58px; min-width:58px; min-height:62px; padding:7px 6px; border:3px solid #172b34; border-radius:12px; color:#172b34; background:#fff0cb; box-shadow:0 4px 0 #172b34,0 6px 12px #0b1e2930; font-size:11px; font-weight:800; line-height:1.25; touch-action:manipulation; transition:transform .12s,background .12s,box-shadow .12s; }
+.combat-pause:hover { background:#ffdc78; transform:translateY(-1px); }
+.combat-pause:active { transform:translateY(3px); box-shadow:0 1px 0 #172b34; }
+.pause-glyph, .pause-glyph svg { display:block; width:24px; height:24px; }
+.pause-glyph svg { fill:currentColor; }
+.pause-glyph .pause-play { display:none; }
+.combat-pause[aria-expanded="true"] .pause-bars { display:none; }
+.combat-pause[aria-expanded="true"] .pause-play { display:block; }
+.combat-pause:focus-visible { outline:3px solid #fff9e6; outline-offset:4px; }
+
+.hud { inset:18px 92px auto 18px; display:grid; grid-template-columns:minmax(0,1fr) minmax(140px,.8fr) minmax(0,1fr); align-items:start; gap:18px; }
+.hud .health { width:100%; min-width:0; padding:9px 11px; border:2px solid #162b34; border-radius:10px; background:#16313aee; box-shadow:0 3px 0 #10232a60; }
+.hud .health > div { min-width:0; }
+.hud .health label { align-items:center; flex-wrap:nowrap; gap:6px; }
+.hud .health label b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:12px; }
+.hud .health label span { flex-shrink:0; font-size:18px; }
+.hud .health small { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; min-height:0; line-height:1.45; }
+.hud .health small:empty { display:none; }
+.hud .health-track { height:11px; margin-top:6px; border-radius:3px; overflow:hidden; border:2px solid #10252f; background:#0c2029; }
+.hud .health-track i { height:7px; border-radius:1px; background:linear-gradient(#64ded6 45%,#24afa9 45%); }
+.hud .health.right .health-track i { background:linear-gradient(#ff9d7c 45%,#ed6b59 45%); }
+.hud .portrait { width:36px; height:39px; border:2px solid #0b232c; border-radius:8px; }
+.hud .chapter { position:static; transform:none; min-width:0; max-width:none; width:100%; padding:7px 8px; gap:3px; border:0; border-radius:6px; background:#16313ade; }
+.hud .chapter strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:18px; }
+.hud .chapter small { font-size:9px; }
+.hud .chapter > span { font-family:var(--numbers); font-size:13px; }
+.turn-banner { top:25%; border-radius:5px; }
+
+/* The pause sheet keeps its main actions visible before any detailed reading. */
+.pause-panel { padding:24px; background:#0d2533c9; backdrop-filter:blur(4px); }
+.pause-panel .pause-card { width:min(830px,100%); max-width:100%; max-height:100%; margin:0; padding:24px 28px; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:#7d9992 #eee4cf; text-align:left; color:#21343b; background:#f4ecdd; border:3px solid #142b35; border-radius:15px; box-shadow:0 8px 0 #10232b,0 16px 40px #07182055; }
+.pause-heading { display:flex; justify-content:space-between; align-items:center; gap:20px; padding-bottom:18px; margin-bottom:19px; border-bottom:2px dashed #b6bdac; }
+.pause-heading .eyebrow { margin:0 0 6px; color:#91513c; font-size:11px; letter-spacing:1px; }
+.pause-panel .pause-heading h2 { margin:0; color:#203740; font-size:36px; line-height:1.2; }
+.pause-panel .pause-heading p:last-child { margin:9px 0 0; color:#5b6c65; font-size:12px; line-height:1.5; }
+.pause-emblem { display:grid; place-items:center; width:76px; height:76px; flex-shrink:0; border:2px solid #233943; border-radius:50%; background:#ffd369; box-shadow:3px 3px 0 #233943; transform:rotate(-9deg); }
+.pause-emblem svg { width:58px; height:58px; fill:none; stroke:#213a43; stroke-width:3.4; stroke-linecap:round; stroke-linejoin:round; }
+.pause-layout { display:grid; grid-template-columns:minmax(185px,.8fr) minmax(0,1.45fr); gap:25px; align-items:start; }
+.pause-actions { display:flex; flex-direction:column; gap:12px; min-width:0; }
+.pause-card .resume-action { display:flex; align-items:center; justify-content:flex-start; gap:10px; min-width:0; min-height:68px; width:100%; padding:12px 15px; border-radius:10px; box-shadow:0 4px 0 #203640; font-family:var(--display); font-style:oblique; font-size:23px; font-weight:400; letter-spacing:0; }
+.resume-action svg { width:24px; height:24px; flex-shrink:0; fill:currentColor; }
+.resume-action kbd { margin-left:auto; padding:3px 5px; border:1px solid #9b7c37; border-radius:4px; font:10px/1.2 system-ui,sans-serif; background:#fff3c555; }
+.pause-card .resume-action:active { transform:translateY(3px); box-shadow:0 1px 0 #203640; }
+.menu-action { display:flex; align-items:center; gap:12px; min-height:62px; width:100%; padding:10px 14px; text-align:left; color:#28484d; background:#dfebe4; border:2px solid #66867b; border-radius:10px; box-shadow:0 3px 0 #91a89b; font-size:15px; font-weight:700; }
+.menu-action:hover { background:#cbe5df; border-color:#2a6568; }
+.menu-action:active { transform:translateY(2px); box-shadow:0 1px 0 #91a89b; }
+.menu-action svg { width:26px; height:26px; flex-shrink:0; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.action-symbol { width:26px; flex-shrink:0; font:32px/1 var(--numbers); text-align:center; }
+.menu-action small { display:block; margin-top:4px; color:#59736c; font-size:10px; font-weight:400; }
+.camp-action { color:#674d42; background:#eee2ce; border-color:#ac9880; box-shadow:0 3px 0 #b6a28a; }
+.camp-action:hover { color:#7c3e2e; background:#f2d9bd; border-color:#98765c; }
+.pause-card .pause-aside-note { margin:2px 0 0; color:#61756b; font-size:11px; line-height:1.7; }
+.pause-content { min-width:0; }
+.pause-tabs { display:flex; gap:5px; padding:4px; margin-bottom:15px; background:#dfdfce; border:1px solid #c0c7b7; border-radius:9px; }
+.pause-tabs button { flex:1; min-width:0; min-height:42px; padding:9px 12px; color:#5b6b5e; background:transparent; border:2px solid transparent; border-radius:6px; font-size:13px; font-weight:700; }
+.pause-tabs button[aria-selected="true"] { color:#fff6de; background:#294c52; border-color:#1c3a43; box-shadow:0 2px 0 #132e34; }
+.pause-page { min-height:188px; }
+.pause-card .menu-section-label { color:#6a7667; font-size:10px; letter-spacing:1px; margin:0 0 7px; }
+.pause-page h3 { margin:0 0 5px; color:#233e45; font:oblique 400 27px/1.3 var(--display); }
+.pause-card .pause-mode { margin:0 0 12px; font-size:11px; line-height:1.6; color:#617368; }
+.pause-duel-strip { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px; border:1px solid #bccbbb; border-radius:7px; background:#e5ebdc; }
+.pause-duel-strip span { flex:1; min-width:0; font-size:12px; line-height:1.7; overflow-wrap:anywhere; font-weight:700; }
+.pause-duel-strip span:last-child { text-align:right; color:#9a4b3b; }
+.pause-duel-strip b { font:700 21px/1 var(--numbers); color:#87917b; }
+.pause-relics { display:flex; flex-wrap:wrap; gap:5px; margin:12px 0; }
+.pause-relics:empty { margin:0; }
+.pause-relics span { padding:5px 8px; color:#46635b; background:#e0e4ce; border-radius:5px; font-size:10px; line-height:1.5; }
+.pause-details { margin-top:12px; border-top:1px dashed #bac4b0; padding-top:7px; }
+.pause-details summary { min-height:40px; padding:10px 0; color:#49665d; font-size:11px; cursor:pointer; }
+.pause-details .inventory { max-height:200px; margin:5px 0 0; padding:10px; border-radius:6px; background:#e6e5d2; color:#3f5b52; font-size:11px; line-height:1.9; }
+.pause-setting-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; align-items:stretch; }
+.pause-card .setting-tile { display:flex; align-items:center; justify-content:center; min-width:0; min-height:49px; margin:0; padding:10px 8px; color:#315650; background:#e2e9da; border:1.5px solid #91a68e; border-radius:7px; box-shadow:0 2px 0 #acbba2; font-size:12px; font-weight:700; line-height:1.5; text-align:center; }
+.pause-card .setting-tile:hover { background:#d0e6da; border-color:#4e8278; }
+.pause-card .setting-tile[aria-pressed="true"] { color:#164a51; background:#c6e5db; border-color:#4d8078; }
+.pause-card .feedback-setting { max-width:none; }
+.pause-setting-grid .view-picker { display:flex; justify-content:center; align-items:center; min-height:49px; padding:4px; border:1.5px solid #91a68e; border-radius:7px; background:#e2e9da; box-shadow:0 2px 0 #acbba2; }
+.pause-card .view-picker > span { font-size:10px; color:#617a69; }
+.pause-card #viewMode { min-width:0; min-height:40px; padding:6px 7px; color:#315650; font-size:12px; font-weight:700; }
+.pause-card .view-menu { position:absolute; left:auto; right:0; top:calc(100% + 5px); width:240px; max-width:calc(100vw - 60px); padding:6px; background:#fff3d9; color:#24454c; border:2px solid #24454c; border-radius:9px; box-shadow:0 4px 0 #24454c; }
+.pause-card .view-menu button { min-height:50px; color:#315650; border-radius:5px; font-size:12px; }
+.pause-card .view-menu button:hover, .pause-card .view-menu button[aria-pressed="true"] { color:#234b50; background:#cde8db; }
+.pause-card .view-menu small, .pause-card .view-menu p { color:#647a66; font-size:10px; }
+.pause-personal { display:flex; gap:2px 14px; flex-wrap:wrap; margin-top:14px; border-top:1px dashed #b6c2af; padding-top:6px; }
+.menu-link { min-height:40px; padding:8px 0; color:#547267; font-size:11px; text-decoration:underline; text-underline-offset:4px; }
+.menu-link:hover { color:#1c6572; }
+.pause-card #controlHelp { margin:0; color:#49665d; font-size:12px; line-height:2; }
+.control-tip { display:flex; gap:10px; align-items:center; margin-top:17px; padding:10px; border:1px solid #dac48b; border-radius:7px; background:#f9e9bc; }
+.control-tip > span { font-size:32px; color:#aa6c36; }
+.pause-card .control-tip p { margin:0; color:#7b5a37; font-size:11px; line-height:1.7; }
+.pause-card .control-tip b { font-weight:500; }
+.pause-card :is(button,summary):focus-visible { outline:3px solid #167b8a; outline-offset:3px; }
+
+/* Camp entry points look like game actions, with utility controls grouped below. */
+.home .home-modes .mode-card { border:1.5px solid #8ca295; border-left:4px solid #26858b; border-radius:9px; padding:11px 12px; margin-bottom:9px; background:#f8f2dfd9; box-shadow:0 3px 0 #9aa99b77; }
+.home .home-modes #rogueStart { background:#ffe6a7e8; border-color:#b69b60; border-left-color:#a66a32; }
+.home .home-modes #localStart { border-left-color:#c76b53; }
+.home .home-modes #targetStart { border-left-color:#7f8b4b; }
+.home .mode-card:hover:not(:disabled) { transform:translateY(-2px); background:#e4f0dc; }
+.home .mode-card:active:not(:disabled) { transform:translateY(2px); box-shadow:none; }
+.home .mode-icon { width:37px; height:37px; border-radius:9px; background:#d7e7d7; border-color:#315b57; }
+.home #rogueStart .mode-icon { background:#ffd271; border-color:#8d663c; }
+.home .mode-state { padding:5px 7px; border-radius:5px; background:#c4d8c566; color:#526948; font-size:10px; }
+.home .mode-card:disabled .mode-state { background:#e2d5bb; color:#8e7155; }
+.home .map-choice select { border-radius:6px; min-height:40px; font-size:12px; }
+.home .camp-tools { display:flex; flex-wrap:wrap; gap:7px; margin-top:14px; padding-top:12px; border-top:2px dashed #a6b5a0; }
+.home .camp-tools .transfer-link { display:flex; align-items:center; min-height:40px; padding:7px 10px; margin:0; border:1px solid #9cae96; border-radius:6px; color:#466357; background:#ecebd7; text-decoration:none; font-size:11px; }
+.home .camp-tools .shop-entry { color:#4e4931; background:#f8dda0; border-color:#b19963; }
+.home .camp-tools .transfer-link:hover { background:#d7e6d5; border-color:#5a877b; }
+.home #campaignStart { border-radius:10px; min-height:56px; padding:14px 22px; box-shadow:0 5px 0 #192f38; font:oblique 400 23px/1.2 var(--display); }
+.home #campaignStart:active { transform:translateY(4px); box-shadow:0 1px 0 #192f38; }
+.arrow-dock .arrow-choices { border-radius:8px; }
+.arrow-dock .arrow-choices button { border-radius:6px; }
+.arrow-dock .skill-button { border-radius:9px; }
+
+/* Supporting dialogs share the camp's paper, ink and clear action hierarchy. */
+.transfer-panel { background:#0d2533d9; backdrop-filter:blur(4px); padding:12px; }
+.transfer-panel .transfer-card { width:min(560px,100%); max-height:100%; color:#243f45; background:#f4ecdd; border:3px solid #1c343d; border-radius:12px; box-shadow:0 6px 0 #102731,0 12px 30px #071c2c55; }
+.transfer-card h2 { font:oblique 400 31px/1.3 var(--display); color:#243e46; letter-spacing:0; }
+.transfer-card .eyebrow { color:#916348; }
+.transfer-card p, .transfer-card .transfer-note { color:#546d61; }
+.transfer-card label { color:#365c52; font-size:12px; font-weight:700; }
+.transfer-panel .transfer-card :is(input,textarea) { border:1.5px solid #91a48d; border-radius:6px; color:#274d49; background:#fff9eb; }
+.transfer-panel .transfer-card input::placeholder { color:#7c8b76; }
+.transfer-card :is(input,textarea):focus-visible { outline:3px solid #258b94; outline-offset:2px; }
+.transfer-card .quiet { padding:10px 12px; color:#365f56; border:1px solid #a7b59b; border-radius:6px; background:#e4e8d5; }
+.transfer-card .primary { border-radius:8px; min-height:48px; }
+.transfer-card .transfer-actions { margin-top:14px; }
+.transfer-card .transfer-actions .primary { min-width:0; flex:1; justify-content:center; }
+.account-card .account-tabs { border-color:#b7c2ac; }
+.account-card .account-tabs button { color:#637b69; border:0; border-radius:6px; }
+.account-card .account-tabs button[aria-pressed="true"] { color:#fff7df; background:#315a5d; }
+.transfer-card #transferMessage, .transfer-card #namesMessage, .account-card #accountMessage, .account-card #accountSyncStatus { color:#286b68; }
+.account-card .save-comparison > div { border-color:#6c9582; }
+.account-card .save-comparison b { color:#396258; }
+.transfer-card summary { color:#546e60; }
+.transfer-card a { color:#236e79; text-decoration:underline; text-underline-offset:3px; }
+
+@media(max-width:1000px) {
+ .hud { gap:10px; grid-template-columns:minmax(0,1fr) minmax(115px,.85fr) minmax(0,1fr); }
+ .hud .health { padding:7px; gap:7px; }
+ .hud .portrait { width:28px; height:33px; font-size:18px; }
+ .hud .health label b { font-size:10px; }
+ .hud .chapter strong { font-size:16px; }
+ .pause-panel { padding:15px; }
+ .pause-panel .pause-card { padding:20px; }
+ .home .home-modes .mode-card { padding:9px; gap:9px; }
+ .home .mode-card small { font-size:10px; }
+ .home .camp-tools { gap:5px; margin-top:10px; padding-top:9px; }
+ .home .camp-tools .transfer-link { font-size:10px; min-height:38px; padding:6px 8px; }
+}
+
+/* Mobile portraits use two health blocks and a separate compact chapter strip. */
+body[data-layout="mobile"] .shell > header { height:52px; flex-basis:52px; gap:8px; }
+body[data-layout="mobile"] .shell > footer { height:26px; flex-basis:26px; }
+body[data-layout="mobile"] nav .settings-button { min-width:74px; min-height:44px; padding:8px 10px; font-size:12px; }
+body[data-layout="mobile"] .combat-pause { top:10px; right:10px; min-width:48px; width:48px; min-height:54px; border-width:2px; border-radius:10px; padding:5px; font-size:10px; }
+body[data-layout="mobile"] .hud { inset:10px 68px auto 10px; gap:8px; grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+body[data-layout="mobile"] .hud .health { width:100%; padding:7px; border-width:1px; gap:0; border-radius:7px; }
+body[data-layout="mobile"] .hud .health.left { grid-column:1; grid-row:1; }
+body[data-layout="mobile"] .hud .health.right { grid-column:2; grid-row:1; }
+body[data-layout="mobile"] .hud .health label { flex-wrap:wrap; gap:2px 6px; }
+body[data-layout="mobile"] .hud .health label b { font-size:10px; width:100%; }
+body[data-layout="mobile"] .hud .health label span { font-size:17px; }
+body[data-layout="mobile"] .hud .health-track { margin-top:4px; height:9px; border-width:1px; }
+body[data-layout="mobile"] .hud .health-track i { height:7px; }
+body[data-layout="mobile"] .hud .health small { font-size:9px; -webkit-line-clamp:1; }
+body[data-layout="mobile"] .hud .chapter { grid-column:1 / -1; grid-row:2; width:100%; max-width:none; padding:5px 8px; gap:2px 8px; display:flex; flex-flow:row wrap; align-items:center; justify-content:space-between; text-align:left; border:0; }
+body[data-layout="mobile"] .hud .chapter small { font-size:8px; flex:1; }
+body[data-layout="mobile"] .hud .chapter strong { font-size:13px; max-width:55%; }
+body[data-layout="mobile"] .hud .chapter > span { font-size:10px; }
+body[data-layout="mobile"] .turn-banner { top:29%; font-size:16px; }
+body[data-layout="mobile"] .challenge-info { top:125px; }
+body[data-layout="mobile"].has-arrow-dock .scene-hint { top:146px; font-size:10px; }
+body[data-layout="mobile"] .pause-panel { padding:10px; }
+body[data-layout="mobile"] .pause-panel .pause-card { width:100%; max-width:100%; max-height:100%; padding:17px 16px; border-width:2px; border-radius:12px; }
+body[data-layout="mobile"] .pause-heading { gap:10px; margin-bottom:14px; padding-bottom:14px; }
+body[data-layout="mobile"] .pause-panel .pause-heading h2 { font-size:29px; }
+body[data-layout="mobile"] .pause-heading .eyebrow { font-size:10px; }
+body[data-layout="mobile"] .pause-emblem { width:54px; height:54px; }
+body[data-layout="mobile"] .pause-emblem svg { width:42px; height:42px; }
+body[data-layout="mobile"] .pause-layout { grid-template-columns:minmax(0,1fr); gap:19px; }
+body[data-layout="mobile"] .pause-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+body[data-layout="mobile"] .pause-card .resume-action { grid-column:1 / -1; min-width:0; min-height:56px; padding:11px 16px; font-size:23px; }
+body[data-layout="mobile"] .resume-action kbd { display:none; }
+body[data-layout="mobile"] .menu-action { min-height:54px; padding:8px 10px; gap:8px; font-size:12px; }
+body[data-layout="mobile"] .menu-action small { font-size:9px; }
+body[data-layout="mobile"] .pause-card .pause-aside-note { grid-column:1 / -1; font-size:10px; margin:0; }
+body[data-layout="mobile"] .pause-tabs { margin-bottom:14px; }
+body[data-layout="mobile"] .pause-tabs button { min-height:44px; padding:9px; font-size:13px; }
+body[data-layout="mobile"] .pause-page { min-height:0; }
+body[data-layout="mobile"] .pause-card .setting-tile { min-height:48px; font-size:12px; padding:9px 7px; }
+body[data-layout="mobile"] .pause-card #controlHelp { font-size:12px; line-height:1.9; }
+body[data-layout="mobile"] .pause-personal { gap:3px 12px; }
+body[data-layout="mobile"] .pause-personal .menu-link { min-height:44px; font-size:11px; }
+body[data-layout="mobile"] .pause-details .inventory { max-height:220px; font-size:11px; }
+body[data-layout="mobile"] .pause-details summary { min-height:44px; }
+body[data-layout="mobile"] .pause-card .view-menu { position:absolute; top:calc(100% + 5px); right:0; left:auto; width:245px; max-width:calc(100vw - 65px); max-height:240px; margin:0; overflow:auto; }
+body[data-layout="mobile"] .pause-card .view-menu button { min-height:48px; padding:9px 25px 9px 10px; font-size:12px; }
+body[data-layout="mobile"] .home .home-modes .mode-card { min-height:66px; padding:10px 12px; gap:10px; }
+body[data-layout="mobile"] .home .mode-card b { font-size:21px; }
+body[data-layout="mobile"] .home .mode-card small { font-size:11px; }
+body[data-layout="mobile"] .home .camp-tools { grid-column:1 / -1; gap:8px; }
+body[data-layout="mobile"] .home .camp-tools .transfer-link { min-height:44px; font-size:12px; padding:9px 11px; }
+body[data-layout="mobile"] .home #campaignStart { min-height:54px; }
+
+body[data-layout="mobile"][data-orientation="landscape"] .shell > header { height:42px; flex-basis:42px; }
+body[data-layout="mobile"][data-orientation="landscape"] .combat-pause { top:8px; right:9px; width:46px; min-width:46px; min-height:50px; }
+body[data-layout="mobile"][data-orientation="landscape"] .hud { inset:8px 68px auto 10px; grid-template-columns:minmax(0,1fr) minmax(125px,.8fr) minmax(0,1fr); }
+body[data-layout="mobile"][data-orientation="landscape"] .hud .health.left { grid-column:1; grid-row:1; }
+body[data-layout="mobile"][data-orientation="landscape"] .hud .health.right { grid-column:3; grid-row:1; }
+body[data-layout="mobile"][data-orientation="landscape"] .hud .health label { flex-wrap:nowrap; }
+body[data-layout="mobile"][data-orientation="landscape"] .hud .health label b { width:auto; }
+body[data-layout="mobile"][data-orientation="landscape"] .hud .health label span { font-size:15px; }
+body[data-layout="mobile"][data-orientation="landscape"] .hud .chapter { grid-column:2; grid-row:1; flex-direction:column; gap:2px; padding:4px; }
+body[data-layout="mobile"][data-orientation="landscape"] .hud .chapter strong { font-size:14px; max-width:100%; }
+body[data-layout="mobile"][data-orientation="landscape"] .turn-banner { top:27%; font-size:14px; padding:6px 13px; }
+body[data-layout="mobile"][data-orientation="landscape"].has-arrow-dock .scene-hint { top:auto; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-panel { padding:8px 18px; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-panel .pause-card { padding:13px 18px; max-height:100%; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-heading { margin-bottom:12px; padding-bottom:10px; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-panel .pause-heading h2 { font-size:25px; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-heading .eyebrow { margin-bottom:3px; font-size:9px; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-panel .pause-heading p:last-child { margin-top:5px; font-size:10px; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-emblem { width:44px; height:44px; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-emblem svg { width:35px; height:35px; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-layout { grid-template-columns:minmax(160px,.8fr) minmax(0,1.45fr); gap:18px; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-actions { display:flex; gap:9px; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-card .resume-action { min-height:54px; font-size:21px; }
+body[data-layout="mobile"][data-orientation="landscape"] .menu-action { min-height:48px; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-tabs { margin-bottom:10px; }
+body[data-layout="mobile"][data-orientation="landscape"] .pause-card .setting-tile { min-height:46px; font-size:11px; }
+body[data-layout="mobile"][data-orientation="landscape"] .home .home-modes .mode-card { min-height:58px; padding:8px; }
+body[data-layout="mobile"][data-orientation="landscape"] .home .mode-card b { font-size:18px; }
+body[data-layout="mobile"][data-orientation="landscape"] .home .mode-card small { font-size:10px; }
+
+@media(prefers-reduced-motion:reduce) {
+ .combat-pause,.home .mode-card { transition:none; }
+ .combat-pause:hover,.home .mode-card:hover:not(:disabled) { transform:none; }
+}
+
+/* A narrow desktop preference still has to fit inside its real viewport. */
+@media(max-width:600px) {
+ body[data-layout="desktop"] .hud { inset:10px 78px auto 10px; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+ body[data-layout="desktop"] .hud .health { width:100%; padding:6px; }
+ body[data-layout="desktop"] .hud .health.left { grid-column:1; grid-row:1; }
+ body[data-layout="desktop"] .hud .health.right { grid-column:2; grid-row:1; }
+ body[data-layout="desktop"] .hud .health label { flex-wrap:wrap; }
+ body[data-layout="desktop"] .hud .health label b { width:100%; }
+ body[data-layout="desktop"] .hud .chapter { grid-column:1 / -1; grid-row:2; padding:4px; flex-direction:row; justify-content:space-between; align-items:center; }
+ body[data-layout="desktop"] .hud .chapter small { display:none; }
+ body[data-layout="desktop"] .hud .chapter strong { font-size:12px; }
+ body[data-layout="desktop"] .combat-pause { top:10px; right:10px; width:50px; min-width:50px; min-height:54px; border-width:2px; }
+ .pause-panel .pause-layout { grid-template-columns:minmax(0,1fr); gap:16px; }
+ .pause-panel .pause-card { padding:16px; border-width:2px; border-radius:10px; }
+ .pause-panel .pause-heading h2 { font-size:27px; }
+ .pause-panel .pause-emblem { width:50px; height:50px; }
+ .pause-panel .pause-emblem svg { width:40px; height:40px; }
+ .home #campaignStart { font-size:20px; padding:11px; }
+}
+</style></head><body data-layout="desktop"><main class="shell" id="gameShell"><header><a class="brand" href="#" id="brand"><span class="brand-mark">➶</span><span>坡地弓手<small>HILLSIDE ARCHERS</small></span></a><span class="edition">一箭过山河 <i>山路巡回赛 · COMIC TOUR</i></span><nav aria-label="旅营设置"><button class="settings-button" id="settingsButton" type="button" aria-controls="pausePanel" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m9 3-1 3-3 1-2 5 2 5 3 1 1 3h6l1-3 3-1 2-5-2-5-3-1-1-3Z"/><circle cx="12" cy="12" r="3"/></svg><span>设置</span></button></nav></header><section class="arena" id="arena" aria-label="弓箭游戏"><canvas id="game" tabindex="0" width="1600" height="900" aria-label="拖拽拉弓，松手射箭；拉回取消圈、右键或 Esc 取消"></canvas><div class="vignette"></div>
+<button class="combat-pause" id="pause" type="button" aria-label="暂停游戏" aria-controls="pausePanel" aria-expanded="false" title="暂停游戏（Esc）" hidden><span class="pause-glyph" aria-hidden="true"><svg class="pause-bars" viewBox="0 0 24 24" focusable="false"><path d="M6 4h4v16H6zm8 0h4v16h-4z"/></svg><svg class="pause-play" viewBox="0 0 24 24" focusable="false"><path d="m7 4 13 8-13 8z"/></svg></span><span id="pauseLabel">暂停</span></button>
 <div class="hud" id="hud" hidden><div class="health left"><span class="portrait hero-portrait" id="portrait0">青</span><div><label><b id="name0">青松</b><span id="hp0">100 / 100</span></label><div class="health-track"><i id="bar0"></i></div><small id="status0"></small></div></div><div class="chapter"><small id="chapterSub"></small><strong id="chapterName"></strong><span id="turn"></span></div><div class="health right"><div><label><b id="name1">赤岩</b><span id="hp1">100 / 100</span></label><div class="health-track"><i id="bar1"></i></div><small id="status1"></small></div><span class="portrait enemy-portrait" id="portrait1">岩</span></div></div>
 <div class="enemy-traits" id="enemyTraits" aria-label="对手能力" hidden></div><div class="bounty-info" id="bountyInfo" role="status" aria-live="polite" hidden></div><div class="turn-banner" id="turnBanner" hidden></div><div class="build" id="build" hidden></div><div class="scene-hint" id="sceneHint" hidden></div><div class="arrow-dock" id="arrowDock" aria-label="箭矢选择与弓术" hidden><div class="arrow-choices" id="arrowChoices" role="group" aria-label="选择本轮箭矢"><button id="chooseNormalArrow" aria-pressed="false"><b>普通箭</b><small>不限量 · 留住弹药</small></button><button id="chooseSpecialArrow" aria-pressed="true"><b id="specialArrowLabel">特殊箭</b><small id="specialArrowStock">特箭 2/5</small></button></div><button class="skill-button" id="skillButton" hidden><b id="skillName"></b><small id="skillHint">飞行中 · 空格 / 点击</small></button></div><div class="practice-badge" id="practiceBadge" role="status" hidden>作者练习 · 不计正式进度</div><div class="challenge-info" id="challengeInfo" hidden></div>
 <div class="touch-controls" id="touchControls" role="group" aria-label="触屏射箭操作" hidden><button id="angleDown" aria-label="角度减一度">−</button><button id="angleUp" aria-label="角度加一度">＋</button><button id="touchFire">射箭 <span>➶</span></button><button id="powerMode" aria-label="切换弓力" title="轻、半、强、满弓；也可拖拽调整">弓力：满</button><button id="cancelShot" disabled>取消拉弓</button></div>
 <button class="skip-turn" id="skipTurn" hidden>开始本回合 ➜</button>
-<section class="home panel" id="home"><div class="home-copy"><p class="eyebrow">坡地巡回赛 · 第 01 季</p><h1>一箭<br><em>过山河。</em></h1><p class="lead">弓拉满，场面失控。<br>选条歪路，把下一箭打成名场面。</p><button class="primary" id="campaignStart">踏上山路 <span>↗</span></button><button class="quiet quick-start" id="campaignQuick" title="永久解锁无尽、切磋、双人和射靶，不额外发放奖励">跳过新手教程，解锁全部玩法 ➜</button><p class="save-note" id="saveNote">三章故事 · 可通关或跳过教程解锁玩法</p></div><div class="home-modes"><p class="eyebrow">今天打哪场？</p><button class="mode-card" id="rogueStart"><span class="mode-icon">✦</span><span><b>无尽远征</b><small>选路参赛 · 离谱对手 · 遗物叠加</small></span><span class="mode-state">锁定</span></button><button class="mode-card" id="duelStart"><span class="mode-icon">➶</span><span><b>自由切磋</b><small>选择地形，与电脑再比一场</small></span><span class="mode-state">锁定</span></button><button class="mode-card" id="localStart"><span class="mode-icon">⚔</span><span><b>同机双人</b><small>分享一张桌子，轮流拉弓</small></span><span class="mode-state">锁定</span></button><button class="mode-card" id="targetStart"><span class="mode-icon">◎</span><span><b>百步穿杨</b><small>浮动靶标 · 连续命中 · 挑战纪录</small></span><span class="mode-state">锁定</span></button><label class="map-choice">切磋场地<select id="mapChoice" aria-label="自由模式地图"><option value="1">青岚古道</option><option value="2">赤砂关隘</option><option value="3">星坠遗迹</option></select></label><div class="camp-meta" id="campMeta" hidden><div><b id="embers"></b><small id="best"></small></div><button id="buyBow">练弓</button><button id="buyLife">强身</button></div><p class="mode-note" id="modeNote">完成三章，或跳过新手教程，即可解锁全部玩法。</p><button class="quiet transfer-link shop-entry" id="shopHome">成就与商店 ↗</button><button class="quiet transfer-link scenery-entry" id="sceneryHome">场景风格 ↗</button><button class="quiet transfer-link" id="editNamesHome">弓手名字 ↗</button><button class="quiet transfer-link" id="transferHome">迁移进度 ↗</button><button class="quiet transfer-link" id="accountHome">账号与云存档 ↗</button></div></section>
+<section class="home panel" id="home"><div class="home-copy"><p class="eyebrow">坡地巡回赛 · 第 01 季</p><h1>一箭<br><em>过山河。</em></h1><p class="lead">弓拉满，场面失控。<br>选条歪路，把下一箭打成名场面。</p><button class="primary" id="campaignStart">踏上山路 <span>↗</span></button><button class="quiet quick-start" id="campaignQuick" title="永久解锁无尽、切磋、双人和射靶，不额外发放奖励">跳过新手教程，解锁全部玩法 ➜</button><p class="save-note" id="saveNote">三章故事 · 可通关或跳过教程解锁玩法</p></div><div class="home-modes"><p class="eyebrow">今天打哪场？</p><button class="mode-card" id="rogueStart"><span class="mode-icon">✦</span><span><b>无尽远征</b><small>选路参赛 · 离谱对手 · 遗物叠加</small></span><span class="mode-state">锁定</span></button><button class="mode-card" id="duelStart"><span class="mode-icon">➶</span><span><b>自由切磋</b><small>选择地形，与电脑再比一场</small></span><span class="mode-state">锁定</span></button><button class="mode-card" id="localStart"><span class="mode-icon">⚔</span><span><b>同机双人</b><small>分享一张桌子，轮流拉弓</small></span><span class="mode-state">锁定</span></button><button class="mode-card" id="targetStart"><span class="mode-icon">◎</span><span><b>百步穿杨</b><small>浮动靶标 · 连续命中 · 挑战纪录</small></span><span class="mode-state">锁定</span></button><label class="map-choice">切磋场地<select id="mapChoice" aria-label="自由模式地图"><option value="1">青岚古道</option><option value="2">赤砂关隘</option><option value="3">星坠遗迹</option></select></label><div class="camp-meta" id="campMeta" hidden><div><b id="embers"></b><small id="best"></small></div><button id="buyBow">练弓</button><button id="buyLife">强身</button></div><p class="mode-note" id="modeNote">完成三章，或跳过新手教程，即可解锁全部玩法。</p><div class="camp-tools" aria-label="旅营工具"><button class="quiet transfer-link shop-entry" id="shopHome">成就与商店 ↗</button><button class="quiet transfer-link scenery-entry" id="sceneryHome">场景风格 ↗</button><button class="quiet transfer-link" id="editNamesHome">弓手名字 ↗</button><button class="quiet transfer-link" id="transferHome">迁移进度 ↗</button><button class="quiet transfer-link" id="accountHome">账号与云存档 ↗</button></div></div></section>
 <section class="story panel" id="story" hidden><div class="story-top"><span id="storyChapter"></span><button id="skipStory" title="跳过新手教程并解锁玩法">跳过剧情，开始对决 ↗</button></div><div class="dialogue"><div><small id="speaker"></small><p id="storyLine"></p><div id="storyDots" class="story-dots"></div></div><button id="nextLine" aria-label="下一幕">继续 ➜</button></div></section>
 <section class="result panel" id="result" hidden><div class="result-card"><p class="eyebrow" id="resultKicker"></p><h2 id="resultTitle"></h2><p id="resultText"></p><div id="resultReward"></div><p class="result-bounty" id="resultBounty" hidden></p><button class="primary" id="resultNext"></button><button class="quiet" id="resultHome">返回旅营</button></div></section>
 <section class="upgrade panel" id="upgrade" hidden><p class="eyebrow">赛间补给</p><h2 id="upgradeTitle">先选路，再加点狠活。</h2><p class="upgrade-note" id="upgradeNote">每关补充特箭，每两关选择一次强化。</p><div class="route-heading" id="routeHeading">下一场 · 两条路任选</div><div class="route-cards" id="routeCards" role="group" aria-labelledby="routeHeading"></div><button class="quiet upgrade-reroll" id="rerollUpgrades" hidden>重选遗物</button><div class="upgrade-cards" id="upgradeCards"></div><button class="primary supply-continue" id="continueRun" hidden>补给整备，继续远征 ↗</button></section>
-<section class="upgrade loadout panel" id="loadout" hidden><p class="eyebrow">报名无尽巡回赛</p><h2>选择身手，再配弓术。</h2><p class="upgrade-note"><span id="loadoutName">青松</span>将带着所选身手出发。<br>普箭不限量；开局带2发特箭，每关补1发，最多储存5发。<br>每次施展弓术消耗1发，多箭共用这一发；每两关选择一次强化。</p><div class="character-cards" id="characterCards" role="group" aria-label="选择初始弓手"></div><div class="upgrade-cards" id="bowCards"></div><button class="quiet" id="loadoutHome">返回旅营</button></section><section class="pause-panel panel" id="pausePanel" hidden><div class="pause-card"><p class="eyebrow">中场暂停</p><h2>裁判去捡箭了。</h2><p id="controlHelp">拖拽拉弓，松手射箭。<br>拉回圆圈、右键或 Esc 取消蓄力。<br>← → 微调整数角度，↑ ↓ 调弓力；空格射箭或跳过观察镜头。<br>左下角选择普通箭或特殊箭；特殊箭发射后按空格 / 点击施展，星坠按住预瞄、松开发动。</p><div class="inventory" id="inventory"></div><button class="primary" id="resume">继续旅程 ↗</button><button class="quiet scenery-entry" id="sceneryPause">场景风格 ↗</button><button class="quiet feedback-setting" id="feedbackMode">画面震动：轻</button><button class="quiet" id="restart">重新开始本局</button><button class="quiet" id="pauseHome">返回旅营</button><button class="quiet transfer-link" id="editNamesPause">弓手名字 ↗</button><button class="quiet transfer-link" id="transferPause">迁移进度 ↗</button><button class="quiet transfer-link" id="accountPause">账号与云存档 ↗</button></div></section>
+<section class="upgrade loadout panel" id="loadout" hidden><p class="eyebrow">报名无尽巡回赛</p><h2>选择身手，再配弓术。</h2><p class="upgrade-note"><span id="loadoutName">青松</span>将带着所选身手出发。<br>普箭不限量；开局带2发特箭，每关补1发，最多储存5发。<br>每次施展弓术消耗1发，多箭共用这一发；每两关选择一次强化。</p><div class="character-cards" id="characterCards" role="group" aria-label="选择初始弓手"></div><div class="upgrade-cards" id="bowCards"></div><button class="quiet" id="loadoutHome">返回旅营</button></section><section class="pause-panel panel" id="pausePanel" role="dialog" aria-modal="true" aria-labelledby="pauseTitle" hidden>
+<div class="pause-card"><div class="pause-heading"><div><p class="eyebrow" id="pauseEyebrow">中场休息 · 箭也暂停</p><h2 id="pauseTitle">歇一箭，再上场。</h2><p id="pauseContext"></p></div><span class="pause-emblem" aria-hidden="true"><svg viewBox="0 0 88 88" focusable="false"><path d="M24 13Q78 44 24 75L44 44Z"/><path d="m15 44 61 0m-9-8 9 8-9 8M15 37l8 7-8 7"/></svg></span></div>
+<div class="pause-layout"><div class="pause-actions"><button class="primary resume-action" id="resume"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m8 5 11 7-11 7Z"/></svg><span id="resumeLabel">继续对决</span><kbd>Esc</kbd></button><button class="menu-action" id="restart"><span class="action-symbol" aria-hidden="true">↻</span><span>重新开局<small>重置当前对局</small></span></button><button class="menu-action camp-action" id="pauseHome"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m3 11 9-8 9 8M6 9v12h12V9M10 21v-7h4v7"/></svg><span>返回旅营<small>结束当前对局</small></span></button><p class="pause-aside-note" id="pauseSafeNote">山路还在，箭等你回来。</p></div>
+<div class="pause-content"><div class="pause-tabs" role="tablist" aria-label="暂停菜单页面"><button id="pauseOverviewTab" role="tab" aria-selected="true" aria-controls="pauseOverview">本局</button><button id="pauseSettingsTab" role="tab" aria-selected="false" aria-controls="pauseSettings" tabindex="-1">设置</button><button id="pauseHelpTab" role="tab" aria-selected="false" aria-controls="pauseHelp" tabindex="-1">操作</button></div>
+<div class="pause-page" id="pauseOverview" role="tabpanel" aria-labelledby="pauseOverviewTab"><p class="menu-section-label">当前赛场</p><h3 id="pauseMapName"></h3><p class="pause-mode" id="pauseMode"></p><div class="pause-duel-strip"><span id="pauseHero"></span><b aria-hidden="true">VS</b><span id="pauseRival"></span></div><div class="pause-relics" id="pauseRelics" aria-label="已携带的遗物"></div><details class="pause-details" id="pauseDetails"><summary id="pauseDetailsToggle">遗物、对手与状态详情</summary><div class="inventory" id="inventory"></div></details></div>
+<div class="pause-page" id="pauseSettings" role="tabpanel" aria-labelledby="pauseSettingsTab" hidden><p class="menu-section-label">按你的手感来</p><div class="pause-setting-grid"><button class="setting-tile" id="sound" aria-pressed="false">声音：关</button><button class="setting-tile" id="feedbackMode">画面震动：轻</button><button class="setting-tile" id="view" aria-pressed="false">全景</button><button class="setting-tile" id="fullscreen" aria-pressed="false">全屏 ↗</button><button class="setting-tile" id="sceneryPause">场景风格 ↗</button><div class="view-picker" id="viewPicker"><button id="viewMode" aria-expanded="false" aria-controls="viewMenu" title="切换电脑版或手机版">自动 ▾</button><div class="view-menu" id="viewMenu" role="group" aria-label="显示方式" hidden><button id="chooseAuto" aria-pressed="true">自动识别<small id="autoViewHint"></small></button><button id="chooseDesktop" aria-pressed="false">电脑版<small>宽屏布局 · 鼠标和键盘</small></button><button id="chooseMobile" aria-pressed="false">手机版<small>大按钮 · 触屏操作</small></button><p>切换保留当前对局和进度</p></div></div></div><div class="pause-personal"><button class="menu-link" id="editNamesPause">弓手名字 ↗</button><button class="menu-link" id="transferPause">迁移进度 ↗</button><button class="menu-link" id="accountPause">账号与云存档 ↗</button></div></div>
+<div class="pause-page" id="pauseHelp" role="tabpanel" aria-labelledby="pauseHelpTab" hidden><p class="menu-section-label">把下一箭打漂亮</p><p id="controlHelp">拖拽拉弓，松手射箭。<br>拉回圆圈、右键或 Esc 取消蓄力。<br>← → 微调整数角度，↑ ↓ 调弓力；空格射箭或跳过观察镜头。<br>左下角选择普通箭或特殊箭；特殊箭发射后按空格 / 点击施展，星坠按住预瞄、松开发动。</p><div class="control-tip"><span aria-hidden="true">↶</span><p>不想射了？<br><b>拉回取消圈，蓄力不算这一回合。</b></p></div></div>
+</div></div></div></section>
 <section class="shop-panel panel" id="shopPanel" role="dialog" aria-modal="true" aria-labelledby="shopTitle" hidden><div class="shop-sheet"><div class="shop-heading"><div><p class="eyebrow">风格靠自己挣</p><h2 id="shopTitle">成就与商店</h2></div><button class="quiet" id="shopClose" aria-label="关闭成就与商店">关闭 ✕</button></div><div class="shop-wallet"><b id="shopTokens">风格券 0</b><span id="shopModeNote">完成成就和守关赛，换一点不一样。</span></div><div class="shop-tabs" role="tablist" aria-label="商店页面"><button id="shopItemsTab" role="tab" aria-selected="true" aria-controls="shopItems">装扮与天赋</button><button id="shopAchievementsTab" role="tab" aria-selected="false" aria-controls="shopAchievements">成就簿</button></div><div id="shopItems" role="tabpanel" aria-labelledby="shopItemsTab"><div class="shop-basics"><button class="quiet" id="equipBaseSkin">原装弓手</button><button class="quiet" id="equipNoTalent">不带额外天赋</button></div><div class="shop-cards" id="shopCards"></div></div><div id="shopAchievements" role="tabpanel" aria-labelledby="shopAchievementsTab" hidden><div class="achievement-cards" id="achievementCards"></div></div><p class="shop-message" id="shopMessage" role="status" aria-live="polite"></p><details class="author-tools" id="authorTools"><summary id="authorSummary">作者练习码</summary><p>公开调试入口。练习中的货币、成就、纪录不写入正式档或云存档。</p><label for="authorCode">输入练习码</label><div class="author-code-row"><input id="authorCode" type="text" maxlength="64" autocomplete="off" spellcheck="false" placeholder="作者练习码"><button class="quiet" id="authorApply">进入作者练习</button></div><button class="quiet" id="authorExit" hidden>退出作者练习，恢复正式档</button></details><button class="primary shop-back" id="shopBack">选好了，返回旅营 ↗</button></div></section>
 <section class="scenery-panel panel" id="sceneryPanel" role="dialog" aria-modal="true" aria-labelledby="sceneryTitle" aria-describedby="sceneryIntro" hidden><div class="scenery-sheet"><div class="scenery-heading"><div><p class="eyebrow">换一种山河</p><h2 id="sceneryTitle">场景风格</h2></div><button class="quiet scenery-back" id="sceneryBack" aria-label="关闭场景风格">关闭 ✕</button></div><p class="scenery-intro" id="sceneryIntro">选一张喜欢的风景，即刻应用。也可以让赛场自己换装。</p><div class="scenery-cards" id="sceneryCards" role="group" aria-label="选择场景绘画风格"></div><div class="scenery-actions"><p id="sceneryMessage" role="status" aria-live="polite"></p><button class="primary" id="sceneryClose">选好了，返回旅营 ↗</button></div></div></section>
-<section class="transfer-panel panel" id="transferPanel" role="dialog" aria-modal="true" aria-labelledby="transferTitle" hidden><div class="transfer-card"><p class="eyebrow">带上你的旅程</p><h2 id="transferTitle">迁移进度</h2><p>把代码带到另一个游戏网址，即可继续已有进度。</p><p class="transfer-note">仅迁移章节、解锁、纪录和修行，不含进行中的远征。导入时保留两边较高的永久进度；请先回到旅营。</p><label for="exportProgress">当前进度代码</label><textarea id="exportProgress" readonly spellcheck="false" aria-label="当前进度代码"></textarea><button class="quiet" id="copyProgress">复制代码</button><label for="importProgress">粘贴另一网址的进度代码</label><textarea id="importProgress" spellcheck="false" placeholder="粘贴 HA2: 开头的代码" aria-label="待导入的进度代码"></textarea><p id="transferMessage" role="status" aria-live="polite"></p><div class="transfer-actions"><button class="primary" id="importProgressButton">导入进度 ↗</button><button class="quiet" id="transferClose">关闭</button></div></div></section><section class="transfer-panel panel" id="namesPanel" role="dialog" aria-modal="true" aria-labelledby="namesTitle" hidden><div class="transfer-card name-card"><p class="eyebrow">让这段旅程有你的名字</p><h2 id="namesTitle">弓手名字</h2><p>每个名字最多 8 个字符，留空使用默认名字。</p><label for="archerName0">第一位弓手 · 玩家一</label><input id="archerName0" type="text" maxlength="16" autocomplete="off" placeholder="青松"><label for="archerName1">第二位弓手 · 对手 / 玩家二</label><input id="archerName1" type="text" maxlength="16" autocomplete="off" placeholder="赤岩"><p id="namesMessage" role="status" aria-live="polite"></p><button class="quiet" id="namesReset">恢复默认</button><div class="transfer-actions"><button class="primary" id="namesSave">保存名字 ↗</button><button class="quiet" id="namesClose">取消</button></div></div></section><section class="transfer-panel panel" id="accountPanel" role="dialog" aria-modal="true" aria-labelledby="accountTitle" hidden>
+<section class="transfer-panel panel" id="transferPanel" role="dialog" aria-modal="true" aria-labelledby="transferTitle" hidden><div class="transfer-card"><p class="eyebrow">带上你的旅程</p><h2 id="transferTitle">迁移进度</h2><p>把代码带到另一个游戏网址，即可继续已有进度。</p><p class="transfer-note">迁移章节、纪录、修行和成就收藏，不含进行中的远征。导入时保留两边较高的永久进度；请先回到旅营。</p><label for="exportProgress">当前进度代码</label><textarea id="exportProgress" readonly spellcheck="false" aria-label="当前进度代码"></textarea><button class="quiet" id="copyProgress">复制代码</button><label for="importProgress">粘贴另一网址的进度代码</label><textarea id="importProgress" spellcheck="false" placeholder="粘贴 HA2: 开头的代码" aria-label="待导入的进度代码"></textarea><p id="transferMessage" role="status" aria-live="polite"></p><div class="transfer-actions"><button class="primary" id="importProgressButton">导入进度 ↗</button><button class="quiet" id="transferClose">关闭</button></div></div></section><section class="transfer-panel panel" id="namesPanel" role="dialog" aria-modal="true" aria-labelledby="namesTitle" hidden><div class="transfer-card name-card"><p class="eyebrow">让这段旅程有你的名字</p><h2 id="namesTitle">弓手名字</h2><p>每个名字最多 8 个字符，留空使用默认名字。</p><label for="archerName0">第一位弓手 · 玩家一</label><input id="archerName0" type="text" maxlength="16" autocomplete="off" placeholder="青松"><label for="archerName1">第二位弓手 · 对手 / 玩家二</label><input id="archerName1" type="text" maxlength="16" autocomplete="off" placeholder="赤岩"><p id="namesMessage" role="status" aria-live="polite"></p><button class="quiet" id="namesReset">恢复默认</button><div class="transfer-actions"><button class="primary" id="namesSave">保存名字 ↗</button><button class="quiet" id="namesClose">取消</button></div></div></section><section class="transfer-panel panel" id="accountPanel" role="dialog" aria-modal="true" aria-labelledby="accountTitle" hidden>
 <div class="transfer-card account-card"><div class="account-heading"><div><p class="eyebrow">把旅程带到另一端</p><h2 id="accountTitle">账号与云存档</h2></div><button class="quiet" id="accountClose" aria-label="关闭账号窗口">关闭</button></div>
-<p class="transfer-note">随时可以继续本机游玩。仅同步章节、解锁、纪录、名字和永久修行，不含进行中的远征。</p>
+<p class="transfer-note">随时可以继续本机游玩。同步章节、纪录、名字、修行与成就收藏，不含进行中的远征。</p>
 <div id="accountGuest"><div class="account-tabs" role="group" aria-label="登录方式"><button id="authpassword" aria-pressed="true">账号密码登录</button><button id="authregister" aria-pressed="false">注册账号</button></div>
 <form id="accountForm"><label for="accountEmail"><span id="accountIdentifierText">账号或邮箱</span><input id="accountEmail" type="text" autocomplete="username" maxlength="254" required placeholder="输入账号或邮箱"></label><label id="accountUsernameLabel" for="accountUsername" hidden>设置账号<input id="accountUsername" type="text" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9][A-Za-z0-9_]{2,23}" placeholder="如 qingsong_01"></label><label id="accountPasswordLabel" for="accountPassword">密码<input id="accountPassword" type="password" autocomplete="current-password" maxlength="32" required></label><label id="accountCodeLabel" for="accountCode" hidden>邮件验证码<input id="accountCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12" pattern="[0-9]{4,12}"></label><button class="primary" id="accountSubmit" type="submit">登录账号</button><div class="account-actions"><button class="quiet" id="accountResend" type="button" hidden>重新发送验证码</button><button class="quiet" id="accountBack" type="button" hidden>返回修改邮箱</button></div></form></div>
 <div id="accountMember" hidden><p class="account-identity" id="accountIdentity"></p><p id="accountSyncStatus" role="status" aria-live="polite"></p><div id="accountChoice" hidden><div class="save-comparison"><div><b>当前本机</b><p id="cloudLocalSummary"></p></div><div><b>账号云端</b><p id="cloudRemoteSummary"></p></div></div><p class="transfer-note">纪录和解锁保留较高进度。余烬与练弓、强身等级整组选择，不把两份余额相加；替换前会留一份本机备份。请在旅营选择。</p><div class="account-actions"><button class="primary" id="keepCloud">使用云端修行与余烬</button><button class="quiet" id="keepLocal">保留本机修行与余烬</button></div></div><div class="account-actions"><button class="quiet" id="cloudRefresh">检查 / 重试同步</button><button class="quiet" id="accountSignOut">退出账号</button></div></div>
@@ -3157,7 +3436,7 @@ function cloudClient(app) {
 }
 
 
-function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, loadClient = loadCloudClient}) {
+function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, returnFocus = () => atCamp() ? 'accountHome' : 'accountPause', loadClient = loadCloudClient}) {
   const el = id => document.getElementById(id);
   let client, listenerClient, bootPromise, verifyCode, mode = 'password', working = false, cooldown = 0, interval, activeUid;
   const offline = document.documentElement.dataset.offline === 'true' || globalThis.location?.protocol === 'file:';
@@ -3303,7 +3582,7 @@ function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, loa
   });};
   function close(focus = true) {
     el('accountPanel').hidden = true;
-    if (focus) el(atCamp() ? 'accountHome' : 'accountPause').focus();
+    if (focus) el(returnFocus()).focus();
   }
   function open() {
     beforeOpen(); el('accountPanel').hidden = false; paint(); formState();
@@ -3345,6 +3624,7 @@ function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, loa
 
 const $=id=>document.getElementById(id),canvas=$('game'),renderer=new Renderer(canvas),SAVE_KEY='hillside-archers-save-v2';
 let cloudAccount;
+let pauseTab='overview';
 let shopWasPaused=false,shopButtons=[],shopTab='items';
 let sceneryWasPaused=false,sceneryButtons=[],selectedCharacterId='qingsong';
 let saved,storageReady=true;try{saved=localStorage.getItem(SAVE_KEY);}catch{storageReady=false;}let paused=false,soundOn=false,audio=null,toastUntil=0,lastPhase='',lastBeat=-1,lastNow=0,renderDirty=true,stored=storageReady;
@@ -3449,7 +3729,7 @@ function renderUI(){const phase=game.phase;if(lastPhase!==phase){lastPhase=phase
  const threat=game.mode!=='local'&&game.mode!=='target'?enemySummary(game.players[1]):'';$('enemyTraits').textContent=(game.arena?.enemy.name||'对手能力')+' · '+enemyIntentShort(game.arena?.enemy.id)+'\n'+threat+(game.arena?.rule==='collapse'?' · 第5回合中央路障倒下':'');$('enemyTraits').title=(game.arena?.enemy.tip||'')+' · '+threat;show('enemyTraits',!!threat&&['scout','thinking'].includes(phase));show('bountyInfo',game.mode==='rogue'&&phase==='scout'&&Boolean(game.bounty));$('bountyInfo').textContent=game.bounty?'观众悬赏 · '+bountyProgressText(game.bounty):'';
  show('challengeInfo',gameplay&&game.mode==='target');$('challengeInfo').textContent='得分 '+game.targetScore+' · 落空 '+game.targetMisses+' / 3';document.querySelector('.health.right').hidden=game.mode==='target';show('skillButton',gameplay&&game.mode==='rogue'&&game.active===0&&phase==='flight');const bow=BOWS.find(b=>b.id===game.skill)||BOWS[0];$('skillName').textContent=bow.skill+' · '+specialAmmoText()+(game.skillAim?' · 预瞄':game.skillUsed?' · 已施展':'');$('skillButton').disabled=!game.canSkill;$('skillHint').textContent=game.specialAmmo===0?'特箭耗尽 · 普箭仍可用':game.phase==='flight'&&game.volleyArrowType==='normal'?'本轮普通箭 · 不消耗特箭':game.skillUsed?'本轮已施展 · 下一轮可再用':game.phase==='flight'?(game.skill==='dive'?(game.skillAim?(!input.skill.hold?'再次点击落箭 · Esc 取消':touchMode?'左右拖动调整 · 松手落箭':'←→ 调整落线 · 松开空格落箭'):(touchMode?'按住预瞄 · 松手星坠':'按住空格预瞄 · 松开星坠')):(touchMode?'点击施展':'空格 / 点击施展')):'射箭后施展 · 消耗1发特箭';$('skillButton').setAttribute('aria-pressed',Boolean(game.skillAim));$('skillButton').title=bow.tip;let banner='';if(phase==='scout'){const progress=game.phaseTime/game.scoutDuration;banner=game.mode==='target'?(progress<.3?'观察靶标的位置':'回到弓手'):game.round===1&&progress>=.18&&progress<.55?geometryLabel(game.arena):progress<(game.round===1?.18:.2)?'观察对手的位置':'镜头回到 '+archerName(game.active);}else if(phase==='thinking')banner=game.mode==='rogue'&&game.opponent.boss?'擂主 · '+game.players[1].stats.multi+'箭蓄力':$('name1').textContent+'正在寻找角度';show('turnBanner',!!banner);$('turnBanner').textContent=banner;$('sceneHint').textContent=phase==='scout'?(touchMode?'点击下方按钮可跳过观察':'空格跳过观察镜头'):phase==='aim'?archerName(game.active)+(touchMode?'的回合 · 看高低差，试试收力':'的回合 · ←→调角度 · ↑↓调弓力 · 拖拽或空格出箭'):phase==='flight'?(game.skillAim?(touchMode?'星坠预瞄 · 左右拖动 · 松手落箭':'星坠预瞄 · ←→调整 · 松开空格落箭'):game.volleyCount>1?'箭雨 ×'+game.volleyCount:'一箭已出'):'等待箭落';
  if(phase==='intro'){$('skipStory').textContent=game.save.unlocked?'跳过剧情，开始对决 ↗':'跳过新手教程，解锁玩法 ↗';$('skipStory').title=game.save.unlocked?'只跳过本段剧情':'永久解锁无尽、切磋、双人和射靶，不额外发放奖励';const beat=Math.min(2,Math.floor(game.phaseTime/game.storyBeatDuration));if(beat!==lastBeat){lastBeat=beat;const [speaker,line]=STORIES[game.stage-1][beat];$('storyChapter').textContent='第 '+game.stage+' 章 / '+MAPS[game.map].name;$('speaker').textContent=namedText(speaker);$('storyLine').dataset.full=namedText(line);$('storyDots').innerHTML=[0,1,2].map(i=>'<i class="'+(i===beat?'active':'')+'"></i>').join('');$('nextLine').textContent=beat===2?'开始试炼 ➜':'下一幕 ➜';}$('storyLine').textContent=($('storyLine').dataset.full||'');}
- $('pause').disabled=phase==='home';show('practiceBadge',Boolean(game.authorMode));document.body.classList.toggle('author-practice',Boolean(game.authorMode));updateTouchControls();}
+ $('pause').disabled=phase==='home';show('pause',phase!=='home');show('settingsButton',phase==='home');document.body.classList.toggle('in-match',phase!=='home');show('practiceBadge',Boolean(game.authorMode));document.body.classList.toggle('author-practice',Boolean(game.authorMode));updateTouchControls();}
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function cancelDrag(){input.cancel();}
 function adjustAngle(delta){if(!paused&&!input.drag&&game.canAim)game.aim(game.angles[game.active]+delta,game.powers[game.active]);}
@@ -3473,15 +3753,60 @@ function fullScreenChanged(){const active=Boolean(document.fullscreenElement||do
 function fallbackFullscreen(){document.body.classList.toggle('immersive');fullScreenChanged();}
 async function toggleFullscreen(){cancelDrag();const exit=document.exitFullscreen||document.webkitExitFullscreen,request=$('gameShell').requestFullscreen||$('gameShell').webkitRequestFullscreen;$('fullscreen').disabled=true;try{if(document.fullscreenElement||document.webkitFullscreenElement){await exit.call(document);}else if(document.body.classList.contains('immersive')){fallbackFullscreen();}else if(request){try{await request.call($('gameShell'));}catch{fallbackFullscreen();}}else fallbackFullscreen();}catch{toast('未能切换全屏，请重试。');}finally{$('fullscreen').disabled=false;fullScreenChanged();}}
 document.addEventListener('fullscreenchange',fullScreenChanged);document.addEventListener('webkitfullscreenchange',fullScreenChanged);
-function setPaused(value){if(!value){closeShop(false);closeScenery(false);closeTransfer(false);closeNames(false);cloudAccount?.close(false);}cancelDrag();paused=value;show('pausePanel',value);$('pause').textContent=value?'继续':'暂停';if(value){renderFeedbackSetting();$('resume').focus();}}
+const pausePages=[['overview','pauseOverviewTab','pauseOverview'],['settings','pauseSettingsTab','pauseSettings'],['help','pauseHelpTab','pauseHelp']];
+function selectPauseTab(tab,focus=false){
+ pauseTab=pausePages.some(([key])=>key===tab)?tab:'overview';
+ for(const [key,id,panel] of pausePages){const selected=key===pauseTab;$(id).setAttribute('aria-selected',selected);$(id).tabIndex=selected?0:-1;show(panel,selected);}
+ closeViewMenu();if(focus)$(pausePages.find(([key])=>key===pauseTab)[1]).focus();
+}
+for(const [key,id] of pausePages)$(id).onclick=()=>selectPauseTab(key);
+function renderPauseMenu(){
+ const camp=game.phase==='home',preparing=game.phase==='loadout';
+ $('pauseEyebrow').textContent=camp?'旅营整备':preparing?'赛前整备':'中场休息 · 箭也暂停';$('pauseTitle').textContent=camp?'调顺手，再出发。':preparing?'准备好了，再开弓。':'歇一箭，再上场。';
+ $('pauseContext').textContent=camp?'声音、镜头和操作布局，都在这里。':preparing?'选好弓手与弓术，再出发。':modeName()+' · 第 '+game.round+' 回合';
+ $('resumeLabel').textContent=camp?'返回旅营':preparing?'继续选弓':'继续对决';show('restart',!camp&&!preparing);show('pauseHome',!camp);show('pauseOverviewTab',!camp&&!preparing);
+ $('pauseSafeNote').textContent=camp?'顺手，比花哨更重要。':'山路还在，箭等你回来。';
+ $('pauseMapName').textContent=game.arena?.name||MAPS[game.map].name;$('pauseMode').textContent=geometryLabel(game.arena);
+ $('pauseHero').textContent=archerName(0)+' · '+Math.ceil(game.players[0].hp)+' / '+game.players[0].stats.maxHp;
+ $('pauseRival').textContent=game.mode==='target'?'射靶 '+game.targetScore+' 分':archerName(1)+' · '+Math.ceil(game.players[1].hp)+' / '+game.players[1].stats.maxHp;
+ $('pauseRelics').replaceChildren();const relics=inventory();
+ for(const {u,n} of relics.slice(0,5)){const chip=document.createElement('span');chip.textContent=u.icon+' '+u.name+(n>1?' ×'+n:'');$('pauseRelics').append(chip);}
+ if(relics.length>5){const more=document.createElement('span');more.textContent='另 '+(relics.length-5)+' 种';$('pauseRelics').append(more);}
+ renderFeedbackSetting();
+}
+function setPaused(value,tab=null){
+ const wasOpen=paused&&!$('pausePanel').hidden;
+ if(!value){closeShop(false);closeScenery(false);closeTransfer(false);closeNames(false);cloudAccount?.close(false);}
+ cancelDrag();closeViewMenu();paused=value;show('pausePanel',value);
+ $('pauseLabel').textContent=value?'继续':'暂停';$('pause').setAttribute('aria-expanded',value);$('pause').setAttribute('aria-label',value?'继续游戏':'暂停游戏');$('settingsButton').setAttribute('aria-expanded',value&&game.phase==='home');
+ if(value){renderPauseMenu();if(!wasOpen||tab)selectPauseTab(tab||(['home','loadout'].includes(game.phase)?'settings':'overview'));(tab?$(pausePages.find(([key])=>key===pauseTab)[1]):$('resume')).focus();}
+ else if(wasOpen)(game.phase==='home'?$('settingsButton'):canvas).focus();
+}
+$('settingsButton').onclick=()=>setPaused(true,'settings');
+function pauseKey(e){
+ if(!paused||$('pausePanel').hidden||!$('namesPanel').hidden||!$('transferPanel').hidden)return false;
+ if(e.key==='Escape'){e.preventDefault();if(!$('viewMenu').hidden)closeViewMenu(true);else setPaused(false);return true;}
+ const tabs=pausePages.filter(([key])=>key!=='overview'||!['home','loadout'].includes(game.phase)),tabIndex=tabs.findIndex(([,id])=>$(id)===e.target);
+ if(tabIndex>=0&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
+  e.preventDefault();const at=e.key==='Home'?0:e.key==='End'?tabs.length-1:(tabIndex+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;selectPauseTab(tabs[at][0],true);return true;
+ }
+ if(e.key==='Tab'){
+  const actions=game.phase==='home'?['resume']:game.phase==='loadout'?['resume','pauseHome']:['resume','restart','pauseHome'];
+  const pageControls=pauseTab==='overview'?['pauseDetailsToggle']:pauseTab==='settings'?['sound','feedbackMode','view','fullscreen','sceneryPause','viewMode',...(!$('viewMenu').hidden?['chooseAuto','chooseDesktop','chooseMobile']:[]),'editNamesPause','transferPause','accountPause']:[];
+  const controls=[...actions,...tabs.filter(([key])=>key===pauseTab).map(([,id])=>id),...pageControls].map($).filter(el=>!el.disabled&&!el.hidden);
+  const current=controls.indexOf(document.activeElement),step=e.shiftKey?-1:1,next=current<0?(e.shiftKey?controls.length-1:0):(current+step+controls.length)%controls.length;
+  controls[next]?.focus();e.preventDefault();
+ }
+ return true;
+}
 function home(){closeNames(false);closeTransfer(false);setPaused(false);game.goHome();}
 function skipTutorial(){setPaused(false);if(game.skipTutorial()){renderDirty=true;lastPhase='';toast(stored?'全部玩法已解锁，也可随时返回主线练习。':'玩法已解锁；浏览器无法保存，可导出迁移码备份。');}}
-function closeNames(focus=true){show('namesPanel',false);if(focus)$(game.phase==='home'?'editNamesHome':'editNamesPause').focus();}
+function closeNames(focus=true){show('namesPanel',false);if(focus)$(!$('pausePanel').hidden?'editNamesPause':game.phase==='home'?'editNamesHome':'editNamesPause').focus();}
 function openNames(){closeShop(false);closeScenery(false);cloudAccount?.close(false);cancelDrag();closeViewMenu();closeTransfer(false);if(game.phase!=='home')setPaused(true);const names=normalizeNames(game.save.names);$('archerName0').value=names[0];$('archerName1').value=names[1];$('namesMessage').textContent='名字会用于对局、剧情和结算，也会随迁移码保存。';show('namesPanel',true);$('archerName0').focus();}
 $('editNamesHome').onclick=openNames;$('editNamesPause').onclick=openNames;$('namesClose').onclick=()=>closeNames();
 $('namesReset').onclick=()=>{DEFAULT_NAMES.forEach((name,i)=>{$('archerName'+i).value=name;});$('namesMessage').textContent='已填入默认名字，点击保存生效。';};
 $('namesSave').onclick=()=>{const values=[$('archerName0').value,$('archerName1').value];if(values.some(value=>Array.from(value.trim()).length>MAX_NAME_LENGTH)){$('namesMessage').textContent='每个名字最多 '+MAX_NAME_LENGTH+' 个字符。';return;}game.save=validSave({...game.save,names:normalizeNames(values)});game.persist();lastPhase='';lastBeat=-1;renderDirty=true;closeNames();toast(stored?'弓手名字已保存。':'名字已应用；当前浏览器无法保存，可导出迁移码备份。');};
-function closeTransfer(focus=true){show('transferPanel',false);if(focus)$(game.phase==='home'?'transferHome':'transferPause').focus();}
+function closeTransfer(focus=true){show('transferPanel',false);if(focus)$(!$('pausePanel').hidden?'transferPause':game.phase==='home'?'transferHome':'transferPause').focus();}
 function openTransfer(){closeShop(false);closeScenery(false);cloudAccount?.close(false);closeNames(false);cancelDrag();closeViewMenu();if(game.phase!=='home')setPaused(true);$('exportProgress').value=encodeProgress(permanentProgress());$('importProgress').value='';$('transferMessage').textContent=game.phase==='home'?'导入会合并永久进度，不会降低已有纪录。':'请先返回旅营，再导入进度。当前进度仍可复制。';$('importProgressButton').disabled=game.phase!=='home'||Boolean(game.authorMode);if(game.authorMode)$('transferMessage').textContent='当前导出正式档；请先退出作者练习，再导入正式进度。';show('transferPanel',true);$('transferClose').focus();}
 $('transferHome').onclick=openTransfer;$('transferPause').onclick=openTransfer;$('transferClose').onclick=()=>closeTransfer();
 $('copyProgress').onclick=async()=>{try{if(!globalThis.navigator?.clipboard?.writeText)throw new Error('manual');await navigator.clipboard.writeText($('exportProgress').value);$('transferMessage').textContent='已复制，去另一个游戏网址粘贴导入即可。';}catch{$('exportProgress').focus();$('exportProgress').select?.();$('transferMessage').textContent='请长按代码选择复制，或在电脑按 Ctrl/Cmd+C。';}};
@@ -3507,8 +3832,8 @@ function openScenery(){
 }
 function closeScenery(focus=true,resume=false){
  const wasOpen=!$('sceneryPanel').hidden;show('sceneryPanel',false);if(!wasOpen)return;
- if(resume){if(game.phase==='home')paused=false;else setPaused(false);}else if(game.phase==='home')paused=sceneryWasPaused;
- if(focus)$(game.phase==='home'?'sceneryHome':resume?'pause':'sceneryPause').focus();
+ if(resume){setPaused(false);}else if(game.phase==='home')paused=sceneryWasPaused;
+ if(focus)$(!resume&&!$('pausePanel').hidden?'sceneryPause':game.phase==='home'?'sceneryHome':'pause').focus();
 }
 $('sceneryHome').onclick=openScenery;$('sceneryPause').onclick=openScenery;$('sceneryBack').onclick=()=>closeScenery();$('sceneryClose').onclick=()=>closeScenery(true,true);
 function sceneryKey(e){
@@ -3574,6 +3899,7 @@ $('feedbackMode').onclick=()=>{const f=renderer.feedback;f.mode=FEEDBACK_MODES[(
 $('brand').onclick=e=>{e.preventDefault();if(game.phase==='home')return;setPaused(true);};$('campaignStart').onclick=()=>{setPaused(false);game.start('campaign',game.save.checkpoint);};$('campaignQuick').onclick=skipTutorial;$('rogueStart').onclick=()=>{if(game.save.unlocked||game.authorMode){setPaused(false);game.setPhase('loadout');}};$('loadoutHome').onclick=home;$('targetStart').onclick=()=>{if(game.start('target',Number($('mapChoice').value)))setPaused(false);};input.skill.bindButton($('skillButton'));$('duelStart').onclick=()=>{if(game.start('duel',Number($('mapChoice').value)))setPaused(false);};$('localStart').onclick=()=>{if(game.start('local',Number($('mapChoice').value)))setPaused(false);};$('buyBow').onclick=()=>{if(game.buy('bow'))toast('练弓完成：下次远征初始箭伤害提高。');};$('buyLife').onclick=()=>{if(game.buy('life'))toast('强身完成：下次远征初始生命提高。');};$('sound').onclick=()=>{soundOn=!soundOn;$('sound').textContent='声音：'+(soundOn?'开':'关');$('sound').setAttribute('aria-pressed',soundOn);tone(600,.1,'sine');};$('view').onclick=()=>{renderer.allView=!renderer.allView;$('view').setAttribute('aria-pressed',renderer.allView);$('view').textContent=renderer.allView?'跟随镜头':'全景';};$('pause').onclick=()=>setPaused(!paused);$('resume').onclick=()=>setPaused(false);$('pauseHome').onclick=home;$('restart').onclick=()=>{const mode=game.mode,stage=game.mode==='campaign'||game.mode==='rogue'?game.stage:game.arenaChoice;setPaused(false);game.start(mode,stage,game.skill,game.characterId);};$('resultHome').onclick=home;$('resultNext').onclick=()=>game.resultNext();$('skipStory').onclick=()=>game.save.unlocked?game.skip():skipTutorial();$('nextLine').onclick=()=>game.introNext();$('fullscreen').onclick=toggleFullscreen;
 function onKey(e){
  if(shopKey(e))return;if(sceneryKey(e))return;if(cloudAccount?.key(e))return;if(e.repeat){if(game.skillAim&&[' ','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();return;}
+ if(pauseKey(e))return;
  const tag=e.target?.tagName;
  if(!paused&&!['BUTTON','A','INPUT','SELECT','TEXTAREA','SUMMARY'].includes(tag)&&['victory','defeat'].includes(game.phase)&&game.phaseTime>=.4&&[' ','Enter'].includes(e.key)){e.preventDefault();game.resultNext();return;}
  if(e.key==='Escape'&&!$('namesPanel').hidden){e.preventDefault();closeNames();return;}
@@ -3597,7 +3923,7 @@ function onKey(e){
  }
 }
 window.addEventListener('keydown',onKey);window.addEventListener('keyup',e=>input.skill.keyUp(e));window.addEventListener('blur',()=>{cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);}});
-cloudAccount=setupCloudAccount({storage:viewStorage,getSave:()=>permanentProgress(),applySave:progress=>{applyPermanentProgress(progress);game.persist();lastPhase='';lastBeat=-1;renderDirty=true;renderHome();},atCamp:()=>game.phase==='home'&&!game.authorMode,beforeOpen:()=>{closeShop(false);closeScenery(false);cancelDrag();closeViewMenu();closeNames(false);closeTransfer(false);if(game.phase!=='home')setPaused(true);}});
+cloudAccount=setupCloudAccount({storage:viewStorage,getSave:()=>permanentProgress(),applySave:progress=>{applyPermanentProgress(progress);game.persist();lastPhase='';lastBeat=-1;renderDirty=true;renderHome();},atCamp:()=>game.phase==='home'&&!game.authorMode,returnFocus:()=>$('pausePanel').hidden&&game.phase==='home'?'accountHome':'accountPause',beforeOpen:()=>{closeShop(false);closeScenery(false);cancelDrag();closeViewMenu();closeNames(false);closeTransfer(false);if(game.phase!=='home')setPaused(true);}});
 function frame(now){const dt=Math.min((now-lastNow)/1000||0,.05);lastNow=now;if(!paused)game.update(dt);renderer.draw(game,dt,{drag:input.drag,paused});renderUI();if(toastUntil&&now>toastUntil){show('toast',false);toastUntil=0;}requestAnimationFrame(frame);}renderUI();requestAnimationFrame(frame);
 
 </script></body></html>

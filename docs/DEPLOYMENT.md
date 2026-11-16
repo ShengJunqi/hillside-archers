@@ -143,3 +143,16 @@ GitHub 集成可能缺少开启 Pages 所需的管理权限。此仓库首次创
 - 原生Canvas检查动作、皮肤、竖屏、头像及受击姿态29帧。当前无浏览器控制工具，未验收完整真实浏览器布局或手机GPU帧率；原站以官方成功部署状态确认，备用站完成逐文件HTTP核验。
 
 新版规则与作者练习码说明：https://shengjunqi.github.io/hillside-archers/style-shop-notes.txt 。
+
+## 0.20.0 游戏 HUD 与漫画暂停菜单
+
+- 游戏源码及源码ZIP：`2506723d3ced011731f90963a5b357c4e55857e5`；PR：https://github.com/ShengJunqi/hillside-archers/pull/18 ，基于 `feat/random-range-style-shop`，未合并main。[源码CI](https://github.com/ShengJunqi/hillside-archers/actions/runs/43828122776)成功。
+- 原站发布Sites第25版，原生部署返回 `succeeded`；静态源码提交 `96d5b2b25c5dd3b0bb704b721022a12fe7b92e97`。保留原公开网址和账号配置。
+- 备用站 `gh-pages` 提交 `796fbc8a182af7b250e4d79300498dd26ba90c52`，通过[Pages构建](https://github.com/ShengJunqi/hillside-archers/actions/runs/43828202704)。全部55个跟踪文件HTTP 200，SHA-256与本机发布文件一致；含新interface.css、调研说明、公开云配置、离线版与源码ZIP。
+- 对照Bowmasters、愤怒的小鸟2、元气骑士、Worms W.M.D、Peglin及Bad North后，将暂停从顶部小字导航移入赛场右上角，采用独立按钮；血条为它留出位置。暂停页以继续／重开／返营为主操作，并分本局／设置／操作；旅营和选弓阶段隐藏不适用操作。
+- 调整手机横竖屏HUD、旅营模式和工具按钮，统一账号／改名／迁移弹窗；显示布局位于设置，选箭保留左下角。`interface.css`最后加载并在离线版内联，参考图未进入发布产物。
+- 完整 `npm test`、`npm run build`、`git diff --check`与最终离线脚本编译通过。新增149项基于发布HTML层级和实际应用事件的暂停检查，覆盖四种宽度、蓄力／预瞄取消、迟到松手、飞箭冻结／恢复、布局切换、页签与多层弹窗焦点。离线HTML为4,354,364字节。
+- 环境切换后重新确认桌面能力已声明，但当前没有可调用的浏览器／桌面工具；按Sites流程跳过浏览器QA。未验收真实CSS像素布局、滚动手感和手机GPU；原站由官方部署成功确认，备用站逐文件HTTP核验。
+- 云UI仅增加关闭账号窗口的焦点回调；未更改认证、数据库、存档协议或游戏物理。
+
+调研来源、取舍及交互约定：https://shengjunqi.github.io/hillside-archers/interface-notes.txt 。

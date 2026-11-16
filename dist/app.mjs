@@ -14,6 +14,7 @@ import {AimInput} from './input.mjs';
 import {readView,writeView,resolveView} from './display.mjs';
 const $=id=>document.getElementById(id),canvas=$('game'),renderer=new Renderer(canvas),SAVE_KEY='hillside-archers-save-v2';
 let cloudAccount;
+let pauseTab='overview';
 let shopWasPaused=false,shopButtons=[],shopTab='items';
 let sceneryWasPaused=false,sceneryButtons=[],selectedCharacterId='qingsong';
 let saved,storageReady=true;try{saved=localStorage.getItem(SAVE_KEY);}catch{storageReady=false;}let paused=false,soundOn=false,audio=null,toastUntil=0,lastPhase='',lastBeat=-1,lastNow=0,renderDirty=true,stored=storageReady;
@@ -118,7 +119,7 @@ function renderUI(){const phase=game.phase;if(lastPhase!==phase){lastPhase=phase
  const threat=game.mode!=='local'&&game.mode!=='target'?enemySummary(game.players[1]):'';$('enemyTraits').textContent=(game.arena?.enemy.name||'对手能力')+' · '+enemyIntentShort(game.arena?.enemy.id)+'\n'+threat+(game.arena?.rule==='collapse'?' · 第5回合中央路障倒下':'');$('enemyTraits').title=(game.arena?.enemy.tip||'')+' · '+threat;show('enemyTraits',!!threat&&['scout','thinking'].includes(phase));show('bountyInfo',game.mode==='rogue'&&phase==='scout'&&Boolean(game.bounty));$('bountyInfo').textContent=game.bounty?'观众悬赏 · '+bountyProgressText(game.bounty):'';
  show('challengeInfo',gameplay&&game.mode==='target');$('challengeInfo').textContent='得分 '+game.targetScore+' · 落空 '+game.targetMisses+' / 3';document.querySelector('.health.right').hidden=game.mode==='target';show('skillButton',gameplay&&game.mode==='rogue'&&game.active===0&&phase==='flight');const bow=BOWS.find(b=>b.id===game.skill)||BOWS[0];$('skillName').textContent=bow.skill+' · '+specialAmmoText()+(game.skillAim?' · 预瞄':game.skillUsed?' · 已施展':'');$('skillButton').disabled=!game.canSkill;$('skillHint').textContent=game.specialAmmo===0?'特箭耗尽 · 普箭仍可用':game.phase==='flight'&&game.volleyArrowType==='normal'?'本轮普通箭 · 不消耗特箭':game.skillUsed?'本轮已施展 · 下一轮可再用':game.phase==='flight'?(game.skill==='dive'?(game.skillAim?(!input.skill.hold?'再次点击落箭 · Esc 取消':touchMode?'左右拖动调整 · 松手落箭':'←→ 调整落线 · 松开空格落箭'):(touchMode?'按住预瞄 · 松手星坠':'按住空格预瞄 · 松开星坠')):(touchMode?'点击施展':'空格 / 点击施展')):'射箭后施展 · 消耗1发特箭';$('skillButton').setAttribute('aria-pressed',Boolean(game.skillAim));$('skillButton').title=bow.tip;let banner='';if(phase==='scout'){const progress=game.phaseTime/game.scoutDuration;banner=game.mode==='target'?(progress<.3?'观察靶标的位置':'回到弓手'):game.round===1&&progress>=.18&&progress<.55?geometryLabel(game.arena):progress<(game.round===1?.18:.2)?'观察对手的位置':'镜头回到 '+archerName(game.active);}else if(phase==='thinking')banner=game.mode==='rogue'&&game.opponent.boss?'擂主 · '+game.players[1].stats.multi+'箭蓄力':$('name1').textContent+'正在寻找角度';show('turnBanner',!!banner);$('turnBanner').textContent=banner;$('sceneHint').textContent=phase==='scout'?(touchMode?'点击下方按钮可跳过观察':'空格跳过观察镜头'):phase==='aim'?archerName(game.active)+(touchMode?'的回合 · 看高低差，试试收力':'的回合 · ←→调角度 · ↑↓调弓力 · 拖拽或空格出箭'):phase==='flight'?(game.skillAim?(touchMode?'星坠预瞄 · 左右拖动 · 松手落箭':'星坠预瞄 · ←→调整 · 松开空格落箭'):game.volleyCount>1?'箭雨 ×'+game.volleyCount:'一箭已出'):'等待箭落';
  if(phase==='intro'){$('skipStory').textContent=game.save.unlocked?'跳过剧情，开始对决 ↗':'跳过新手教程，解锁玩法 ↗';$('skipStory').title=game.save.unlocked?'只跳过本段剧情':'永久解锁无尽、切磋、双人和射靶，不额外发放奖励';const beat=Math.min(2,Math.floor(game.phaseTime/game.storyBeatDuration));if(beat!==lastBeat){lastBeat=beat;const [speaker,line]=STORIES[game.stage-1][beat];$('storyChapter').textContent='第 '+game.stage+' 章 / '+MAPS[game.map].name;$('speaker').textContent=namedText(speaker);$('storyLine').dataset.full=namedText(line);$('storyDots').innerHTML=[0,1,2].map(i=>'<i class="'+(i===beat?'active':'')+'"></i>').join('');$('nextLine').textContent=beat===2?'开始试炼 ➜':'下一幕 ➜';}$('storyLine').textContent=($('storyLine').dataset.full||'');}
- $('pause').disabled=phase==='home';show('practiceBadge',Boolean(game.authorMode));document.body.classList.toggle('author-practice',Boolean(game.authorMode));updateTouchControls();}
+ $('pause').disabled=phase==='home';show('pause',phase!=='home');show('settingsButton',phase==='home');document.body.classList.toggle('in-match',phase!=='home');show('practiceBadge',Boolean(game.authorMode));document.body.classList.toggle('author-practice',Boolean(game.authorMode));updateTouchControls();}
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function cancelDrag(){input.cancel();}
 function adjustAngle(delta){if(!paused&&!input.drag&&game.canAim)game.aim(game.angles[game.active]+delta,game.powers[game.active]);}
@@ -142,15 +143,60 @@ function fullScreenChanged(){const active=Boolean(document.fullscreenElement||do
 function fallbackFullscreen(){document.body.classList.toggle('immersive');fullScreenChanged();}
 async function toggleFullscreen(){cancelDrag();const exit=document.exitFullscreen||document.webkitExitFullscreen,request=$('gameShell').requestFullscreen||$('gameShell').webkitRequestFullscreen;$('fullscreen').disabled=true;try{if(document.fullscreenElement||document.webkitFullscreenElement){await exit.call(document);}else if(document.body.classList.contains('immersive')){fallbackFullscreen();}else if(request){try{await request.call($('gameShell'));}catch{fallbackFullscreen();}}else fallbackFullscreen();}catch{toast('未能切换全屏，请重试。');}finally{$('fullscreen').disabled=false;fullScreenChanged();}}
 document.addEventListener('fullscreenchange',fullScreenChanged);document.addEventListener('webkitfullscreenchange',fullScreenChanged);
-function setPaused(value){if(!value){closeShop(false);closeScenery(false);closeTransfer(false);closeNames(false);cloudAccount?.close(false);}cancelDrag();paused=value;show('pausePanel',value);$('pause').textContent=value?'继续':'暂停';if(value){renderFeedbackSetting();$('resume').focus();}}
+const pausePages=[['overview','pauseOverviewTab','pauseOverview'],['settings','pauseSettingsTab','pauseSettings'],['help','pauseHelpTab','pauseHelp']];
+function selectPauseTab(tab,focus=false){
+ pauseTab=pausePages.some(([key])=>key===tab)?tab:'overview';
+ for(const [key,id,panel] of pausePages){const selected=key===pauseTab;$(id).setAttribute('aria-selected',selected);$(id).tabIndex=selected?0:-1;show(panel,selected);}
+ closeViewMenu();if(focus)$(pausePages.find(([key])=>key===pauseTab)[1]).focus();
+}
+for(const [key,id] of pausePages)$(id).onclick=()=>selectPauseTab(key);
+function renderPauseMenu(){
+ const camp=game.phase==='home',preparing=game.phase==='loadout';
+ $('pauseEyebrow').textContent=camp?'旅营整备':preparing?'赛前整备':'中场休息 · 箭也暂停';$('pauseTitle').textContent=camp?'调顺手，再出发。':preparing?'准备好了，再开弓。':'歇一箭，再上场。';
+ $('pauseContext').textContent=camp?'声音、镜头和操作布局，都在这里。':preparing?'选好弓手与弓术，再出发。':modeName()+' · 第 '+game.round+' 回合';
+ $('resumeLabel').textContent=camp?'返回旅营':preparing?'继续选弓':'继续对决';show('restart',!camp&&!preparing);show('pauseHome',!camp);show('pauseOverviewTab',!camp&&!preparing);
+ $('pauseSafeNote').textContent=camp?'顺手，比花哨更重要。':'山路还在，箭等你回来。';
+ $('pauseMapName').textContent=game.arena?.name||MAPS[game.map].name;$('pauseMode').textContent=geometryLabel(game.arena);
+ $('pauseHero').textContent=archerName(0)+' · '+Math.ceil(game.players[0].hp)+' / '+game.players[0].stats.maxHp;
+ $('pauseRival').textContent=game.mode==='target'?'射靶 '+game.targetScore+' 分':archerName(1)+' · '+Math.ceil(game.players[1].hp)+' / '+game.players[1].stats.maxHp;
+ $('pauseRelics').replaceChildren();const relics=inventory();
+ for(const {u,n} of relics.slice(0,5)){const chip=document.createElement('span');chip.textContent=u.icon+' '+u.name+(n>1?' ×'+n:'');$('pauseRelics').append(chip);}
+ if(relics.length>5){const more=document.createElement('span');more.textContent='另 '+(relics.length-5)+' 种';$('pauseRelics').append(more);}
+ renderFeedbackSetting();
+}
+function setPaused(value,tab=null){
+ const wasOpen=paused&&!$('pausePanel').hidden;
+ if(!value){closeShop(false);closeScenery(false);closeTransfer(false);closeNames(false);cloudAccount?.close(false);}
+ cancelDrag();closeViewMenu();paused=value;show('pausePanel',value);
+ $('pauseLabel').textContent=value?'继续':'暂停';$('pause').setAttribute('aria-expanded',value);$('pause').setAttribute('aria-label',value?'继续游戏':'暂停游戏');$('settingsButton').setAttribute('aria-expanded',value&&game.phase==='home');
+ if(value){renderPauseMenu();if(!wasOpen||tab)selectPauseTab(tab||(['home','loadout'].includes(game.phase)?'settings':'overview'));(tab?$(pausePages.find(([key])=>key===pauseTab)[1]):$('resume')).focus();}
+ else if(wasOpen)(game.phase==='home'?$('settingsButton'):canvas).focus();
+}
+$('settingsButton').onclick=()=>setPaused(true,'settings');
+function pauseKey(e){
+ if(!paused||$('pausePanel').hidden||!$('namesPanel').hidden||!$('transferPanel').hidden)return false;
+ if(e.key==='Escape'){e.preventDefault();if(!$('viewMenu').hidden)closeViewMenu(true);else setPaused(false);return true;}
+ const tabs=pausePages.filter(([key])=>key!=='overview'||!['home','loadout'].includes(game.phase)),tabIndex=tabs.findIndex(([,id])=>$(id)===e.target);
+ if(tabIndex>=0&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
+  e.preventDefault();const at=e.key==='Home'?0:e.key==='End'?tabs.length-1:(tabIndex+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;selectPauseTab(tabs[at][0],true);return true;
+ }
+ if(e.key==='Tab'){
+  const actions=game.phase==='home'?['resume']:game.phase==='loadout'?['resume','pauseHome']:['resume','restart','pauseHome'];
+  const pageControls=pauseTab==='overview'?['pauseDetailsToggle']:pauseTab==='settings'?['sound','feedbackMode','view','fullscreen','sceneryPause','viewMode',...(!$('viewMenu').hidden?['chooseAuto','chooseDesktop','chooseMobile']:[]),'editNamesPause','transferPause','accountPause']:[];
+  const controls=[...actions,...tabs.filter(([key])=>key===pauseTab).map(([,id])=>id),...pageControls].map($).filter(el=>!el.disabled&&!el.hidden);
+  const current=controls.indexOf(document.activeElement),step=e.shiftKey?-1:1,next=current<0?(e.shiftKey?controls.length-1:0):(current+step+controls.length)%controls.length;
+  controls[next]?.focus();e.preventDefault();
+ }
+ return true;
+}
 function home(){closeNames(false);closeTransfer(false);setPaused(false);game.goHome();}
 function skipTutorial(){setPaused(false);if(game.skipTutorial()){renderDirty=true;lastPhase='';toast(stored?'全部玩法已解锁，也可随时返回主线练习。':'玩法已解锁；浏览器无法保存，可导出迁移码备份。');}}
-function closeNames(focus=true){show('namesPanel',false);if(focus)$(game.phase==='home'?'editNamesHome':'editNamesPause').focus();}
+function closeNames(focus=true){show('namesPanel',false);if(focus)$(!$('pausePanel').hidden?'editNamesPause':game.phase==='home'?'editNamesHome':'editNamesPause').focus();}
 function openNames(){closeShop(false);closeScenery(false);cloudAccount?.close(false);cancelDrag();closeViewMenu();closeTransfer(false);if(game.phase!=='home')setPaused(true);const names=normalizeNames(game.save.names);$('archerName0').value=names[0];$('archerName1').value=names[1];$('namesMessage').textContent='名字会用于对局、剧情和结算，也会随迁移码保存。';show('namesPanel',true);$('archerName0').focus();}
 $('editNamesHome').onclick=openNames;$('editNamesPause').onclick=openNames;$('namesClose').onclick=()=>closeNames();
 $('namesReset').onclick=()=>{DEFAULT_NAMES.forEach((name,i)=>{$('archerName'+i).value=name;});$('namesMessage').textContent='已填入默认名字，点击保存生效。';};
 $('namesSave').onclick=()=>{const values=[$('archerName0').value,$('archerName1').value];if(values.some(value=>Array.from(value.trim()).length>MAX_NAME_LENGTH)){$('namesMessage').textContent='每个名字最多 '+MAX_NAME_LENGTH+' 个字符。';return;}game.save=validSave({...game.save,names:normalizeNames(values)});game.persist();lastPhase='';lastBeat=-1;renderDirty=true;closeNames();toast(stored?'弓手名字已保存。':'名字已应用；当前浏览器无法保存，可导出迁移码备份。');};
-function closeTransfer(focus=true){show('transferPanel',false);if(focus)$(game.phase==='home'?'transferHome':'transferPause').focus();}
+function closeTransfer(focus=true){show('transferPanel',false);if(focus)$(!$('pausePanel').hidden?'transferPause':game.phase==='home'?'transferHome':'transferPause').focus();}
 function openTransfer(){closeShop(false);closeScenery(false);cloudAccount?.close(false);closeNames(false);cancelDrag();closeViewMenu();if(game.phase!=='home')setPaused(true);$('exportProgress').value=encodeProgress(permanentProgress());$('importProgress').value='';$('transferMessage').textContent=game.phase==='home'?'导入会合并永久进度，不会降低已有纪录。':'请先返回旅营，再导入进度。当前进度仍可复制。';$('importProgressButton').disabled=game.phase!=='home'||Boolean(game.authorMode);if(game.authorMode)$('transferMessage').textContent='当前导出正式档；请先退出作者练习，再导入正式进度。';show('transferPanel',true);$('transferClose').focus();}
 $('transferHome').onclick=openTransfer;$('transferPause').onclick=openTransfer;$('transferClose').onclick=()=>closeTransfer();
 $('copyProgress').onclick=async()=>{try{if(!globalThis.navigator?.clipboard?.writeText)throw new Error('manual');await navigator.clipboard.writeText($('exportProgress').value);$('transferMessage').textContent='已复制，去另一个游戏网址粘贴导入即可。';}catch{$('exportProgress').focus();$('exportProgress').select?.();$('transferMessage').textContent='请长按代码选择复制，或在电脑按 Ctrl/Cmd+C。';}};
@@ -176,8 +222,8 @@ function openScenery(){
 }
 function closeScenery(focus=true,resume=false){
  const wasOpen=!$('sceneryPanel').hidden;show('sceneryPanel',false);if(!wasOpen)return;
- if(resume){if(game.phase==='home')paused=false;else setPaused(false);}else if(game.phase==='home')paused=sceneryWasPaused;
- if(focus)$(game.phase==='home'?'sceneryHome':resume?'pause':'sceneryPause').focus();
+ if(resume){setPaused(false);}else if(game.phase==='home')paused=sceneryWasPaused;
+ if(focus)$(!resume&&!$('pausePanel').hidden?'sceneryPause':game.phase==='home'?'sceneryHome':'pause').focus();
 }
 $('sceneryHome').onclick=openScenery;$('sceneryPause').onclick=openScenery;$('sceneryBack').onclick=()=>closeScenery();$('sceneryClose').onclick=()=>closeScenery(true,true);
 function sceneryKey(e){
@@ -243,6 +289,7 @@ $('feedbackMode').onclick=()=>{const f=renderer.feedback;f.mode=FEEDBACK_MODES[(
 $('brand').onclick=e=>{e.preventDefault();if(game.phase==='home')return;setPaused(true);};$('campaignStart').onclick=()=>{setPaused(false);game.start('campaign',game.save.checkpoint);};$('campaignQuick').onclick=skipTutorial;$('rogueStart').onclick=()=>{if(game.save.unlocked||game.authorMode){setPaused(false);game.setPhase('loadout');}};$('loadoutHome').onclick=home;$('targetStart').onclick=()=>{if(game.start('target',Number($('mapChoice').value)))setPaused(false);};input.skill.bindButton($('skillButton'));$('duelStart').onclick=()=>{if(game.start('duel',Number($('mapChoice').value)))setPaused(false);};$('localStart').onclick=()=>{if(game.start('local',Number($('mapChoice').value)))setPaused(false);};$('buyBow').onclick=()=>{if(game.buy('bow'))toast('练弓完成：下次远征初始箭伤害提高。');};$('buyLife').onclick=()=>{if(game.buy('life'))toast('强身完成：下次远征初始生命提高。');};$('sound').onclick=()=>{soundOn=!soundOn;$('sound').textContent='声音：'+(soundOn?'开':'关');$('sound').setAttribute('aria-pressed',soundOn);tone(600,.1,'sine');};$('view').onclick=()=>{renderer.allView=!renderer.allView;$('view').setAttribute('aria-pressed',renderer.allView);$('view').textContent=renderer.allView?'跟随镜头':'全景';};$('pause').onclick=()=>setPaused(!paused);$('resume').onclick=()=>setPaused(false);$('pauseHome').onclick=home;$('restart').onclick=()=>{const mode=game.mode,stage=game.mode==='campaign'||game.mode==='rogue'?game.stage:game.arenaChoice;setPaused(false);game.start(mode,stage,game.skill,game.characterId);};$('resultHome').onclick=home;$('resultNext').onclick=()=>game.resultNext();$('skipStory').onclick=()=>game.save.unlocked?game.skip():skipTutorial();$('nextLine').onclick=()=>game.introNext();$('fullscreen').onclick=toggleFullscreen;
 function onKey(e){
  if(shopKey(e))return;if(sceneryKey(e))return;if(cloudAccount?.key(e))return;if(e.repeat){if(game.skillAim&&[' ','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();return;}
+ if(pauseKey(e))return;
  const tag=e.target?.tagName;
  if(!paused&&!['BUTTON','A','INPUT','SELECT','TEXTAREA','SUMMARY'].includes(tag)&&['victory','defeat'].includes(game.phase)&&game.phaseTime>=.4&&[' ','Enter'].includes(e.key)){e.preventDefault();game.resultNext();return;}
  if(e.key==='Escape'&&!$('namesPanel').hidden){e.preventDefault();closeNames();return;}
@@ -266,5 +313,5 @@ function onKey(e){
  }
 }
 window.addEventListener('keydown',onKey);window.addEventListener('keyup',e=>input.skill.keyUp(e));window.addEventListener('blur',()=>{cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);}});
-cloudAccount=setupCloudAccount({storage:viewStorage,getSave:()=>permanentProgress(),applySave:progress=>{applyPermanentProgress(progress);game.persist();lastPhase='';lastBeat=-1;renderDirty=true;renderHome();},atCamp:()=>game.phase==='home'&&!game.authorMode,beforeOpen:()=>{closeShop(false);closeScenery(false);cancelDrag();closeViewMenu();closeNames(false);closeTransfer(false);if(game.phase!=='home')setPaused(true);}});
+cloudAccount=setupCloudAccount({storage:viewStorage,getSave:()=>permanentProgress(),applySave:progress=>{applyPermanentProgress(progress);game.persist();lastPhase='';lastBeat=-1;renderDirty=true;renderHome();},atCamp:()=>game.phase==='home'&&!game.authorMode,returnFocus:()=>$('pausePanel').hidden&&game.phase==='home'?'accountHome':'accountPause',beforeOpen:()=>{closeShop(false);closeScenery(false);cancelDrag();closeViewMenu();closeNames(false);closeTransfer(false);if(game.phase!=='home')setPaused(true);}});
 function frame(now){const dt=Math.min((now-lastNow)/1000||0,.05);lastNow=now;if(!paused)game.update(dt);renderer.draw(game,dt,{drag:input.drag,paused});renderUI();if(toastUntil&&now>toastUntil){show('toast',false);toastUntil=0;}requestAnimationFrame(frame);}renderUI();requestAnimationFrame(frame);

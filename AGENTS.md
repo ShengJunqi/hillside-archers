@@ -1,5 +1,7 @@
 # 给 Codex 与其他代码助手
 
+0.20界面样式集中在dist/interface.css并最后加载、离线内联；暂停按钮位于arena内，HUD右侧须为其预留空间。保留本局／设置／操作页签、焦点循环及子窗口回到真实入口；旅营／选弓阶段隐藏不适用的对局操作。所有暂停先取消蓄力／星坠预瞄，迟到松手不射箭，恢复继续同一支箭。云UI的returnFocus只管理焦点，不与atCamp存档权限混用。详见docs/INTERFACE_RESEARCH.md。
+
 先阅读 `README.md`、`CONTRIBUTING.md` 和 `docs/GAME_DESIGN.md`。用户本次的明确要求优先于这里的默认约定。
 
 ## 项目边界

@@ -2,7 +2,7 @@ import {CloudProgress,CLOUD_BACKUP_KEY,progressSummary} from './cloud-save.mjs';
 import {loadCloudClient} from './cloud-client.mjs';
 import {encodeProgress} from './save-transfer.mjs';
 
-export function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, loadClient = loadCloudClient}) {
+export function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOpen, returnFocus = () => atCamp() ? 'accountHome' : 'accountPause', loadClient = loadCloudClient}) {
   const el = id => document.getElementById(id);
   let client, listenerClient, bootPromise, verifyCode, mode = 'password', working = false, cooldown = 0, interval, activeUid;
   const offline = document.documentElement.dataset.offline === 'true' || globalThis.location?.protocol === 'file:';
@@ -148,7 +148,7 @@ export function setupCloudAccount({storage, getSave, applySave, atCamp, beforeOp
   });};
   function close(focus = true) {
     el('accountPanel').hidden = true;
-    if (focus) el(atCamp() ? 'accountHome' : 'accountPause').focus();
+    if (focus) el(returnFocus()).focus();
   }
   function open() {
     beforeOpen(); el('accountPanel').hidden = false; paint(); formState();
