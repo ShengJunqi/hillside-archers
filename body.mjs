@@ -152,8 +152,14 @@ export function impactBody(p, {point, vx, vy, damage, part, angle = 25, volleyId
 export function updateBody(p, dt, terrain, width = 1600, options = {}) {
   const body = p.body;
   if (!body?.active || body.sleeping) {syncGroundContact(p, terrain); return;}
-  const lower = Math.max(55, Number.isFinite(options.minX) ? options.minX : 55);
-  const upper = Math.min(width - 55, Number.isFinite(options.maxX) ? options.maxX : width - 55);
+  // The view width is retained for legacy callers; extended arenas declare
+  // their own world coordinates, including retreat ground left of zero.
+  // Root and joint bounds must use the same extent or a crossing body tears
+  // back toward the old view edge while its station continues moving.
+  const worldMin = Number.isFinite(options.worldMinX) ? options.worldMinX : 0;
+  const worldMax = Math.max(worldMin + 110, Number.isFinite(options.worldMaxX) ? options.worldMaxX : width);
+  const lower = limit(Number.isFinite(options.minX) ? options.minX : worldMin + 55, worldMin + 55, worldMax - 55);
+  const upper = limit(Number.isFinite(options.maxX) ? options.maxX : worldMax - 55, worldMin + 55, worldMax - 55);
   const minX = Math.min(lower, upper), maxX = Math.max(lower, upper);
   const obstacles = (options.obstacles || []).filter(o => o.state === 'standing');
   body.accumulator += Math.min(Math.max(0, dt), .1);
@@ -200,7 +206,7 @@ export function updateBody(p, dt, terrain, width = 1600, options = {}) {
         one.x += dx * correction; one.y += dy * correction; two.x -= dx * correction; two.y -= dy * correction;
       });
       for (const [key, n] of Object.entries(body.nodes)) {
-        n.x = limit(n.x, 10, width - 10);
+        n.x = limit(n.x, worldMin + 10, worldMax - 10);
         const radius = key === 'head' ? 12 : key === 'hip' || key === 'chest' ? 9 : 4;
         const floorNode = terrain(n.x) - radius;
         if (n.y > floorNode) {n.y = floorNode; n.py = floorNode; n.px += (n.x - n.px) * .35;}
