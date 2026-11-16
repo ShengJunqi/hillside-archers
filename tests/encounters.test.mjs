@@ -29,7 +29,7 @@ for(const seed of [0,42,9173]){
  eq(seen.size,ARENAS.length,'24 floors visit all authored physical venues');eq(bossBiomes.size,3,'boss rounds rotate across all three biomes');
 }
 {
- const g=make();g.players[0].hp=51;const save=JSON.stringify(validSave(g.save));g.complete(true);g.resultNext();
+ const g=make();g.floor=2;g.setup();g.players[0].hp=51;const save=JSON.stringify(validSave(g.save));g.complete(true);g.resultNext();
  eq(g.nextRoutes.length,2,'victory prepares two tickets inside existing upgrade screen');const alternative=g.nextRoutes[1];
  const before=g.selectedRoute;ok(!g.chooseRoute('made-up'),'unknown route id rejected');eq(g.selectedRoute,before,'invalid selection leaves default intact');
  ok(g.chooseRoute(alternative.id),'offered alternate route accepted');const relic=g.choices[0].id;ok(g.chooseUpgrade(relic),'choosing relic continues immediately');
@@ -39,7 +39,7 @@ for(const seed of [0,42,9173]){
  const expeditionTerrain=g.world;g.start('campaign');eq(g.encounter,null,'campaign clears temporary expedition descriptor');eq(g.world,g.arena.terrain,'campaign also uses the actual authored collision profile');eq(g.arena.layoutId,'yard','campaign tutorial selects its intended physical arena');ok(g.world!==expeditionTerrain,'campaign does not keep the previous expedition ground');
 }
 {
- const g=make();g.complete(true);g.resultNext();const defaultId=g.nextRoutes[0].id;g.chooseUpgrade(g.choices[0].id);eq(g.encounter.id,defaultId,'existing one-click relic flow uses sensible default route');
+ const g=make();g.floor=2;g.setup();g.complete(true);g.resultNext();const defaultId=g.nextRoutes[0].id;g.chooseUpgrade(g.choices[0].id);eq(g.encounter.id,defaultId,'existing one-click relic flow uses sensible default route');
 }
 {
  const g=make();g.encounter.rule='collapse';g.obs=[{id:0,type:'post',x:800,y:ground(800,g.world),w:30,h:100,hp:1,maxHp:1,state:'standing',rot:0,dir:1}];

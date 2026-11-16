@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {applyRewardUpgrade} from '../dist/relics.mjs';
 import {Game, baseStats, applyUpgrade, launch, position, trace, MAX_ELEMENT_LEVEL, MAX_STATUS_STACKS, upgradePreview, statusSummary, enemySummary} from '../dist/core.mjs';
 import {opponentProfile} from '../dist/combat.mjs';
 let checks=0;
@@ -89,12 +90,12 @@ for(const floor of [7,8,9,12,18,24]){
 
 // Real flights from representative legal builds. Close, perfectly aimed split
 // shots may still win early; deeper guardians usually get to counterattack.
-const builds={12:{multi:3,damage:2,fire:2,poison:2,ice:1,armor:1},18:{multi:5,damage:3,fire:3,poison:3,ice:1,armor:1,vital:1},24:{multi:7,damage:5,fire:4,poison:4,ice:1,armor:1,vital:1}};
+const builds={12:{multi:1,damage:1,fire:1,poison:1,ice:1},18:{multi:2,damage:2,fire:2,poison:1,vital:1},24:{multi:3,damage:2,fire:2,poison:2,ice:1,vital:1}};
 for(const floor of [12,18,24]){
  let survivors=0;
  for(const splitDistance of [70,150,300]){
-  const g=game();for(const [id,n]of Object.entries(builds[floor]))for(let i=0;i<n;i++)applyUpgrade(g.stats,id);
-  eq(Object.values(builds[floor]).reduce((sum,n)=>sum+n,0),floor-1,'benchmark build uses exactly earned relics');
+  const g=game();for(const [id,n]of Object.entries(builds[floor]))for(let i=0;i<n;i++)applyRewardUpgrade(g.stats,id);
+  eq(Object.values(builds[floor]).reduce((sum,n)=>sum+n,0),Math.floor((floor-1)/2),'benchmark build uses exactly the every-two-floor earned relics');
   g.floor=floor;g.setup();g.obs=[];g.skip();
   let shot;for(const power of new Set([g.arena.geometry.recommendedPower,...Array.from({length:17},(_,i)=>100-i*5)])){
    const hits=[];for(let angle=5;angle<=75;angle++){const hit=trace(g.players[0],g.players[1],angle,[],g.world,power);if(hit.kind==='hit')hits.push({angle,power,part:hit.part});}

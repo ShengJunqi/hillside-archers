@@ -6,7 +6,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const read = name => readFile(resolve(root, 'dist', name), 'utf8');
 const [html, css, mobileCss, arenaCss, ...modules] = await Promise.all([
   read('index.html'), read('style.css'), read('mobile.css'), read('arena.css'),
-  read('names.mjs'), read('combat.mjs'), read('body.mjs'), read('encounters.mjs'), read('bounties.mjs'), read('core.mjs'), read('emotes.mjs'), read('feedback.mjs'), read('scenery.mjs'), read('render.mjs'), read('input.mjs'), read('display.mjs'), read('save-transfer.mjs'), read('cloud-save.mjs'), read('cloud-client.mjs'), read('cloud-ui.mjs'), read('app.mjs'),
+  read('names.mjs'), read('combat.mjs'), read('body.mjs'), read('encounters.mjs'), read('bounties.mjs'), read('relics.mjs'), read('core.mjs'), read('emotes.mjs'), read('feedback.mjs'), read('scenery.mjs'), read('render.mjs'), read('input.mjs'), read('display.mjs'), read('save-transfer.mjs'), read('cloud-save.mjs'), read('cloud-client.mjs'), read('cloud-ui.mjs'), read('app.mjs'),
 ]);
 // Keep dependency order; imports/exports are removed only for the standalone file.
 let code = modules.map(source => source

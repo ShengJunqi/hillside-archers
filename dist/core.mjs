@@ -1,8 +1,9 @@
+import {NEW_RELICS,RETIRED_RELICS,newRelicCap,newRelicEligible,applyNewRelic,newRelicPreview,fuseDamage,applyRewardUpgrade} from './relics.mjs';
 import {bountyFor,createBountyState,recordBounty,rewardBounty} from './bounties.mjs';
 import {ARENAS,arenaBounds,encounterFor,encounterRoutes,encounterGround,encounterObstacles} from './encounters.mjs';
 import {DEFAULT_NAMES,normalizeNames} from './names.mjs';
 import {opponentProfile,rogueEnemyStats,characterById,createSkillState,turnSkillHealing,hitKnockbackScale,pickupSkillHealing} from './combat.mjs';
-import {bodyCollision,impactBody,updateBody,attachArrow,syncGroundContact} from './body.mjs';
+import {bodyCollision,bodyPose,impactBody,updateBody,attachArrow,syncGroundContact} from './body.mjs';
 export const W=1600,H=900,G=155,SPEED=800,MAX_ARROWS=24;
 export const DIVE_SCALE=1.45,DIVE_PICKUP_PADDING=40;
 export const FINISHER_DURATION=1.35;
@@ -20,24 +21,25 @@ export const SYNERGIES=[
 {id:'fortify',name:'坚守',needs:['armor','regen'],desc:'护甲 + 回春：回合开始额外回复 2 × 护甲层数的生命。'}];
 export function synergies(stats){return SYNERGIES.filter(s=>s.needs.every(k=>stats[k]>0));}
 export const UPGRADES=[
-{id:'damage',name:'鹰眼',tag:'锐击',desc:'箭的直接伤害提高 20 个百分点，可与多箭叠加。',icon:'◎'},
+{id:'damage',name:'鹰眼',tag:'锐击',desc:'直接伤害提高40个百分点；两关一次的强化，可与多箭叠加。',icon:'◎'},
 {id:'multi',name:'分弦',tag:'箭雨',desc:'每次射击多一支箭，道具 +1 还能继续叠加。',icon:'↟'},
-{id:'fire',name:'焰羽',tag:'火焰',desc:'每阶让每次命中多加一层灼烧，每层每轮 5 点，持续两轮；可重复叠加。',icon:'焰'},
+{id:'fire',name:'焰羽',tag:'火焰',desc:'每次选择增加2阶灼烧；每阶每次命中叠1层，每层每轮5点，持续两轮。',icon:'焰'},
 {id:'ice',name:'霜弦',tag:'冰霜',desc:'降低对手下次射击伤害；与火焰组合融爆。',icon:'霜'},
-{id:'poison',name:'青毒',tag:'毒素',desc:'每阶让每次命中多加一层毒，每层每轮 3 点，持续三轮；连续命中继续叠层。',icon:'毒'},
-{id:'pierce',name:'破阵',tag:'穿透',desc:'每支箭可穿过一个障碍，同时损伤它。',icon:'➶'},
-{id:'leech',name:'饮露',tag:'续航',desc:'回复实际伤害的 12%，多箭也能吸血。',icon:'♥'},
+{id:'poison',name:'青毒',tag:'毒素',desc:'每次选择增加2阶毒；每阶每次命中叠1层，持续三轮，可与火焰联动。',icon:'毒'},
+{id:'pierce',name:'破阵',tag:'穿透',desc:'每箭穿障+1；每关击破掩体可回收1份特箭弹药，最多一次。',icon:'➶'},
+{id:'leech',name:'饮露',tag:'续航',desc:'吸取实际伤害的比例+18个百分点，上限60%；鼓励主动进攻。',icon:'♥'},
 {id:'armor',name:'铁衣',tag:'防御',desc:'每次受击减少 4 点伤害。',icon:'◇'},
 {id:'regen',name:'回春',tag:'续航',desc:'自己的回合开始回复 5 点生命。',icon:'✦'},
-{id:'crit',name:'猎隼',tag:'暴击',desc:'暴击率 +15%，暴击造成 1.6 倍伤害。',icon:'✧'},
-{id:'vital',name:'长青',tag:'生命',desc:'最大生命 +25，并立即回复 25 点。',icon:'＋'},
+{id:'crit',name:'猎隼',tag:'暴击',desc:'暴击率+20个百分点，上限75%；暴击造成1.6倍伤害。',icon:'✧'},
+{id:'vital',name:'长青',tag:'生命',desc:'最大生命+40，并立即回复40；过关休息另算。',icon:'＋'},
 {id:'impact',name:'震弦',tag:'位移',desc:'遗物击退系数每阶+15个百分点，最多三阶，可与重弦相乘；连续箭共享位移上限。',icon:'➜'},
 {id:'balance',name:'扎根',tag:'站位',desc:'提高受击时的稳定性，减少实际击退，最多三阶。',icon:'▱'},
-{id:'heal',name:'星泉',tag:'道具',desc:'爱心回血 +15；立即回复 20 点生命。',icon:'❋'}];
+{id:'heal',name:'星泉',tag:'道具',desc:'爱心回血 +15；立即回复 20 点生命。',icon:'❋'},...NEW_RELICS];
 export function ground(x,map=0){if(map&&typeof map==='object')return encounterGround(x,map);const n=x/W;return map===0?700-65*n+10*Math.sin(x/170):map===1?658+42*Math.sin(n*Math.PI)+12*Math.sin(x/140):700-105*Math.exp(-(((x-800)/250)**2))+9*Math.sin(x/110);}
-export function baseStats(meta={}){return {damage:1+.04*(meta.bow||0),multi:1,fire:0,ice:0,poison:0,pierce:0,leech:0,armor:0,regen:0,crit:0,maxHp:100+5*(meta.life||0),heal:0,impact:0,balance:0};}
-export function applyUpgrade(stats,id){if(id==='damage')stats.damage+=.2;else if(id==='multi')stats.multi=Math.min(8,stats.multi+1);else if(id==='vital')stats.maxHp+=25;else if(id==='crit')stats.crit=Math.min(.75,stats.crit+.15);else if(id==='leech')stats.leech=Math.min(.6,stats.leech+.12);else if(id==='ice')stats.ice=stats.ice>=3?stats.ice:Math.min(3,(stats.ice||0)+1);else if(id==='impact'||id==='balance')stats[id]=Math.min(3,(stats[id]||0)+1);else if(id==='fire'||id==='poison')stats[id]=Math.min(MAX_ELEMENT_LEVEL,(stats[id]||0)+1);else stats[id]=(stats[id]||0)+1;return stats;}
+export function baseStats(meta={}){return {damage:1+.04*(meta.bow||0),multi:1,fire:0,ice:0,poison:0,pierce:0,leech:0,armor:0,regen:0,crit:0,maxHp:100+5*(meta.life||0),heal:0,impact:0,balance:0,echo:0,fuse:0,reclaim:0};}
+export function applyUpgrade(stats,id){if(applyNewRelic(stats,id))return stats;if(id==='damage')stats.damage+=.2;else if(id==='multi')stats.multi=Math.min(8,stats.multi+1);else if(id==='vital')stats.maxHp+=25;else if(id==='crit')stats.crit=Math.min(.75,stats.crit+.15);else if(id==='leech')stats.leech=Math.min(.6,stats.leech+.12);else if(id==='ice')stats.ice=stats.ice>=3?stats.ice:Math.min(3,(stats.ice||0)+1);else if(id==='impact'||id==='balance')stats[id]=Math.min(3,(stats[id]||0)+1);else if(id==='fire'||id==='poison')stats[id]=Math.min(MAX_ELEMENT_LEVEL,(stats[id]||0)+1);else stats[id]=(stats[id]||0)+1;return stats;}
 export function upgradePreview(stats,id){
+ const special=newRelicPreview(stats,id);if(special!==null)return special;
  const after=applyUpgrade({...stats},id),value=stats[id]||0,next=after[id]||0;
  if(id==='fire'||id==='poison'){
   if(value>=MAX_ELEMENT_LEVEL)return '已达 '+MAX_ELEMENT_LEVEL+' 阶上限';
@@ -126,8 +128,8 @@ export class Game{
   }else{this.encounter=null;this.encounterFloor=0;this.arena=arenaForMode(this.mode,this.stage,this.arenaChoice||this.stage);}
   this.map=this.arena.map;const close=this.mode==='campaign'&&this.stage===1,xs=this.arena.xs;
   let enemyStats=baseStats();this.opponent=opponentProfile(this.mode,this.stage,this.floor,this.stats.maxHp);if(this.mode!=='local')enemyStats.damage=this.opponent.damage;if(this.mode==='rogue')enemyStats=rogueEnemyStats(this.floor,enemyStats);
- const hp=fresh?this.stats.maxHp:Math.min(this.stats.maxHp,this.players?.[0]?.hp??this.stats.maxHp);this.players=xs.map((x,i)=>({x,homeX:x,y:ground(x,this.world),groundSlope:(ground(x+3,this.world)-ground(x-3,this.world))/6,characterId:i===0?this.characterId:'chiyan',skills:{...createSkillState(i===0?this.characterId:'chiyan'),weapon:i===0&&this.mode==='rogue'?this.skill:null,extra:i===0?[...this.upgrades]:[]},body:null,dir:i===0?1:-1,hp:i===0?hp:this.mode==='campaign'&&this.stage===1?50:enemyStats.maxHp,stats:i===0?this.stats:enemyStats,status:{burn:0,burnTurns:0,poison:0,poisonTurns:0,ice:0},stuck:[],recoil:0,deadTime:0}));this.players.forEach(p=>syncGroundContact(p,x=>ground(x,this.world)));this.obs=encounterObstacles(this.arena,x=>ground(x,this.world));this.bounty=this.mode==='rogue'?createBountyState(bountyFor(this.encounter,this.floor)):null;if(this.bounty&&this.floor%2===0)this.bounty.spec.reward={kind:'reroll'};this.bountyPrize=null;this.ruleTriggered=false;this.nextRoutes=[];this.selectedRoute=null;this.orbs=[];this.lastSupplyRound=null;this.arrows=[];this.effects=[];this.trails=[];this.active=0;this.round=1;this.angles=close?[19,14]:[31,31];this.powers=[this.arena.geometry.recommendedPower,this.arena.geometry.recommendedPower];this.volleyCount=0;this.phaseTime=0;this.notice='';this.impact=null;this.finisher=null;this.shake=0;this.choices=[];this.lastDamage=0;this.lastHeal=0;this.npcVolleyDamage=0;this.npcHeadHits=0;this.icePenalty=0;this.vfx=[];this.skillUsed=false;this.skillAim=null;this.hitStop=0;this.targets=[];this.targetHits=0;this.targetScore=0;this.targetMisses=0;this.volleyTargetHits=0;if(this.mode==='target'){this.obs=[];this.players[0].x=220;this.players[0].y=ground(220,this.world);this.players[0].homeX=220;syncGroundContact(this.players[0],x=>ground(x,this.world));this.newTargets();}}
- start(mode,stage=1,skill='split',characterId='qingsong'){if(mode!=='campaign'&&!this.save.unlocked)return false;this.mode=mode;this.characterId=characterById(characterId).id;this.skill=BOWS.some(b=>b.id===skill)?skill:'split';this.arenaChoice=Math.max(1,Math.min(ARENAS.length,Math.floor(Number(stage))||1));this.stage=mode==='rogue'?1:mode==='campaign'?Math.max(1,Math.min(3,stage)):(this.arenaChoice-1)%3+1;this.floor=1;this.rerolls=0;this.shotSerial=0;this.encounterFloor=0;this.encounter=null;this.pendingEncounter=null;this.runSeed=mode==='rogue'?Math.floor(this.rng()*0x100000000)>>>0:0;this.upgrades=[];this.stats=baseStats(mode==='rogue'?this.save:{});this.setup();this.setPhase(mode==='campaign'?'intro':'scout');this.emit('start');return true;}
+ const hp=fresh?this.stats.maxHp:Math.min(this.stats.maxHp,this.players?.[0]?.hp??this.stats.maxHp);this.players=xs.map((x,i)=>({x,homeX:x,y:ground(x,this.world),groundSlope:(ground(x+3,this.world)-ground(x-3,this.world))/6,characterId:i===0?this.characterId:'chiyan',skills:{...createSkillState(i===0?this.characterId:'chiyan'),weapon:i===0&&this.mode==='rogue'?this.skill:null,extra:i===0?[...this.upgrades]:[]},body:null,dir:i===0?1:-1,hp:i===0?hp:this.mode==='campaign'&&this.stage===1?50:enemyStats.maxHp,stats:i===0?this.stats:enemyStats,status:{burn:0,burnTurns:0,poison:0,poisonTurns:0,ice:0},stuck:[],recoil:0,deadTime:0}));this.players.forEach(p=>syncGroundContact(p,x=>ground(x,this.world)));this.obs=encounterObstacles(this.arena,x=>ground(x,this.world));this.bounty=this.mode==='rogue'?createBountyState(bountyFor(this.encounter,this.floor)):null;if(this.bounty&&this.floor%2===0)this.bounty.spec.reward={kind:'reroll'};this.bountyPrize=null;this.ruleTriggered=false;this.nextRoutes=[];this.selectedRoute=null;this.orbs=[];this.lastSupplyRound=null;this.coverAmmoRefunded=false;this.headAmmoRefunded=false;this.arrows=[];this.effects=[];this.trails=[];this.active=0;this.round=1;this.angles=close?[19,14]:[31,31];this.powers=[this.arena.geometry.recommendedPower,this.arena.geometry.recommendedPower];this.volleyCount=0;this.phaseTime=0;this.notice='';this.impact=null;this.finisher=null;this.shake=0;this.choices=[];this.lastDamage=0;this.lastHeal=0;this.npcVolleyDamage=0;this.npcHeadHits=0;this.icePenalty=0;this.vfx=[];this.skillUsed=false;this.skillAim=null;this.hitStop=0;this.targets=[];this.targetHits=0;this.targetScore=0;this.targetMisses=0;this.volleyTargetHits=0;if(this.mode==='target'){this.obs=[];this.players[0].x=220;this.players[0].y=ground(220,this.world);this.players[0].homeX=220;syncGroundContact(this.players[0],x=>ground(x,this.world));this.newTargets();}}
+ start(mode,stage=1,skill='split',characterId='qingsong'){if(mode!=='campaign'&&!this.save.unlocked)return false;this.mode=mode;this.characterId=characterById(characterId).id;this.skill=BOWS.some(b=>b.id===skill)?skill:'split';this.arenaChoice=Math.max(1,Math.min(ARENAS.length,Math.floor(Number(stage))||1));this.stage=mode==='rogue'?1:mode==='campaign'?Math.max(1,Math.min(3,stage)):(this.arenaChoice-1)%3+1;this.floor=1;this.specialAmmo=mode==='rogue'?2:0;this.rerolls=0;this.shotSerial=0;this.encounterFloor=0;this.encounter=null;this.pendingEncounter=null;this.runSeed=mode==='rogue'?Math.floor(this.rng()*0x100000000)>>>0:0;this.upgrades=[];this.stats=baseStats(mode==='rogue'?this.save:{});this.setup();this.setPhase(mode==='campaign'?'intro':'scout');this.emit('start');return true;}
  setPhase(p){if(p!=='flight')this.cancelSkillAim();this.phase=p;this.phaseTime=0;this.emit('phase',{phase:p});}
  goHome(){this.arrows=[];this.finisher=null;this.hitStop=0;this.setPhase('home');}
  skipTutorial(){if(!['home','intro'].includes(this.phase))return false;const changed=!this.save.unlocked;this.save.unlocked=true;if(changed)this.persist();this.goHome();return true;}
@@ -139,9 +141,19 @@ export class Game{
  readyTurn(){const p=this.players[this.active],heal=turnSkillHealing(p);if(heal){this.heal(p,heal);this.pop(p.x,p.y-165,'沉着 · 回息','#b4d8a2');}if(this.active===1&&this.mode!=='local'){this.setPhase('thinking');this.angles[1]=this.chooseAI();this.shoot();}else this.setPhase('aim');}
  get canAim(){return this.phase==='aim';}
  aim(angle,power){if(!this.canAim)return;this.angles[this.active]=Math.max(5,Math.min(75,Math.round(angle)));this.powers[this.active]=Math.max(20,Math.min(100,Math.round(power)));}
- shoot(){if(!this.canAim&&this.phase!=='thinking')return false;const p=this.players[this.active];if(this.active===1){this.npcVolleyDamage=0;this.npcHeadHits=0;}this.shotSerial=(this.shotSerial||0)+1;this.volleyCount=0;this.volleyImpactPeak=0;this.trails=[];this.arrows=[];this.impact=null;this.skillUsed=false;this.skillAim=null;this.volleyTargetHits=0;this.icePenalty=Math.min(.45,p.status.ice*.15);p.status.ice=0;const n=p.stats.multi;for(let i=0;i<n;i++){const b=launch(p,this.angles[this.active]+(i-(n-1)/2)*.65,this.powers[this.active]);this.addArrow(b);}this.emit('shoot');this.setPhase('flight');return true;}
- addArrow(b){if(this.volleyCount>=MAX_ARROWS)return false;this.arrows.push({scale:1,t:0,pierce:this.players[this.active].stats.pierce,ignored:new Set(),bomb:this.mode==='rogue'&&this.active===0&&this.skill==='burst',...b,dead:false,id:++this.volleyCount});return true;}
- get canSkill(){return this.mode==='rogue'&&this.active===0&&this.phase==='flight'&&!this.skillUsed&&this.arrows.some(b=>!b.dead&&(this.skillAim||b.t>.12));}
+ shoot(){if(!this.canAim&&this.phase!=='thinking')return false;const p=this.players[this.active];if(this.active===1){this.npcVolleyDamage=0;this.npcHeadHits=0;}this.shotSerial=(this.shotSerial||0)+1;this.volleyCount=0;this.volleyImpactPeak=0;this.trails=[];this.arrows=[];this.impact=null;this.skillUsed=false;this.skillAim=null;this.volleyTargetHits=0;this.echoTriggered=false;this.fuseTriggered=false;this.icePenalty=Math.min(.45,p.status.ice*.15);p.status.ice=0;const n=p.stats.multi;for(let i=0;i<n;i++){const b=launch(p,this.angles[this.active]+(i-(n-1)/2)*.65,this.powers[this.active]);this.addArrow(b);}this.emit('shoot');this.setPhase('flight');return true;}
+ addArrow(b){if(this.volleyCount>=MAX_ARROWS)return false;this.arrows.push({scale:1,t:0,pierce:this.players[this.active].stats.pierce,ignored:new Set(),bomb:this.mode==='rogue'&&this.active===0&&this.skill==='burst'&&this.specialAmmo>0,...b,dead:false,id:++this.volleyCount});return true;}
+ get specialAmmoMax(){return 5;}
+ get hasRelicReward(){return this.mode==='rogue'&&this.floor%2===0;}
+ gainSpecialAmmo(amount,reason='pickup'){
+  if(this.mode!=='rogue')return 0;
+  const before=Math.max(0,Math.min(this.specialAmmoMax,Math.floor(this.specialAmmo||0)));
+  this.specialAmmo=Math.min(this.specialAmmoMax,before+Math.max(0,Math.floor(amount)));
+  const gained=this.specialAmmo-before;
+  if(gained){if(reason==='cover'||reason==='headshot')this.fx('ammo',this.players[0].x,this.players[0].y-130,'#a9dfd4',{reason,amount:gained});if(this.phase==='flight'&&this.skill==='burst'&&!this.skillUsed)for(const b of this.arrows)b.bomb=true;this.emit('ammo',{amount:gained,ammo:this.specialAmmo,reason});}
+  return gained;
+ }
+ get canSkill(){return this.mode==='rogue'&&this.specialAmmo>0&&this.active===0&&this.phase==='flight'&&!this.skillUsed&&this.arrows.some(b=>!b.dead&&(this.skillAim||b.t>.12));}
  get timeScale(){return this.skillAim&&this.phase==='flight'?1/3:1;}
  beginSkillAim(){if(!this.canSkill||this.skill!=='dive'||this.skillAim)return false;this.skillAim={tilt:0};return true;}
  aimSkill(tilt){if(!this.skillAim||!Number.isFinite(tilt))return false;this.skillAim.tilt=Math.max(-35,Math.min(35,Math.round(tilt)));return true;}
@@ -162,12 +174,13 @@ export class Game{
  }
  activateSkill(tilt=0){
   if(!this.canSkill)return false;
-  this.skillAim=null;this.skillUsed=true;
+  this.skillAim=null;this.skillUsed=true;this.specialAmmo--;this.emit('ammo',{amount:-1,ammo:this.specialAmmo,reason:'skill'});
   for(const b of [...this.arrows]){
+   b.special=true;
    const p=position(b,b.t),vy=b.vy+G*b.t,scale=b.scale??1;
    if(this.skill==='split'){
     b.scale=scale*.6;
-    for(const spread of [-32,32])this.addArrow({x:p.x,y:p.y,vx:b.vx,vy:vy+spread,scale:scale*.6,pierce:b.pierce,ignored:new Set(b.ignored)});
+    for(const spread of [-32,32])this.addArrow({x:p.x,y:p.y,vx:b.vx,vy:vy+spread,scale:scale*.6,pierce:b.pierce,ignored:new Set(b.ignored),special:true,echo:Boolean(b.echo)});
     this.fx('split',p.x,p.y,'#c5e4b0');
    }else if(this.skill==='dive'){
     Object.assign(b,diveTrajectory(b,tilt,this.players[this.active].dir));this.fx('dive',p.x,p.y,'#adcdee');
@@ -199,7 +212,7 @@ export class Game{
  fx(kind,x,y,color,detail={}){this.vfx.push({kind,x,y,color,t:.7,life:.7,...detail});if(this.vfx.length>80)this.vfx.shift();}
  newTargets(){this.targets=[];const x=760+this.rng()*560;for(let i=0;i<3;i++){const xx=Math.min(W-95,x+(i-1)*90),yy=ground(xx,this.world)-100-i*76;this.targets.push({x:xx,baseY:yy,y:yy,r:27,used:false,gold:i===2,seed:this.rng()*6});}}
  hitTargetBoard(target){if(target.used)return;target.used=true;this.volleyTargetHits++;this.targetHits++;const points=(target.gold?150:100)*(1+Math.min(4,Math.floor(this.targetHits/3)));this.targetScore+=points;this.fx('shards',target.x,target.y,'#e3c278');this.pop(target.x,target.y-35,'+'+points,'#f3d293');this.emit('target',{points});}
- hitObstacle(o,dir){if(o.state!=='standing')return;o.hp--;o.dir=dir;if(o.hp<=0)o.state=o.type==='post'?'falling':'broken';this.fx('shards',o.x,o.y-o.h/2,'#be935f');this.emit('break',{x:o.x,y:o.y-o.h/2,kind:o.type,broken:o.hp<=0,obstacleId:o.id});this.pop(o.x,o.y-o.h-15,o.hp>0?'裂开':'击破','#e8b86c');}
+ hitObstacle(o,dir){if(o.state!=='standing')return;o.hp--;o.dir=dir;if(o.hp<=0){o.state=o.type==='post'?'falling':'broken';if(this.mode==='rogue'&&this.active===0&&this.stats.pierce>0&&!this.coverAmmoRefunded){if(this.gainSpecialAmmo(1,'cover')){this.coverAmmoRefunded=true;}}}this.fx('shards',o.x,o.y-o.h/2,'#be935f');this.emit('break',{x:o.x,y:o.y-o.h/2,kind:o.type,broken:o.hp<=0,obstacleId:o.id});this.pop(o.x,o.y-o.h-15,o.hp>0?'裂开':'击破','#e8b86c');}
  pop(x,y,text,color='#edd6ad'){this.effects.push({x,y,text,color,t:1.6,life:1.6});}
  heal(p,n,x=p.x,y=p.y-135){const delta=Math.max(0,Math.min(n,p.stats.maxHp-p.hp));p.hp+=delta;if(delta>0)this.pop(x,y,'♥ +'+Math.round(delta),'#a5e0ad');return delta;}
  damage(target,raw,source=null,{leech=true}={}){
@@ -220,21 +233,42 @@ export class Game{
   if(st.ice&&st.pierce)raw+=6*Math.min(st.ice,st.pierce)*(b.scale??1);
   const melt=st.fire>0&&(st.ice>0||target.status.ice>0);
   if(melt){raw+=12*st.fire*(b.scale??1);target.status.ice=0;}
+  const playerRelics=this.mode==='rogue'&&this.active===0;
+  const echo=playerRelics&&!b.echo&&!b.noStick&&!this.echoTriggered?Math.min(3,st.echo||0):0;
+  const fuse=playerRelics&&b.special&&!this.fuseTriggered?fuseDamage(st,target.status):0;
+  if(fuse>0)raw+=fuse;
+  if(echo&&this.volleyCount>=MAX_ARROWS)raw+=12*echo*st.damage;
   const dealt=this.damage(target,raw,shooter);this.lastDamage=dealt;
   if(!dealt){this.fx('glance',p.x,p.y,'#b6c9bb');return;}
+  if(fuse>0){this.fuseTriggered=true;this.fx('fuse',p.x,p.y,'#ddcb84');}
+  if(echo){
+   this.echoTriggered=true;this.fx('echo',p.x,p.y,'#cebdff');
+   if(target.hp>0)for(let i=0;i<echo;i++)this.addArrow({x:target.x+(i-(echo-1)/2)*14,y:target.y-230,vx:0,vy:540,t:0,scale:.45,pierce:st.pierce,ignored:new Set(),echo:true,special:false,bomb:false});
+  }
+  if(playerRelics&&b.special&&r.part==='head'&&st.reclaim>0&&!this.headAmmoRefunded&&this.gainSpecialAmmo(1,'headshot')){this.headAmmoRefunded=true;}
   const impactAngle=Math.atan2(b.vy+G*b.t,b.vx);
   if(!b.noStick){target.stuck.push(attachArrow(target,p,impactAngle,this.angles[1-this.active]));if(target.stuck.length>12)target.stuck.shift();}
   impactBody(target,{point:p,vx:b.vx,vy:b.vy+G*b.t,damage:target.hp<=0?Math.max(dealt,Math.min(60,raw)):dealt,part:r.part,angle:this.angles[1-this.active],volleyId:this.shotSerial,forceScale:(1+(st.impact||0)*.15)*(this.active===0?hitKnockbackScale(shooter):1)/(1+(target.stats.balance||0)*.18)});
   if(st.fire){target.status.burn=Math.min(MAX_STATUS_STACKS,target.status.burn+Math.min(MAX_ELEMENT_LEVEL,st.fire));target.status.burnTurns=2;}
   if(st.poison){target.status.poison=Math.min(MAX_STATUS_STACKS,target.status.poison+Math.min(MAX_ELEMENT_LEVEL,st.poison));target.status.poisonTurns=3;}
   if(st.ice&&!melt)target.status.ice=Math.min(3,target.status.ice+st.ice);
-  this.pop(p.x,p.y-30,(repeatHead?'擦伤 ':melt?'融爆 ':crit?'暴击 ':r.part==='head'?'爆头 ':'')+'−'+dealt,melt?'#f6b97e':'#f3d093');
+  this.pop(p.x,p.y-30,(fuse>0?'引信 ':repeatHead?'擦伤 ':melt?'融爆 ':crit?'暴击 ':r.part==='head'?'爆头 ':'')+'−'+dealt,melt?'#f6b97e':'#f3d093');
   const impactStrength=r.part==='head'&&!repeatHead?2:1;if(impactStrength>(this.volleyImpactPeak||0)){this.shake=impactStrength===2?.22:.12;this.hitStop=impactStrength===2?.055:.022;this.volleyImpactPeak=impactStrength;}
   if(target.hp<=0)this.beginFinisher(target,{part:r.part,element:melt?'melt':st.fire&&st.poison?'venomfire':st.fire?'fire':st.ice?'ice':st.poison?'poison':'plain',x:p.x,y:p.y,dir:shooter.dir});
   this.fx('impact',p.x,p.y,melt?'#ffd260':'#f4ecdd',{head:r.part==='head'&&!repeatHead,part:r.part,dir:shooter.dir,damage:dealt,blast:Boolean(b.noStick)});this.emit('hit',{x:p.x,y:p.y,head:r.part==='head'&&!repeatHead,part:r.part,damage:dealt,arrowId:b.id});
  }
- pickup(orb,b,p){if(orb.used)return;orb.used=true;const shooter=this.players[this.active];if(orb.type==='heart'){this.lastHeal=this.heal(shooter,20+shooter.stats.heal*15,orb.x,orb.y-25);}else{const currentVy=b.vy+G*b.t;const extra={x:p.x,y:p.y,vx:b.vx,vy:currentVy+(this.volleyCount%2?1:-1)*(this.active===1&&this.mode!=='local'?Math.min(48,22+this.volleyCount*6):8),scale:b.scale??1,pierce:b.pierce,ignored:new Set(b.ignored),diving:Boolean(b.diving),diveTilt:b.diveTilt||0,bomb:Boolean(b.bomb),boosted:Boolean(b.boosted),bounces:b.bounces||0};if(this.addArrow(extra))this.pop(orb.x,orb.y-35,'+1  共 '+this.volleyCount+' 箭','#f6dc85');else this.pop(orb.x,orb.y-35,'箭雨已满','#f6dc85');}this.fx('pickup',orb.x,orb.y,orb.type==='heart'?'#eaa1a0':'#f2d080');const bonus=pickupSkillHealing(shooter);if(bonus){this.heal(shooter,bonus);this.pop(shooter.x,shooter.y-165,'拾光 · 回血'+bonus,'#b6e7c0');}this.emit('pickup',{kind:orb.type,x:orb.x,y:orb.y,orbId:orb.id});}
- tickArrows(dt){let left=dt;while(left>0&&this.arrows.length){const h=Math.min(left,1/300);for(const b of [...this.arrows]){b.t+=h;const p=position(b,b.t);if(Math.floor(b.t*40)!==b.lastTrail){this.trails.push({x:p.x,y:p.y,t:1});b.lastTrail=Math.floor(b.t*40);}for(const orb of this.orbs)if(!orb.used&&Math.hypot(p.x-orb.x,p.y-orb.y)<=orb.r+(b.diving?DIVE_PICKUP_PADDING:0))this.pickup(orb,b,p);if(this.mode==='target')for(const target of this.targets)if(!target.used&&Math.hypot(p.x-target.x,p.y-target.y)<=target.r){this.hitTargetBoard(target);b.dead=true;break;}if(b.dead)continue;const r=collision(p,this.mode==='target'?{x:-500,y:0}:this.players[1-this.active],this.obs,this.world,b.ignored);if(r){this.impact=p;if(r.kind==='obstacle'){this.hitObstacle(r.o,this.players[this.active].dir);if(b.pierce>0){b.pierce--;b.ignored.add(r.o.id);}else b.dead=true;}else if(r.kind==='ground'&&this.ricochet(b,p)){}else{if(r.kind==='hit')this.hitTarget(b,r,p);b.dead=true;}}if(b.t>14)b.dead=true;}this.arrows=this.arrows.filter(b=>!b.dead);left-=h;}if(!this.arrows.length)this.setPhase('settle');}
+ pickup(orb,b,p){if(orb.used)return;orb.used=true;const shooter=this.players[this.active];if(orb.type==='heart'){this.lastHeal=this.heal(shooter,20+shooter.stats.heal*15,orb.x,orb.y-25);}else{const currentVy=b.vy+G*b.t;const extra={x:p.x,y:p.y,vx:b.vx,vy:currentVy+(this.volleyCount%2?1:-1)*(this.active===1&&this.mode!=='local'?Math.min(48,22+this.volleyCount*6):8),scale:b.scale??1,pierce:b.pierce,ignored:new Set(b.ignored),diving:Boolean(b.diving),diveTilt:b.diveTilt||0,bomb:Boolean(b.bomb),boosted:Boolean(b.boosted),bounces:b.bounces||0,special:Boolean(b.special),echo:Boolean(b.echo)};if(this.addArrow(extra))this.pop(orb.x,orb.y-35,'+1  共 '+this.volleyCount+' 箭','#f6dc85');else this.pop(orb.x,orb.y-35,'箭雨已满','#f6dc85');}this.fx('pickup',orb.x,orb.y,orb.type==='heart'?'#eaa1a0':'#f2d080');const bonus=pickupSkillHealing(shooter);if(bonus){this.heal(shooter,bonus);this.pop(shooter.x,shooter.y-165,'拾光 · 回血'+bonus,'#b6e7c0');}this.emit('pickup',{kind:orb.type,x:orb.x,y:orb.y,orbId:orb.id});}
+ steerEcho(b){
+  if(!b.echo||b.special)return;
+  const target=this.players[1-this.active];if(target.hp<=0){b.dead=true;return;}
+  const p=position(b,b.t),aim=bodyPose(target).chest,fallTime=Math.max(.06,Math.min(.6,(aim.y-p.y)/Math.max(300,b.vy+G*b.t)));
+  const lead=Math.max(-80,Math.min(80,(target.body?.rootVX||0)*fallTime*.6));
+  const vx=Math.max(-800,Math.min(800,(aim.x+lead-p.x)/fallTime));
+  // Rebase the horizontal origin at the CURRENT position before changing its
+  // tangent: steering must not teleport the projectile or reset its lifetime.
+  b.x=p.x-vx*b.t;b.vx=vx;
+ }
+ tickArrows(dt){let left=dt;while(left>0&&this.arrows.length){const h=Math.min(left,1/300);for(const b of [...this.arrows]){this.steerEcho(b);if(b.dead)continue;b.t+=h;const p=position(b,b.t);if(Math.floor(b.t*40)!==b.lastTrail){this.trails.push({x:p.x,y:p.y,t:1});b.lastTrail=Math.floor(b.t*40);}for(const orb of this.orbs)if(!orb.used&&Math.hypot(p.x-orb.x,p.y-orb.y)<=orb.r+(b.diving?DIVE_PICKUP_PADDING:0))this.pickup(orb,b,p);if(this.mode==='target')for(const target of this.targets)if(!target.used&&Math.hypot(p.x-target.x,p.y-target.y)<=target.r){this.hitTargetBoard(target);b.dead=true;break;}if(b.dead)continue;const r=collision(p,this.mode==='target'?{x:-500,y:0}:this.players[1-this.active],this.obs,this.world,b.ignored);if(r){this.impact=p;if(r.kind==='obstacle'){this.hitObstacle(r.o,this.players[this.active].dir);if(b.pierce>0){b.pierce--;b.ignored.add(r.o.id);}else b.dead=true;}else if(r.kind==='ground'&&this.ricochet(b,p)){}else{if(r.kind==='hit')this.hitTarget(b,r,p);b.dead=true;}}if(b.t>14)b.dead=true;}this.arrows=this.arrows.filter(b=>!b.dead);left-=h;}if(!this.arrows.length)this.setPhase('settle');}
  spawnOrbs(){
   if(this.mode==='target'||this.mode==='campaign'&&this.stage<3)return;
   const rogue=this.mode==='rogue',cap=rogue?4:12;
@@ -258,12 +292,25 @@ export class Game{
  }
  nextTurn(){if(this.mode==='target'){if(!this.volleyTargetHits)this.targetMisses++;if(this.targetMisses>=3){this.save.targetBest=Math.max(this.save.targetBest,this.targetScore);this.persist();this.win=false;this.winner=0;this.setPhase('defeat');return;}this.round++;this.active=0;if(this.targets.every(t=>t.used))this.newTargets();this.setPhase('scout');return;}if(this.players[1-this.active].hp<=0){this.complete(this.active===0||this.mode==='local');return;}this.active=1-this.active;this.round++;this.applyArenaRule();this.spawnOrbs();const p=this.players[this.active],source=this.players[1-this.active],poisonActive=p.status.poisonTurns>0,burning=p.status.burnTurns>0;let tick=0;if(p.status.burnTurns>0){tick+=p.status.burn*5;p.status.burnTurns--;if(!p.status.burnTurns)p.status.burn=0;}if(p.status.poisonTurns>0){tick+=p.status.poison*(burning?5:3);p.status.poisonTurns--;if(!p.status.poisonTurns)p.status.poison=0;}if(tick){const dealt=this.damage(p,tick,source,{leech:poisonActive});if(dealt)this.pop(p.x,p.y-145,'持续伤害 −'+dealt,'#c2d784');}if(p.hp<=0){this.beginFinisher(p,{part:'body',element:poisonActive&&burning?'venomfire':poisonActive?'poison':'fire',dir:source.dir,cause:'status',arrows:0});impactBody(p,{point:{x:p.x,y:p.y-60},vx:source.dir*50,vy:20,damage:tick,part:'body',angle:this.angles[this.active]});this.complete(this.active!==0||this.mode==='local');return;}if(p.stats.cleanse){const before=p.status.burn+p.status.poison;for(const key of ['burn','poison'])p.status[key]=Math.ceil(p.status[key]*(1-p.stats.cleanse));if(p.status.burn+p.status.poison<before)this.pop(p.x,p.y-170,'净化 · 保留 '+Math.round((1-p.stats.cleanse)*100)+'% 层数','#b1d2d9');}if(p.stats.regen)this.heal(p,p.stats.regen*5+p.stats.armor*2);if(this.active===1&&this.mode!=='local')this.readyTurn();else this.setPhase('scout');}
  complete(win){this.win=win;this.winner=this.mode==='local'?(this.players[0].hp>0?0:1):win?0:1;if(win&&this.mode==='campaign'){if(this.stage===3){this.save.unlocked=true;this.save.checkpoint=1;}else this.save.checkpoint=Math.max(this.save.checkpoint,this.stage+1);this.persist();}if(this.mode==='rogue'){if(win){this.save.best=Math.max(this.save.best,this.floor);this.save.embers+=this.floor%3===0?3:1;this.persist();}this.emit('run',{floor:this.floor,win});}this.emit(win?'victory':'defeat');this.setPhase(win?'victory':'defeat');}
- resultNext(){if(this.phase==='victory'&&this.mode==='rogue'){this.choices=this.rollUpgrades();this.nextRoutes=encounterRoutes(this.runSeed,this.floor+1,this.encounter?.layoutId);this.selectedRoute=this.nextRoutes[0].id;this.setPhase('upgrade');return;}if(this.phase==='victory'&&this.mode==='campaign'&&this.stage<3){this.stage++;this.stats=baseStats();this.setup();this.setPhase('intro');return;}if(this.phase==='defeat'&&this.mode==='campaign'){this.setup();this.setPhase('scout');return;}this.goHome();}
- rollUpgrades(exclude=[]){const ids=UPGRADES.filter(u=>!exclude.includes(u.id)&&!(['impact','balance'].includes(u.id)&&this.stats[u.id]>=3)&&!(u.id==='multi'&&this.stats.multi>=8)&&!(u.id==='ice'&&this.stats.ice>=3)&&!(u.id==='crit'&&this.stats.crit>=.75)&&!(u.id==='leech'&&this.stats.leech>=.6)&&!(['fire','poison'].includes(u.id)&&this.stats[u.id]>=MAX_ELEMENT_LEVEL));const result=[];const partner=SYNERGIES.flatMap(s=>s.needs.some(k=>this.stats[k]>0)&&!s.needs.every(k=>this.stats[k]>0)?s.needs.filter(k=>!this.stats[k]):[]);if(partner.length){const id=partner[Math.min(partner.length-1,Math.floor(this.rng()*partner.length))],i=ids.findIndex(u=>u.id===id);if(i>=0)result.push(ids.splice(i,1)[0]);}while(result.length<3&&ids.length){const i=Math.min(ids.length-1,Math.floor(this.rng()*ids.length));result.push(ids.splice(i,1)[0]);}return result;}
- rerollUpgrades(){if(this.phase!=='upgrade'||!(this.rerolls>0))return false;this.choices=this.rollUpgrades(this.choices.map(c=>c.id));this.rerolls--;this.emit('reroll');return true;}
+ resultNext(){if(!['victory','defeat'].includes(this.phase))return false;if(this.phase==='victory'&&this.mode==='rogue'){this.choices=this.hasRelicReward?this.rollUpgrades():[];this.nextRoutes=encounterRoutes(this.runSeed,this.floor+1,this.encounter?.layoutId);this.selectedRoute=this.nextRoutes[0].id;this.setPhase('upgrade');return;}if(this.phase==='victory'&&this.mode==='campaign'&&this.stage<3){this.stage++;this.stats=baseStats();this.setup();this.setPhase('intro');return;}if(this.phase==='defeat'&&this.mode==='campaign'){this.setup();this.setPhase('scout');return;}this.goHome();}
+ rollUpgrades(exclude=[]){const ids=UPGRADES.filter(u=>!RETIRED_RELICS.includes(u.id)&&!exclude.includes(u.id)&&(!newRelicCap(u.id)||newRelicEligible(this.stats,u.id))&&!(u.id==='pierce'&&this.stats.pierce>=3)&&!(['impact','balance'].includes(u.id)&&this.stats[u.id]>=3)&&!(u.id==='multi'&&this.stats.multi>=8)&&!(u.id==='ice'&&this.stats.ice>=3)&&!(u.id==='crit'&&this.stats.crit>=.75)&&!(u.id==='leech'&&this.stats.leech>=.6)&&!(['fire','poison'].includes(u.id)&&this.stats[u.id]>=MAX_ELEMENT_LEVEL));const result=[];const partner=SYNERGIES.flatMap(s=>s.needs.some(k=>this.stats[k]>0)&&!s.needs.every(k=>this.stats[k]>0)?s.needs.filter(k=>!this.stats[k]):[]);if(partner.length){const id=partner[Math.min(partner.length-1,Math.floor(this.rng()*partner.length))],i=ids.findIndex(u=>u.id===id);if(i>=0)result.push(ids.splice(i,1)[0]);}while(result.length<3&&ids.length){const i=Math.min(ids.length-1,Math.floor(this.rng()*ids.length));result.push(ids.splice(i,1)[0]);}return result;}
+ rerollUpgrades(){if(this.phase!=='upgrade'||!this.hasRelicReward||!(this.rerolls>0))return false;this.choices=this.rollUpgrades(this.choices.map(c=>c.id));this.rerolls--;this.emit('reroll');return true;}
  chooseRoute(id){if(this.phase!=='upgrade'||!this.nextRoutes.some(r=>r.id===id))return false;this.selectedRoute=id;this.emit('route',{id});return true;}
  applyArenaRule(){if(this.arena?.rule!=='collapse'||this.ruleTriggered||this.round<5)return;this.ruleTriggered=true;const o=this.obs.find(o=>o.type==='post'&&o.state==='standing');if(o){o.hp=0;o.state='falling';o.dir=1;this.fx('shards',o.x,o.y-o.h/2,'#ffd260');this.pop(o.x,o.y-o.h-25,'收费站下班了！','#ffd260');this.emit('arena-rule',{rule:'collapse'});}}
- chooseUpgrade(id){if(this.phase!=='upgrade'||!this.choices.some(c=>c.id===id))return false;applyUpgrade(this.stats,id);this.upgrades.push(id);const p=this.players[0];p.stats=this.stats;this.heal(p,(id==='vital'?25:id==='heal'?20:12)+(this.floor%3===0?25:0));this.pendingEncounter=this.nextRoutes.find(r=>r.id===this.selectedRoute)||this.nextRoutes[0];this.floor++;this.stage=3;this.setup(false);this.setPhase('scout');return true;}
+ advanceRun(){
+  if(this.mode!=='rogue'||this.phase!=='upgrade')return false;
+  this.heal(this.players[0],12+(this.floor%3===0?25:0));
+  this.pendingEncounter=this.nextRoutes.find(r=>r.id===this.selectedRoute)||this.nextRoutes[0];
+  this.floor++;this.stage=3;this.gainSpecialAmmo(1,'stage');this.setup(false);this.setPhase('scout');return true;
+ }
+ continueRun(){if(this.phase!=='upgrade'||this.hasRelicReward)return false;return this.advanceRun();}
+ chooseUpgrade(id){
+  if(this.phase!=='upgrade'||!this.hasRelicReward||!this.choices.some(c=>c.id===id))return false;
+  if(!applyRewardUpgrade(this.stats,id))applyUpgrade(this.stats,id);
+  this.upgrades.push(id);this.players[0].stats=this.stats;
+  if(id==='vital')this.heal(this.players[0],40);else if(id==='heal')this.heal(this.players[0],20);
+  return this.advanceRun();
+ }
  buy(id){if(!this.save.unlocked||!['bow','life'].includes(id)||this.save[id]>=5)return false;const cost=3+this.save[id]*2;if(this.save.embers<cost)return false;this.save.embers-=cost;this.save[id]++;this.persist();return true;}
  chooseAI(){
   const p=this.players[1],target=this.players[0],style=(this.encounter||this.arena)?.enemy.id||'steady',powers=Array.from({length:17},(_,i)=>100-i*5);let hits=[],blocked=[];

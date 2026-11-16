@@ -57,3 +57,5 @@ CloudBase 管理连接已配置：国内站、上海，已有环境见 `.cloudba
 0.17起星坠通过beginSkillAim/aimSkill/releaseSkillAim/cancelSkillAim管理按住预瞄，timeScale=1/3；previewSkill与实际释放共用diveTrajectory，不改随机数／生命。空格发射的第一次松开不得施展，暂停／失焦／指针取消要恢复正常时间。追加箭继承diving/bomb/boosted/bounces和剩余pierce，不重乘技能倍率。爆炸保留原箭，范围副本才有noStick；真实箭继续正常命中。助推地面跳弹仅一次，不能无限续飞。skillAim与箭状态均不进入永久存档，详见docs/ACTIVE_BOW_SKILLS.md。
 
 0.17.1的少补给／快节奏仅用于rogue：每次行动最多1球，场上4球、每种2球，expiresRound为生成回合+4，lastSupplyRound防同回合重复生成并在setup清空。首次观察1.8秒、后续1秒，settleDuration=.5；仍须等存活body起身，不得通过强制清除飞箭／跳过恢复来加速。其他模式的双球、观察及等待保持原值。
+
+0.18起特箭弹药开局2／每新关+1／上限5，只在activateSkill成功时每整轮扣1份；多箭与+1不额外扣，预瞄取消不扣。setup不得补弹，推进新关才补。奇数关仅选路补给continueRun，偶数关hasRelicReward才可chooseUpgrade或重选；保留每关休息与三关额外休息。新奖励增量／预览在relics.mjs（离线和VM须在core前加载），legacyapplyUpgrade继续旧阶数接口。新池过滤RETIRED_RELICS但保留旧ID。echo落羽和追加箭不递归；普通落羽按实际关节有限转向，改vx须连续重设起点且不得重置寿命，手动特殊化后停止自动转向以保留预瞄真实性；fuse仅b.special真实伤害触发，头部／掩体回弹均每关最多一次，NPC不得获得这些收益；均不写永久存档。详见docs/ROGUE_AMMO_AND_RELICS.md。

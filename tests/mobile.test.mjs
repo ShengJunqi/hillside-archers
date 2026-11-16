@@ -116,7 +116,7 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
     performance: {now: () => now}, requestAnimationFrame: fn => {nextFrame = fn;}};
   if (blockedStorage) Object.defineProperty(sandbox, 'localStorage', {get() {throw new Error('Storage access denied');}});
   const context = vm.createContext(sandbox);
-  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['names', 'combat', 'body', 'encounters', 'bounties', 'core', 'save-transfer', 'emotes', 'feedback', 'scenery', 'render', 'input', 'display', 'cloud-save', 'cloud-client', 'cloud-ui', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
+  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['names', 'combat', 'body', 'encounters', 'bounties', 'relics', 'core', 'save-transfer', 'emotes', 'feedback', 'scenery', 'render', 'input', 'display', 'cloud-save', 'cloud-client', 'cloud-ui', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
   vm.runInContext(code + '\nglobalThis.api={game,input,renderer,encodeProgress,archerName,sceneryStorageKey:SCENERY_KEY,playableCharacters:CHARACTERS.filter(c=>c.playable).map(c=>({id:c.id,initialSkills:c.initialSkills})),bowIds:BOWS.map(b=>b.id),arenaIds:ARENAS.map(a=>a.id),get paused(){return paused;}};', context);
   const api = context.api, $ = id => ids.get(id), frame = () => {now += 16.67; nextFrame(now);};
   frame();
@@ -330,10 +330,10 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   $('touchFire').click(); for (let i = 0; i < 12; i++) frame();
   ok(!$('skillButton').hidden && !$('skillButton').disabled, 'flight offers a tappable skill button');
   $('skillButton').click(); ok(api.game.skillUsed, 'touch skill button activates the selected bow');
-  api.game.stats.fire = 2; api.game.stats.poison = 3;
+  api.game.floor = 2; api.game.stats.fire = 2; api.game.stats.poison = 3;
   api.game.choices = [{id: 'fire', name: '焰羽', tag: '火焰', icon: '焰', desc: '强化火焰'}, {id: 'poison', name: '青毒', tag: '毒素', icon: '毒', desc: '强化毒素'}];
   api.game.setPhase('upgrade'); frame();
-  ok($('upgradeCards').children[0].innerHTML.includes('2 → 3') && $('upgradeCards').children[1].innerHTML.includes('3 → 4'), 'repeated elemental choices show current and next tier benefits');
+  ok($('upgradeCards').children[0].innerHTML.includes('2 → 4') && $('upgradeCards').children[1].innerHTML.includes('3 → 5'), 'repeated elemental choices show current and next tier benefits');
   api.game.rerolls=1;api.game.complete(true); frame(); $('resultNext').click(); frame();
   equal($('routeCards').children.length, 2, 'upgrade screen offers two route buttons');
   for(const ticket of $('routeCards').children){const preview=ticket.children.find(node=>node.tagName==='CANVAS');ok(preview&&preview.width>0&&preview.height>0,'route choice contains a real nonempty-size terrain preview canvas');}
