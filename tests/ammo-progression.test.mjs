@@ -49,7 +49,7 @@ for(const skill of ['split','dive','burst']){
   if(skill==='burst')ok(g.arrows.every(b=>!b.bomb),'empty magazine does not show usable bombs on ordinary arrows');
  }
  if(skill==='dive')ok(!g.beginSkillAim(),'an empty magazine cannot freeze flight in an unusable preview');
- eq(snapshot(g.save),save,'shooting and spending special charges never changes permanent progress');
+ const {collection,...coreSave}=g.save;eq(snapshot(coreSave),save,'spending special charges never changes permanent records, currency or repair levels');eq(g.collection.stats.casts,2,'successful casts are intentionally recorded for style achievements');ok(!Object.hasOwn(g.save,'specialAmmo'),'temporary ammunition is never serialized into permanent progress');
  g.setup(false);eq(g.specialAmmo,0,'generic encounter setup does not refill exhausted ammo');
  g.start('rogue',1,skill);eq(g.specialAmmo,2,'starting a new expedition resets temporary ammo');
 }

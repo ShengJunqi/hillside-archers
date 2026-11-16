@@ -51,7 +51,7 @@ for(const [width,height] of [[1600,900],[390,740],[844,390]])for(const side of [
  ok(drawArenaPreview(cv,g.arena),'route preview still paints the authored combat area');eq(snapshot(g),before,'route preview keeps expanded world and combat unchanged');
  // Preview markers retain their original spawn ratio instead of becoming tiny
  // at the centre of a mostly empty runout diagram.
- const original=ARENAS.find(a=>a.id===g.arena.layoutId);eq(g.arena.xs,original.xs,'route preview continues to describe unchanged spawn stations');
+ const original=ARENAS.find(a=>a.id===g.arena.layoutId);eq(g.arena.preview.xs,g.arena.xs,'route preview describes the actual seeded spawn stations');
 }
 {
  const g=new Game({save:{unlocked:true}});g.start('local');g.skip();const cv=canvas(),r=new Renderer(cv);r.surfaceFactory=canvas;

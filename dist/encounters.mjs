@@ -40,6 +40,31 @@ const encounterProfileY=(x,profile)=>{
  for(let i=1;i<profile.length;i++)if(x<=profile[i][0]){const a=profile[i-1],b=profile[i],t=encounterEase((x-a[0])/(b[0]-a[0]));return a[1]+(b[1]-a[1])*t;}
  return profile[profile.length-1][1];
 };
+// A new run can vary its real stations without deforming the authored ground.
+// Keep this separate from encounterFor: the tutorial and reference fixtures can
+// retain their base layout, while previews and gameplay share the same variant.
+export function varyEncounter(encounter,seed=0){
+ const originalXs=[...(encounter.variation?.originalXs||encounter.xs)],originalPower=encounter.variation?.originalPower??encounter.geometry.recommendedPower;
+ const variationSeed=Number.isFinite(seed)?Math.trunc(seed)>>>0:0,bounds=arenaBounds(encounter.terrain),surface=encounter.terrain;
+ const safe=(x,origin)=>{
+  if(x<Math.max(70,bounds.left+70)||x>Math.min(1530,bounds.right-70)||Math.abs(encounterGround(x,surface)-encounterGround(origin,surface))>65)return false;
+  if(encounter.cover.some(([ox,,w])=>Math.abs(x-ox)<w/2+85))return false;
+  if(Math.abs(encounterGround(x+18,surface)-encounterGround(x-18,surface))>29)return false;
+  return [-18,-9,0,9,18].every(offset=>Math.abs((encounterGround(x+offset+3,surface)-encounterGround(x+offset-3,surface))/6)<=.9);
+ };
+ const candidates=originalXs.map(origin=>Array.from({length:19},(_,i)=>origin+(i-9)*20).filter(x=>safe(x,origin))),pairs=[];
+ for(const left of candidates[0])for(const right of candidates[1])if(right-left>=430&&right-left<=1540)pairs.push([left,right]);
+ let layoutHash=0;for(const letter of String(encounter.layoutId||''))layoutHash=Math.imul(layoutHash,31)+letter.charCodeAt(0)|0;
+ const selected=pairs.length?pairs[encounterHash(variationSeed^layoutHash)%pairs.length]:originalXs;
+ const xs=[...selected],profile=surface.profile.map(point=>[...point]),terrain={...surface,profile,...(surface.bounds?{bounds:{...surface.bounds}}:{})};
+ const leftY=encounterGround(xs[0],terrain),rightY=encounterGround(xs[1],terrain),distance=xs[1]-xs[0],baseDistance=originalXs[1]-originalXs[0];
+ const recommendedPower=Math.max(20,Math.min(100,Math.round(originalPower*Math.sqrt(distance/baseDistance)/5)*5));
+ const originalId=encounter.variation?.originalId??encounter.id;
+ return {...encounter,id:`${originalId}:stance:${variationSeed}`,terrain,xs,cover:encounter.cover.map(cover=>[...cover]),enemy:{...encounter.enemy},
+  geometry:{...encounter.geometry,distance,leftY,rightY,heightDelta:Math.round(leftY-rightY),recommendedPower},
+  preview:{...encounter.preview,profile:profile.map(point=>[...point]),xs:[...xs]},
+  variation:{seed:variationSeed,originalId,originalXs,originalPower,offsets:xs.map((x,i)=>x-originalXs[i])}};
+}
 export function encounterFor(seed,floor=1,route=0,previousId=''){
  floor=Math.max(1,Math.floor(floor));const offset=encounterHash(seed)%ARENAS.length;
  let index=(offset+floor-1+route*5)%ARENAS.length;if(ARENAS[index].id===previousId)index=(index+1)%ARENAS.length;
