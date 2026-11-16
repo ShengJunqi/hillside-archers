@@ -99,7 +99,7 @@ function appReady(){
  const noop=()=>{},ctx=new Proxy({},{get:(o,n)=>n in o?o[n]:n==='createLinearGradient'?()=>({addColorStop:noop}):noop,set:(o,n,v)=>{o[n]=v;return true;}});const canvas=ids.get('game');canvas.getContext=()=>ctx;
  const memory=new Map();let nextFrame,now=0;
  const sandbox={window,document,navigator:{maxTouchPoints:5},console,btoa,atob,localStorage:{getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)},ResizeObserver:class{observe(){}},performance:{now:()=>now},requestAnimationFrame:fn=>{nextFrame=fn;}};
- const context=vm.createContext(sandbox),modules=['names','combat','body','encounters','bounties','relics','core','save-transfer','emotes','feedback','scenery','render','input','display','cloud-save','cloud-client','cloud-ui','app'];
+ const context=vm.createContext(sandbox),modules=['names','combat','body','encounters','bounties','relics','collection','core','save-transfer','emotes','feedback','scenery','render','input','display','cloud-save','cloud-client','cloud-ui','app'];
  const code=modules.map(name=>fs.readFileSync(new URL('../dist/'+name+'.mjs',import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace(/\bexport /g,'')).join('\n');
  vm.runInContext(code+'\nglobalThis.testApi={game,input,get paused(){return paused;}};',context);
  const api=context.testApi,$=id=>ids.get(id),frame=()=>{now+=16.67;nextFrame(now);};frame();

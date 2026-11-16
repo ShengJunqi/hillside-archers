@@ -116,7 +116,7 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
     performance: {now: () => now}, requestAnimationFrame: fn => {nextFrame = fn;}};
   if (blockedStorage) Object.defineProperty(sandbox, 'localStorage', {get() {throw new Error('Storage access denied');}});
   const context = vm.createContext(sandbox);
-  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['names', 'combat', 'body', 'encounters', 'bounties', 'relics', 'core', 'save-transfer', 'emotes', 'feedback', 'scenery', 'render', 'input', 'display', 'cloud-save', 'cloud-client', 'cloud-ui', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
+  const code = offline ? html.match(/<script>([\s\S]*?)<\/script>/)[1] : ['names', 'combat', 'body', 'encounters', 'bounties', 'relics', 'collection', 'core', 'save-transfer', 'emotes', 'feedback', 'scenery', 'render', 'input', 'display', 'cloud-save', 'cloud-client', 'cloud-ui', 'app'].map(name => fs.readFileSync(new URL('../dist/' + name + '.mjs', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replace(/\bexport /g, '')).join('\n');
   vm.runInContext(code + '\nglobalThis.api={game,input,renderer,encodeProgress,archerName,sceneryStorageKey:SCENERY_KEY,playableCharacters:CHARACTERS.filter(c=>c.playable).map(c=>({id:c.id,initialSkills:c.initialSkills})),bowIds:BOWS.map(b=>b.id),arenaIds:ARENAS.map(a=>a.id),get paused(){return paused;}};', context);
   const api = context.api, $ = id => ids.get(id), frame = () => {now += 16.67; nextFrame(now);};
   frame();
@@ -181,10 +181,10 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
     equal(api.game.mode,mode,'free-mode button starts the requested match type');
     equal(api.game.arenaChoice,choice,'selected map is passed to the actual Game for '+mode);
     equal(api.game.arena.layoutId,api.arenaIds[choice-1],'free choice resolves to its actual physical template instead of wrapping to three maps: '+mode);
-    const arenaBeforeRestart=JSON.stringify([api.game.arena.layoutId,api.game.arena.xs,api.game.arena.terrain]);
+    const templateBeforeRestart=api.game.arena.layoutId,terrainBeforeRestart=JSON.stringify(api.game.arena.terrain);
     $('pause').click();$('restart').click();frame();
     equal(api.game.arenaChoice,choice,'restart retains a free map beyond the original three slots: '+mode);
-    equal(JSON.stringify([api.game.arena.layoutId,api.game.arena.xs,api.game.arena.terrain]),arenaBeforeRestart,'restart retains physical distance and elevation: '+mode);
+    equal(api.game.arena.layoutId,templateBeforeRestart,'restart retains the chosen physical terrain template: '+mode);equal(JSON.stringify(api.game.arena.terrain),terrainBeforeRestart,'randomizing stations does not rewrite the terrain: '+mode);equal(JSON.stringify(api.game.players.map(p=>p.x)),JSON.stringify(api.game.arena.xs),'restarted players occupy the newly previewed stations: '+mode);
     $('pause').click();$('pauseHome').click();frame();
   }
   $('mapChoice').value='1';
@@ -230,7 +230,7 @@ async function appChecks(offline = false, preference = 'auto', blockedStorage = 
   ok($('namesPanel').hidden && api.archerName(0) === '<b>X</b>', 'canceling defaults does not save an unwanted rename');
   $('resume').click(); frame();
   cv.dispatch('pointerdown', pointer(210, 300)); cv.dispatch('pointerup', pointer(210, 300, {buttons: 0})); frame();
-  equal(api.renderer.emote.kind, 'jump', 'real app tap starts a character animation');
+  equal(api.renderer.emote.kind, 'bowspin', 'real app tap starts the bow flourish');
   equal(api.game.phase, 'aim', 'app character animation does not consume a turn');
   ok(!$('touchControls').hidden, 'human turn has a touch control bar');
   const angle = api.game.angles[0]; $('angleUp').click(); frame(); equal(api.game.angles[0], angle + 1, 'touch + changes angle by one degree');

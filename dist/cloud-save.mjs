@@ -1,13 +1,26 @@
 import {validSave} from './core.mjs';
+import {claimCollection,collectionSummary} from './collection.mjs';
 
 export const CLOUD_META_KEY = 'hillside-archers-cloud-v1';
 export const CLOUD_BACKUP_KEY = 'hillside-archers-cloud-backups-v1';
 export const saveText = progress => JSON.stringify(validSave(progress));
 
+// Omission means an older v2 client never knew this optional field. Preserve
+// one complete known collection instead of clearing purchases or mixing wallets.
+function preserveLegacyCollection(selected, fallback) {
+  const current = validSave(selected), other = validSave(fallback);
+  return !current.collection && other.collection ? validSave({...current, collection: other.collection}) : current;
+}
+
+function generatedCollectionOnly(progress) {
+  return !progress.collection || JSON.stringify(progress.collection) === JSON.stringify(claimCollection(undefined, progress).profile);
+}
+
 // Records can be combined. Currency and purchased levels must travel together.
 export function reconcileCloudProgress(local, remote, choice) {
   const a = validSave(local), b = validSave(remote);
-  const result = {...(choice === 'local' ? a : b), unlocked: a.unlocked || b.unlocked};
+  const selected = choice === 'local' ? a : b, other = choice === 'local' ? b : a;
+  const result = {...preserveLegacyCollection(selected, other), unlocked: a.unlocked || b.unlocked};
   for (const key of ['targetBest', 'checkpoint', 'best']) result[key] = Math.max(a[key], b[key]);
   return validSave(result);
 }
@@ -28,7 +41,8 @@ export function progressSummary(progress) {
   const p = validSave(progress);
   return (p.unlocked ? '全部模式已解锁' : '主线第 ' + p.checkpoint + ' 章') +
     ' · 远征 ' + p.best + ' 层 · 射靶 ' + p.targetBest + ' 分\n余烬 ' + p.embers +
-    ' · 练弓 ' + p.bow + ' 级 · 强身 ' + p.life + ' 级';
+    ' · 练弓 ' + p.bow + ' 级 · 强身 ' + p.life + ' 级' +
+    (p.collection ? '\n' + collectionSummary(p.collection) : '');
 }
 
 export class CloudProgress {
@@ -69,7 +83,28 @@ export class CloudProgress {
         const remote = cloudRecord(await this.backend.read());
         if (epoch !== this.epoch) return;
         this.remote = remote;
-        const meta = this.meta, sameAccount = meta?.userId === this.user.id;
+        let meta = this.meta;
+        const sameAccount = meta?.userId === this.user.id;
+        const local = validSave(this.getSave());
+        const legacyCollectionBaseline = sameAccount && !validSave(meta.baseline).collection;
+        if (sameAccount && remote.progress?.collection && (!local.collection || legacyCollectionBaseline)) {
+          // Old browser metadata can have the same server revision while its
+          // normalizer omitted collection. Game may already have claimed record
+          // rewards from that legacy save, so a newly generated collection does
+          // not prove the old client knew about cloud purchases. Keep meaningful
+          // local collections for explicit selection, never overwrite either.
+          if (!this.atCamp()) {this.ready = false; this.state('waiting', '收藏资料已更新，回到旅营后载入。'); return;}
+          if (local.collection && !generatedCollectionOnly(local) && JSON.stringify(local.collection) !== JSON.stringify(remote.progress.collection)) {
+            this.ready = false;
+            this.state('choice', '本机和云端都有收藏进度，请选择要保留的整组收藏；购买和风格券一起保留。'); return;
+          }
+          this.backup(local);
+          this.storeMeta({...meta, baseline: meta.baseline ? preserveLegacyCollection(meta.baseline, remote.progress) : meta.baseline});
+          meta = this.meta;
+          this.applying = true;
+          try {this.applySave(validSave({...local, collection: remote.progress.collection}));}
+          finally {this.applying = false;}
+        }
         if (sameAccount && meta.pending) {
           this.ready = true;
           return; // Resume the exact request below, including its idempotency key.
@@ -85,7 +120,7 @@ export class CloudProgress {
           return;
         }
         this.ready = false;
-        this.state('choice', remote.progress ? '发现两份进度，请选择要保留的修行与余烬。纪录和解锁会合并。' : '此账号还没有云存档。确认后，将当前本机进度保存到账号。');
+        this.state('choice', remote.progress ? '发现两份进度，请选择要保留的修行、余烬与整组收藏。纪录和解锁会合并。' : '此账号还没有云存档。确认后，将当前本机进度保存到账号。');
       } catch (error) {
         if (epoch === this.epoch) this.state('error', error.message || '暂时无法连接云端，本机进度仍保留。');
       }
@@ -147,7 +182,7 @@ export class CloudProgress {
         if (result.status === 'conflict') {
           this.remote = result.revision ? cloudRecord(result) : {revision: 0, progress: null};
           this.storeMeta({...this.meta, pending: null}); this.ready = false;
-          this.state('choice', '另一设备刚更新了进度。已停止上传，请回旅营选择要保留的修行与余烬。'); return;
+          this.state('choice', '另一设备刚更新了进度。已停止上传，请回旅营选择要保留的修行、余烬与整组收藏。'); return;
         }
         if (result.status !== 'saved') throw new Error('未收到云端保存确认，本机进度仍保留。');
         const remote = cloudRecord(result);

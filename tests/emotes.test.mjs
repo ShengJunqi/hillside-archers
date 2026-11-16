@@ -18,12 +18,12 @@ class Canvas {
 const pointer=(x,y,timeStamp,pointerType='touch',extra={})=>({pointerId:1,isPrimary:true,pointerType,button:0,buttons:1,clientX:x,clientY:y,timeStamp,preventDefault(){},...extra});
 const setup=()=>{let randomCalls=0;const game=new Game({save:{unlocked:true},rng:()=>{randomCalls++;return .5;}});game.start('local');game.skip();const canvas=new Canvas(),renderer=new Renderer(canvas);let taps=0;const input=new AimInput(canvas,game,{onTap:()=>{taps++;renderer.playEmote(game);}});return {canvas,renderer,input,game,get taps(){return taps;},get randomCalls(){return randomCalls;}};};
 for(const type of ['mouse','touch','pen']){
-  const state=setup(),{canvas,game,renderer}=state,before=JSON.stringify(game);
+  const state=setup(),{canvas,game,renderer}=state,before=JSON.stringify(game),calls=state.randomCalls;
   canvas.dispatch('pointerdown',pointer(400,250,0,type));canvas.dispatch('pointerup',pointer(402,251,100,type));
-  eq(state.taps,1,type+' short tap triggers one emote');eq(renderer.emote.kind,'jump','first tap jumps');
-  eq(JSON.stringify(game),before,'emote does not change aim, health, turn, save or projectiles');eq(state.randomCalls,0,'cosmetic interaction does not change gameplay randomness');
+  eq(state.taps,1,type+' short tap triggers one emote');eq(renderer.emote.kind,'bowspin','first tap flourishes and catches the bow');
+  eq(JSON.stringify(game),before,'emote does not change aim, health, turn, save or projectiles');eq(state.randomCalls,calls,'cosmetic interaction does not change gameplay randomness');
   canvas.dispatch('pointerdown',pointer(400,250,200,type));canvas.dispatch('pointerup',pointer(400,250,260,type));
-  eq(renderer.emote.kind,'flex','next tap flexes');
+  eq(renderer.emote.kind,'shadowstep','next tap performs the low afterimage flourish');
   canvas.dispatch('pointerdown',pointer(400,250,300,type));canvas.dispatch('pointermove',pointer(280,290,350,type));canvas.dispatch('pointermove',pointer(400,250,380,type));canvas.dispatch('pointerup',pointer(400,250,400,type));
   eq(state.taps,2,'returning a pull to cancellation circle is not a tap');eq(game.phase,'aim','cancelled pull does not fire');
   canvas.dispatch('pointerdown',pointer(400,250,500,type));canvas.dispatch('pointerup',pointer(400,250,1000,type));eq(state.taps,2,'long hold inside circle does not trigger emote');

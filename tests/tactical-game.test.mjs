@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {Game,ground,trace,launch,position,applyUpgrade} from '../dist/core.mjs';
 import {ARENAS} from '../dist/encounters.mjs';
 import {createSkillState} from '../dist/combat.mjs';
+import {syncGroundContact} from '../dist/body.mjs';
 let checks=0;const ok=(v,m)=>{assert.ok(v,m);checks++;},eq=(a,b,m)=>{assert.deepEqual(a,b,m);checks++;};
 const create=(mode='duel',choice=1,hero='qingsong')=>{const g=new Game({save:{unlocked:true},rng:()=>.5});g.start(mode,choice,'split',hero);if(g.arena?.enemy)g.arena.enemy.id='steady';return g;};
 const waitForBody=(g,p)=>{let frames=0;while(p.body?.active&&frames++<270)g.update(1/60);ok(!p.body?.active,'living reaction recovers within a bounded real Game.update interval');return frames;};
@@ -22,10 +23,11 @@ function findBodyShot(g,side){
  for(let choice=1;choice<=ARENAS.length;choice++){
   const local=create('local',choice),duel=create('duel',choice),a=ARENAS[choice-1];
   eq(local.arena.layoutId,a.id,'local choice '+choice+' selects its authored physical layout');eq(duel.arena.layoutId,a.id,'NPC choice '+choice+' selects the same physical layout');
-  eq(local.players.map(p=>p.x),a.xs,'map '+a.id+' actually changes spawn distance');eq(local.players.map(p=>p.y),a.xs.map(x=>ground(x,local.world)),'map '+a.id+' actually uses its slope heights');
+  eq(local.players.map(p=>p.x),local.arena.xs,'map '+a.id+' uses the actual randomized stations');eq(local.players.map(p=>p.y),local.arena.xs.map(x=>ground(x,local.world)),'map '+a.id+' actually uses its slope heights');
   distances.add(local.players[1].x-local.players[0].x);elevations.add(Math.round(local.players[0].y-local.players[1].y));
   eq(local.orbs.length,0,'local map '+a.id+' starts without supply balls');
  }
+ for(let choice=1;choice<=ARENAS.length;choice++)for(const seed of [.03,.97]){const sampled=new Game({save:{unlocked:true},rng:()=>seed});sampled.start('local',choice);distances.add(sampled.arena.geometry.distance);}
  ok(distances.size>=10&&Math.min(...distances)<=560&&Math.max(...distances)>=1300,'selectable arenas span genuinely near and long-distance fights');
  ok(Math.max(...elevations)>=180&&Math.min(...elevations)<=-180,'map selection includes substantial uphill and downhill fire');
 }
@@ -76,6 +78,7 @@ for(const [mode,choice]of [['duel',8],['campaign',3]]){
 {
  const react=({hero='qingsong',impact=0,balance=0,npc=false,npcHero=false}={})=>{
   const g=create(npc?'duel':'local',8,hero),side=npc?1:0,source=g.players[side],target=g.players[1-side];
+  g.arena.terrain.profile=g.arena.terrain.profile.map(([x])=>[x,700]);g.obs=[];for(const p of g.players){p.y=700;syncGroundContact(p,x=>ground(x,g.world));}
   for(let i=0;i<impact;i++)applyUpgrade(source.stats,'impact');for(let i=0;i<balance;i++)applyUpgrade(target.stats,'balance');
   if(npcHero){source.characterId='panshi';source.skills=createSkillState('panshi');}
   clearContactTurn(g,side);const origin=target.x;contact(g);const damage=g.lastDamage;waitForBody(g,target);return {distance:Math.abs(target.x-origin),damage,hp:target.hp};

@@ -47,20 +47,20 @@ for(const [choice,a]of ARENAS.entries()){
  eq(a.xs,oldStations[a.id],a.id+': authored starting coordinates stay unchanged');
  for(const mode of ['local','duel']){
   const g=create(mode,choice+1);
-  eq(g.players.map(p=>p.x),oldStations[a.id],`${mode} ${a.id}: additional space does not separate the archers`);
-  eq(g.players.map(p=>p.y),oldStations[a.id].map(x=>ground(x,g.world)),`${mode} ${a.id}: initial terrain height is retained`);
+  eq(g.players.map(p=>p.x),g.arena.xs,`${mode} ${a.id}: players use the seeded stance preview`);
+  eq(g.players.map(p=>p.y),g.arena.xs.map(x=>ground(x,g.world)),`${mode} ${a.id}: initial terrain height is retained`);
   for(const [x,y]of a.profile)eq(ground(x,g.world),y,`${mode} ${a.id}: the original central profile node ${x} keeps its height`);
   eq(arenaBounds(g.world),{left:ARENA_LEFT,right:ARENA_RIGHT,width:ARENA_RIGHT-ARENA_LEFT},`${mode} ${a.id}: runtime uses expanded physical bounds`);
   eq(g.orbs.length,0,`${mode} ${a.id}: larger space does not add opening pickups`);
  }
  const target=create('target',choice+1);
- eq(target.players.map(p=>p.x),[220,oldStations[a.id][1]],a.id+': target mode keeps its existing shooter station');
+ eq(target.players.map(p=>p.x),[220,target.arena.xs[1]],a.id+': target mode keeps the existing shooter station while the descriptor varies');
  const rogue=create('rogue');rogue.pendingEncounter=encounterFor(0,choice+1);rogue.encounterFloor=0;rogue.setup();
  eq(rogue.players.map(p=>p.x),oldStations[a.id],a.id+': roguelike setup also keeps the authored stations');
 }
 for(const [stage,id]of ['yard','dock','signs'].entries()){
  const g=create('campaign',stage+1);
- eq(g.players.map(p=>p.x),oldStations[id],id+': campaign initial spacing is unchanged');
+ eq(g.players.map(p=>p.x),g.arena.xs,id+': campaign uses its actual stance descriptor');if(stage===0)eq(g.players.map(p=>p.x),oldStations[id],'tutorial keeps its authored learning stations');
  eq(g.players[1].hp,stage===0?50:100,id+': expanded maps retain chapter health balance');
 }
 
@@ -141,4 +141,4 @@ for(const stage of [1,2,3]){
  eq(g.opponent.volleyCap,[24,28,30][stage-1],'chapter '+stage+': damage allowance does not grow with map size');
 }
 
-console.log(checks+' expanded-world, unchanged-spawn, long-range, edge-recovery and NPC-budget checks passed.');
+console.log(checks+' expanded-world, descriptor-spawn, long-range, edge-recovery and NPC-budget checks passed.');
