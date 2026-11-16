@@ -304,3 +304,7 @@ body[data-layout="mobile"][data-orientation="landscape"] .quick-start { padding-
 .account-card details textarea { font-size: 12px; }
 body[data-layout="mobile"] .account-card .primary { width: 100%; justify-content: center; }
 @media (max-width: 600px) { .save-comparison { grid-template-columns: 1fr; gap: 8px; } }
+
+/* Supply-only stops keep the next-route action easy to reach on phones. */
+.supply-continue { margin: 18px auto 0; }
+body[data-layout="mobile"] .supply-continue { width: min(100%, 340px); min-height: 48px; white-space: normal; }

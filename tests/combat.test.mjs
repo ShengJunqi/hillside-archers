@@ -87,7 +87,7 @@ for (const stage of [1, 2, 3]) {
   const g = create('rogue'); g.players[0].hp = 30; g.skip();
   eq(g.players[0].hp, 40, 'initial composure skill heals on own turn');
   g.players[0].hp = 20; g.readyTurn(); eq(g.players[0].hp, 20, 'initial skill activates only once per encounter');
-  g.phase = 'upgrade'; g.choices = [{id: 'fire'}]; g.chooseUpgrade('fire');
+  g.floor = 2; g.complete(true); g.resultNext(); g.choices = [{id: 'fire'}]; g.chooseUpgrade('fire');
   eq(g.players[0].skills.initial, ['composure'], 'initial skills remain after relic');
   eq(g.players[0].skills.extra, ['fire'], 'relic recorded separately');
   eq(g.players[0].skills.weapon, 'split', 'relic does not replace bow skill');
