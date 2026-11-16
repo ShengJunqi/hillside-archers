@@ -86,3 +86,12 @@ GitHub 集成可能缺少开启 Pages 所需的管理权限。此仓库首次创
 - 当前没有可调用的浏览器控制工具，尚未验收真实浏览器完整操作或手机 GPU 帧率。原站以官方部署成功状态确认，独立 HTTP 字节核验在备用站完成。
 
 新版说明：https://shengjunqi.github.io/hillside-archers/tactical-terrain-notes.txt 。离线 HTML 约 4.24 MB，包含六项高清图片与字体许可，不依赖原站或外部图片服务。
+
+## 0.16.1 扩展退让地面与弓箭射程
+
+- 玩法源码提交 `f91205234bc7f0e2b9d644fcad7e534d772149e4`，发布源码 ZIP 对应含协作提示词更新的 `1f35ac87e2c9081fd5d32b44a7a4adad1b8f87a0`。PR：https://github.com/ShengJunqi/hillside-archers/pull/13 ，基于 `feat/tactical-terrain`，未合并 main。[源码 CI](https://github.com/ShengJunqi/hillside-archers/actions/runs/43788918838)成功。
+- 原站已发布 Sites 第20版，官方部署返回 `succeeded`；静态源码提交 `1d74ec8d0dae581780a0cc72ecb3072fa645d3fd`。原公开访问方式、账号配置与下载入口继续保留。
+- 备用站 `gh-pages` 提交 `fd0c6824441199558295bb3c016720b22e4d3bbb`，通过 [Pages 构建](https://github.com/ShengJunqi/hillside-archers/actions/runs/43788914613)。所有48个已跟踪发布文件均 HTTP 200 且 SHA-256 与本机发布文件一致，包括公开云配置、全部模块与图片、离线 HTML、源码 ZIP 和协作下载。
+- 十二图原始出生坐标、初始距离、中央地形及掩体保留；两侧各补1000单位地面，真实世界为−1000..2600。箭速500→800，伤害和NPC保护预算保持原值。角色根节点、关节、投射物、补给、镜头及地表缓存共用实际边界。
+- `npm run build`、完整 `npm test`、`git diff --check`通过。新增回归覆盖跨越旧边界的连续击退、起身／回合交接、新边缘反向脱离、最远两端真实弹道与AI、原始站距以及桌面／竖屏全景。原生 Canvas 导出并检查9个画面，修复高清背景露边、手机全景裁人和地表缓存下方黑条。
+- 离线 HTML 为4,241,838字节；保持v2存档兼容，没有新增模型请求或后端资源。当前无可用浏览器控制入口，真实浏览器完整操作和手机GPU帧率尚未验收；原站以官方成功部署状态确认，独立文件字节核验在备用站完成。

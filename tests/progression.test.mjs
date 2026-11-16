@@ -96,8 +96,12 @@ for(const floor of [12,18,24]){
   const g=game();for(const [id,n]of Object.entries(builds[floor]))for(let i=0;i<n;i++)applyUpgrade(g.stats,id);
   eq(Object.values(builds[floor]).reduce((sum,n)=>sum+n,0),floor-1,'benchmark build uses exactly earned relics');
   g.floor=floor;g.setup();g.obs=[];g.skip();
-  const hits=[];for(let angle=5;angle<=75;angle++){const hit=trace(g.players[0],g.players[1],angle,[],g.world);if(hit.kind==='hit')hits.push({angle,part:hit.part});}
-  const angle=hits.find(hit=>hit.part==='head')?.angle||hits[0].angle;g.aim(angle,100);const startHp=g.players[1].hp;g.shoot();
+  let shot;for(const power of new Set([g.arena.geometry.recommendedPower,...Array.from({length:17},(_,i)=>100-i*5)])){
+   const hits=[];for(let angle=5;angle<=75;angle++){const hit=trace(g.players[0],g.players[1],angle,[],g.world,power);if(hit.kind==='hit')hits.push({angle,power,part:hit.part});}
+   if(hits.length){shot=hits.find(hit=>hit.part==='head')||hits[0];break;}
+  }
+  ok(shot,'representative build has a legal integer-angle shot at an appropriate draw strength');
+  g.aim(shot.angle,shot.power);const startHp=g.players[1].hp;g.shoot();
   for(let i=0;i<1500&&['flight','settle'].includes(g.phase);i++){
    if(g.arrows.length&&!g.skillUsed&&g.players[1].x-position(g.arrows[0],g.arrows[0].t).x<splitDistance)g.activateSkill();
    g.update(1/60);

@@ -51,3 +51,5 @@ CloudBase 管理连接已配置：国内站、上海，已有环境见 `.cloudba
 账号入口按用户要求只保留账号密码登录（兼容邮箱密码）与验证邮箱注册；不恢复验证码登录或自助密码重置。找回入口联系 sheng.327@osu.edu，管理员核对注册邮箱后只改原用户密码，不删号重建，避免 UID 变化导致丢云存档。新账号注册保留一次邮箱验证，不能用前端管理密钥绕过 CloudBase 认证。
 
 0.16起 `game.world` / `game.arena.terrain` 才是真实物理地形，`game.map` 仅区域／美术色系；不要把新地图接成只换背景。自由模式使用12个arenaChoice，重开须保留。AI chooseAI会设置本轮power，不得在readyTurn/shoot前写回100。受击同volley共享位移边界；起身保留落点，动态碰撞跟真实nodes。站位建立／改变后调用syncGroundContact采样双脚（射靶x220覆盖也要同步）。悬赏、重选、finisher均是局内临时状态，不写永久存档。KO只在真实HP归零触发一次，退出清除；非战斗预览的睁眼／起身只改视觉副本。
+
+0.16.1起W1600仅是画面／原交战区基准；真实世界边界用encounters.arenaBounds(game.world)，当前为−1000..2600。人物、关节、箭、补给、镜头与地表缓存需共用此范围。扩展两侧空间时不增加人物初始距离，中央profile采样不变；不要重新硬编码0..W为物理限位。updateBody通过worldMinX/worldMaxX接收真实边界，minX/maxX仍用于对手安全间距。

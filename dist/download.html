@@ -844,8 +844,14 @@ function impactBody(p, {point, vx, vy, damage, part, angle = 25, volleyId = null
 function updateBody(p, dt, terrain, width = 1600, options = {}) {
   const body = p.body;
   if (!body?.active || body.sleeping) {syncGroundContact(p, terrain); return;}
-  const lower = Math.max(55, Number.isFinite(options.minX) ? options.minX : 55);
-  const upper = Math.min(width - 55, Number.isFinite(options.maxX) ? options.maxX : width - 55);
+  // The view width is retained for legacy callers; extended arenas declare
+  // their own world coordinates, including retreat ground left of zero.
+  // Root and joint bounds must use the same extent or a crossing body tears
+  // back toward the old view edge while its station continues moving.
+  const worldMin = Number.isFinite(options.worldMinX) ? options.worldMinX : 0;
+  const worldMax = Math.max(worldMin + 110, Number.isFinite(options.worldMaxX) ? options.worldMaxX : width);
+  const lower = limit(Number.isFinite(options.minX) ? options.minX : worldMin + 55, worldMin + 55, worldMax - 55);
+  const upper = limit(Number.isFinite(options.maxX) ? options.maxX : worldMax - 55, worldMin + 55, worldMax - 55);
   const minX = Math.min(lower, upper), maxX = Math.max(lower, upper);
   const obstacles = (options.obstacles || []).filter(o => o.state === 'standing');
   body.accumulator += Math.min(Math.max(0, dt), .1);
@@ -892,7 +898,7 @@ function updateBody(p, dt, terrain, width = 1600, options = {}) {
         one.x += dx * correction; one.y += dy * correction; two.x -= dx * correction; two.y -= dy * correction;
       });
       for (const [key, n] of Object.entries(body.nodes)) {
-        n.x = limit(n.x, 10, width - 10);
+        n.x = limit(n.x, worldMin + 10, worldMax - 10);
         const radius = key === 'head' ? 12 : key === 'hip' || key === 'chest' ? 9 : 4;
         const floorNode = terrain(n.x) - radius;
         if (n.y > floorNode) {n.y = floorNode; n.py = floorNode; n.px += (n.x - n.px) * .35;}
@@ -918,19 +924,32 @@ function updateBody(p, dt, terrain, width = 1600, options = {}) {
 
 // Authored physical arenas: distances and elevations are gameplay, not backdrops.
 // Profile nodes use a monotone smooth interpolation so each shelf is walkable.
+// Keep the original combat coordinates; extra land is retreat room, not a
+// larger opening gap. W=1600 remains the presentation/reference coordinate size.
+const ARENA_LEFT=-1000,ARENA_RIGHT=2600;
+function arenaBounds(terrain){
+ const bounds=terrain?.bounds,left=bounds?.left,right=bounds?.right;
+ return Number.isFinite(left)&&Number.isFinite(right)&&right>left?{left,right,width:right-left}:{left:0,right:1600,width:1600};
+}
+function retreatProfile(profile){
+ const leftY=profile[0][1],rightY=profile.at(-1)[1];
+ // Gentle inward-facing berms ease a fighter off the far wall. The whole
+ // original 0..1600 surface, including both starting shelves, stays exact.
+ return [[ARENA_LEFT,leftY-60],[ARENA_LEFT+300,leftY],...profile.map(p=>[...p]),[ARENA_RIGHT-300,rightY],[ARENA_RIGHT,rightY-60]];
+}
 const ARENAS=Object.freeze([
- {id:'yard',name:'歪旗训练场',kind:'近距浅谷',xs:[520,1080],landmark:'stands',tip:'近距离对射；浅谷给低抛留出空间，半力也能打出好落点',profile:[[0,735],[350,735],[470,690],[580,690],[800,735],[1020,690],[1130,690],[1250,735],[1600,735]],cover:[[800,'crate',72,54]],recommendedPower:70},
- {id:'bowl',name:'碗底俱乐部',kind:'高岸深谷',xs:[360,1240],landmark:'bowl',tip:'左岸高、右岸低，中间深谷；下坡试着收力，上坡抬角度',profile:[[0,650],[180,650],[300,560],[450,560],[800,755],[1140,680],[1300,680],[1470,740],[1600,740]],cover:[[730,'crate',80,58],[940,'post',30,70]],recommendedPower:85},
- {id:'dock',name:'歪脖子码头',kind:'超远平岸',xs:[140,1460],landmark:'crane',tip:'长距离双岸；先打薄木桩，也能越过低箱直达身体',profile:[[0,730],[90,670],[280,670],[620,710],[1020,710],[1320,670],[1510,670],[1600,730]],cover:[[500,'crate',76,64],[800,'post',32,86],[1110,'crate',76,64]],recommendedPower:100},
- {id:'ridge',name:'巨龟背上',kind:'仰攻高台',xs:[260,1340],landmark:'turtle',tip:'右侧高出两层楼；仰攻要抬角，顶上的对手也得重新算落点',profile:[[0,750],[140,680],[390,680],[650,630],[920,570],[1210,470],[1400,470],[1600,650]],cover:[[630,'crate',68,52],[1030,'post',28,65]],recommendedPower:100},
- {id:'market',name:'打烊夜市',kind:'陡岸俯射',xs:[300,1300],landmark:'market',tip:'左高右低；高处不代表稳赢，近乎直射的满力箭容易飞过',profile:[[0,650],[80,650],[240,470],[420,470],[650,580],[920,715],[1160,650],[1360,650],[1600,750]],cover:[[720,'crate',76,60],[1030,'post',30,72]],recommendedPower:85},
- {id:'bridge',name:'纸箱收费站',kind:'短桥双坡',xs:[440,1160],landmark:'bridge',tip:'双岸短距离；第五回合中央路障会倒，别一直等同一个角度',rule:'collapse',profile:[[0,740],[220,740],[350,650],[540,650],[800,755],[1060,650],[1240,650],[1400,740],[1600,740]],cover:[[700,'crate',66,55],[800,'post',32,96],[925,'crate',66,55]],recommendedPower:85},
- {id:'signs',name:'路标全写反了',kind:'落差长坡',xs:[180,1420],landmark:'signs',tip:'两侧相差240高度；左侧俯射，右侧仰射，照搬角度一定歪',profile:[[0,610],[130,470],[330,470],[610,590],[900,590],[1260,710],[1470,710],[1600,760]],cover:[[580,'post',28,66],[1020,'post',28,66]],recommendedPower:100},
- {id:'festival',name:'空碗颁奖台',kind:'贴身快打',xs:[540,1060],landmark:'podium',tip:'最短赛场；力度很重要，补给更偏爱心，抓住对手失误',supply:'hearts',profile:[[0,700],[300,700],[480,640],[620,640],[800,680],[980,640],[1120,640],[1300,700],[1600,700]],cover:[[800,'crate',82,50]],recommendedPower:65},
- {id:'switchback',name:'弯路不包邮',kind:'错层上坡',xs:[280,1320],landmark:'signs',tip:'先越矮岭再上高台；掩体倒下后，用较低弧线逼对手失衡',profile:[[0,770],[100,770],[220,710],[410,710],[640,650],[810,750],[1120,530],[1390,530],[1600,700]],cover:[[620,'crate',72,52],[970,'post',30,68]],recommendedPower:100},
- {id:'sinkhole',name:'漏风碗底',kind:'双崖深沟',xs:[400,1200],landmark:'bowl',tip:'两岸齐平，中间陷得很深；看清地形，低抛不会被谷底吞掉',profile:[[0,730],[120,730],[330,620],[500,620],[760,770],[880,770],[1100,620],[1270,620],[1490,730],[1600,730]],cover:[[720,'crate',72,55],[890,'crate',72,55]],recommendedPower:80},
- {id:'balcony',name:'楼上请收箭',kind:'高台远投',xs:[160,1440],landmark:'market',tip:'右台很高、距离也远；打出稳定仰角，再抢下空中补给',profile:[[0,735],[100,650],[310,650],[700,700],[970,610],[1290,440],[1480,440],[1600,610]],cover:[[660,'crate',78,62],[1090,'post',30,62]],recommendedPower:100},
- {id:'crossing',name:'上下班交界',kind:'阶梯中场',xs:[380,1220],landmark:'stands',tip:'右边高一层，中间有缓台；身体命中也能把对手推离好位置',profile:[[0,730],[80,730],[320,650],[490,650],[710,590],[900,625],[1100,560],[1290,560],[1530,680],[1600,680]],cover:[[720,'crate',70,54],[980,'post',28,62]],recommendedPower:85}
+ {id:'yard',name:'歪旗训练场',kind:'近距浅谷',xs:[520,1080],landmark:'stands',tip:'近距离对射；浅谷给低抛留出空间，半力也能打出好落点',profile:[[0,735],[350,735],[470,690],[580,690],[800,735],[1020,690],[1130,690],[1250,735],[1600,735]],cover:[[800,'crate',72,54]],recommendedPower:45},
+ {id:'bowl',name:'碗底俱乐部',kind:'高岸深谷',xs:[360,1240],landmark:'bowl',tip:'左岸高、右岸低，中间深谷；下坡试着收力，上坡抬角度',profile:[[0,650],[180,650],[300,560],[450,560],[800,755],[1140,680],[1300,680],[1470,740],[1600,740]],cover:[[730,'crate',80,58],[940,'post',30,70]],recommendedPower:55},
+ {id:'dock',name:'歪脖子码头',kind:'超远平岸',xs:[140,1460],landmark:'crane',tip:'长距离双岸；先打薄木桩，也能越过低箱直达身体',profile:[[0,730],[90,670],[280,670],[620,710],[1020,710],[1320,670],[1510,670],[1600,730]],cover:[[500,'crate',76,64],[800,'post',32,86],[1110,'crate',76,64]],recommendedPower:65},
+ {id:'ridge',name:'巨龟背上',kind:'仰攻高台',xs:[260,1340],landmark:'turtle',tip:'右侧高出两层楼；仰攻要抬角，顶上的对手也得重新算落点',profile:[[0,750],[140,680],[390,680],[650,630],[920,570],[1210,470],[1400,470],[1600,650]],cover:[[630,'crate',68,52],[1030,'post',28,65]],recommendedPower:65},
+ {id:'market',name:'打烊夜市',kind:'陡岸俯射',xs:[300,1300],landmark:'market',tip:'左高右低；高处不代表稳赢，近乎直射的满力箭容易飞过',profile:[[0,650],[80,650],[240,470],[420,470],[650,580],[920,715],[1160,650],[1360,650],[1600,750]],cover:[[720,'crate',76,60],[1030,'post',30,72]],recommendedPower:55},
+ {id:'bridge',name:'纸箱收费站',kind:'短桥双坡',xs:[440,1160],landmark:'bridge',tip:'双岸短距离；第五回合中央路障会倒，别一直等同一个角度',rule:'collapse',profile:[[0,740],[220,740],[350,650],[540,650],[800,755],[1060,650],[1240,650],[1400,740],[1600,740]],cover:[[700,'crate',66,55],[800,'post',32,96],[925,'crate',66,55]],recommendedPower:55},
+ {id:'signs',name:'路标全写反了',kind:'落差长坡',xs:[180,1420],landmark:'signs',tip:'两侧相差240高度；左侧俯射，右侧仰射，照搬角度一定歪',profile:[[0,610],[130,470],[330,470],[610,590],[900,590],[1260,710],[1470,710],[1600,760]],cover:[[580,'post',28,66],[1020,'post',28,66]],recommendedPower:65},
+ {id:'festival',name:'空碗颁奖台',kind:'贴身快打',xs:[540,1060],landmark:'podium',tip:'最短赛场；力度很重要，补给更偏爱心，抓住对手失误',supply:'hearts',profile:[[0,700],[300,700],[480,640],[620,640],[800,680],[980,640],[1120,640],[1300,700],[1600,700]],cover:[[800,'crate',82,50]],recommendedPower:40},
+ {id:'switchback',name:'弯路不包邮',kind:'错层上坡',xs:[280,1320],landmark:'signs',tip:'先越矮岭再上高台；掩体倒下后，用较低弧线逼对手失衡',profile:[[0,770],[100,770],[220,710],[410,710],[640,650],[810,750],[1120,530],[1390,530],[1600,700]],cover:[[620,'crate',72,52],[970,'post',30,68]],recommendedPower:65},
+ {id:'sinkhole',name:'漏风碗底',kind:'双崖深沟',xs:[400,1200],landmark:'bowl',tip:'两岸齐平，中间陷得很深；看清地形，低抛不会被谷底吞掉',profile:[[0,730],[120,730],[330,620],[500,620],[760,770],[880,770],[1100,620],[1270,620],[1490,730],[1600,730]],cover:[[720,'crate',72,55],[890,'crate',72,55]],recommendedPower:50},
+ {id:'balcony',name:'楼上请收箭',kind:'高台远投',xs:[160,1440],landmark:'market',tip:'右台很高、距离也远；打出稳定仰角，再抢下空中补给',profile:[[0,735],[100,650],[310,650],[700,700],[970,610],[1290,440],[1480,440],[1600,610]],cover:[[660,'crate',78,62],[1090,'post',30,62]],recommendedPower:65},
+ {id:'crossing',name:'上下班交界',kind:'阶梯中场',xs:[380,1220],landmark:'stands',tip:'右边高一层，中间有缓台；身体命中也能把对手推离好位置',profile:[[0,730],[80,730],[320,650],[490,650],[710,590],[900,625],[1100,560],[1290,560],[1530,680],[1600,680]],cover:[[720,'crate',70,54],[980,'post',28,62]],recommendedPower:55}
 ]);
 const ENEMY_STYLES=Object.freeze([
  {id:'steady',name:'认真打工人',tip:'偏好低弧线与身体落点'},
@@ -949,8 +968,8 @@ function encounterFor(seed,floor=1,route=0,previousId=''){
  floor=Math.max(1,Math.floor(floor));const offset=encounterHash(seed)%ARENAS.length;
  let index=(offset+floor-1+route*5)%ARENAS.length;if(ARENAS[index].id===previousId)index=(index+1)%ARENAS.length;
  const a=ARENAS[index],map=(encounterHash(seed+91)%3+floor-1+Math.floor((floor-1)/3)+route)%3;
- const style=ENEMY_STYLES[(encounterHash(seed+507)+floor+route)%ENEMY_STYLES.length],profile=a.profile.map(p=>[...p]);
- const terrain={shape:'profile',profile,map,key:`${a.id}:${map}`};
+ const style=ENEMY_STYLES[(encounterHash(seed+507)+floor+route)%ENEMY_STYLES.length],profile=retreatProfile(a.profile);
+ const terrain={shape:'profile',profile,map,key:`${a.id}:${map}`,bounds:{left:ARENA_LEFT,right:ARENA_RIGHT}};
  const leftY=encounterProfileY(a.xs[0],profile),rightY=encounterProfileY(a.xs[1],profile),heightDelta=Math.round(leftY-rightY);
  const geometry={distance:a.xs[1]-a.xs[0],leftY,rightY,heightDelta,relief:Math.max(...profile.map(p=>p[1]))-Math.min(...profile.map(p=>p[1])),kind:a.kind,recommendedPower:a.recommendedPower};
  return {id:`${seed}:${floor}:${route}:${a.id}`,layoutId:a.id,name:a.name,map,terrain,xs:[...a.xs],cover:a.cover.map(c=>[...c]),landmark:a.landmark,tip:a.tip,rule:a.rule||'none',supply:a.supply||(route?'hearts':'mixed'),enemy:{...style},boss:floor%3===0,geometry,preview:{profile:profile.map(p=>[...p]),xs:[...a.xs]}};
@@ -1053,7 +1072,7 @@ function rewardBounty(state){
  return {completed:complete,granted,heal:granted&&state.spec.reward.kind==='heal'?state.spec.reward.amount:0,rerolls:granted&&state.spec.reward.kind==='reroll'?1:0};
 }
 
-const W=1600,H=900,G=155,SPEED=500,MAX_ARROWS=24;
+const W=1600,H=900,G=155,SPEED=800,MAX_ARROWS=24;
 const FINISHER_DURATION=1.35;
 const MAX_ELEMENT_LEVEL=999,MAX_STATUS_STACKS=9999;
 const MAPS=[{name:'青岚古道',sub:'松风起处，第一支箭',sky:['#294c50','#8fb2a1'],far:'#517c76',near:'#345c55',soil:'#324839',grass:'#91a979',accent:'#e9c17b'},{name:'赤砂关隘',sub:'长谷与断墙之间',sky:['#694e59','#ddb386'],far:'#b78373',near:'#805d5b',soil:'#644b40',grass:'#c59c69',accent:'#f5bf75'},{name:'星坠遗迹',sub:'借一束星光，穿过长夜',sky:['#101d3d','#46627d'],far:'#334d6a',near:'#263d58',soil:'#293e4b',grass:'#7a9d9a',accent:'#a4dfd4'}];
@@ -1139,7 +1158,8 @@ function collision(p,target,obs,map,ignored=new Set()){
    if(limb&&(target.groundContact||limb.part==='arms'))return limb;
   }
  }
- if(p.x<-50||p.x>W+50||p.y>H+30)return {kind:'miss'};
+ const bounds=arenaBounds(map);
+ if(p.x<bounds.left-50||p.x>bounds.right+50||p.y>H+30)return {kind:'miss'};
  if(p.y>=ground(p.x,map))return {kind:'ground'};return null;
 }
 function trace(p,target,angle,obs,map,power=100){const b=launch(p,angle,power);for(let t=1/240;t<12;t+=1/240){const r=collision(position(b,t),target,obs,map);if(r)return r;}return {kind:'miss'};}
@@ -1229,7 +1249,7 @@ class Game{
  }
  pickup(orb,b,p){if(orb.used)return;orb.used=true;const shooter=this.players[this.active];if(orb.type==='heart'){this.lastHeal=this.heal(shooter,20+shooter.stats.heal*15,orb.x,orb.y-25);}else{const currentVy=b.vy+G*b.t;const extra={x:p.x,y:p.y,vx:b.vx,vy:currentVy+(this.volleyCount%2?1:-1)*(this.active===1&&this.mode!=='local'?Math.min(48,22+this.volleyCount*6):8),scale:b.scale??1,pierce:b.pierce,ignored:new Set(b.ignored)};if(this.addArrow(extra))this.pop(orb.x,orb.y-35,'+1  共 '+this.volleyCount+' 箭','#f6dc85');else this.pop(orb.x,orb.y-35,'箭雨已满','#f6dc85');}this.fx('pickup',orb.x,orb.y,orb.type==='heart'?'#eaa1a0':'#f2d080');const bonus=pickupSkillHealing(shooter);if(bonus){this.heal(shooter,bonus);this.pop(shooter.x,shooter.y-165,'拾光 · 回血'+bonus,'#b6e7c0');}this.emit('pickup',{kind:orb.type,x:orb.x,y:orb.y,orbId:orb.id});}
  tickArrows(dt){let left=dt;while(left>0&&this.arrows.length){const h=Math.min(left,1/300);for(const b of [...this.arrows]){b.t+=h;const p=position(b,b.t);if(Math.floor(b.t*40)!==b.lastTrail){this.trails.push({x:p.x,y:p.y,t:1});b.lastTrail=Math.floor(b.t*40);}for(const orb of this.orbs)if(!orb.used&&Math.hypot(p.x-orb.x,p.y-orb.y)<=orb.r)this.pickup(orb,b,p);if(this.mode==='target')for(const target of this.targets)if(!target.used&&Math.hypot(p.x-target.x,p.y-target.y)<=target.r){this.hitTargetBoard(target);b.dead=true;break;}if(b.dead)continue;const r=collision(p,this.mode==='target'?{x:-500,y:0}:this.players[1-this.active],this.obs,this.world,b.ignored);if(r){this.impact=p;if(r.kind==='obstacle'){this.hitObstacle(r.o,this.players[this.active].dir);if(b.pierce>0){b.pierce--;b.ignored.add(r.o.id);}else b.dead=true;}else{if(r.kind==='hit')this.hitTarget(b,r,p);b.dead=true;}}if(b.t>14)b.dead=true;}this.arrows=this.arrows.filter(b=>!b.dead);left-=h;}if(!this.arrows.length)this.setPhase('settle');}
- spawnOrbs(){if(this.mode==='target'||this.mode==='campaign'&&this.stage<3)return;this.orbs=this.orbs.filter(o=>!o.used);for(let i=0;i<2&&this.orbs.length<12;i++){const shooter=this.players[i];const offset=220+this.rng()*270;const a=24+this.rng()*13;const b=launch(shooter,a,this.arena?.geometry.recommendedPower||100);const p=position(b,offset/Math.abs(b.vx));const orb={id:'orb-'+this.round+'-'+i,x:Math.max(80,Math.min(W-80,p.x)),y:Math.min(p.y,ground(p.x,this.world)-65),r:25,type:this.rng()<(this.arena?.supply==='hearts'?.3:.65)?'plus':'heart',used:false};for(const o of this.obs)if(o.state==='standing'&&Math.abs(orb.x-o.x)<o.w/2+orb.r&&orb.y+orb.r>o.y-o.h)orb.y=o.y-o.h-orb.r-12;for(let n=0;n<12&&this.orbs.some(o=>Math.hypot(o.x-orb.x,o.y-orb.y)<58);n++)orb.y-=60;orb.y=Math.max(55,orb.y);this.orbs.push(orb);}}
+ spawnOrbs(){if(this.mode==='target'||this.mode==='campaign'&&this.stage<3)return;this.orbs=this.orbs.filter(o=>!o.used);const bounds=arenaBounds(this.world);for(let i=0;i<2&&this.orbs.length<12;i++){const shooter=this.players[i];const offset=220+this.rng()*270;const a=24+this.rng()*13;const b=launch(shooter,a,this.arena?.geometry.recommendedPower||100);const p=position(b,offset/Math.abs(b.vx));const orb={id:'orb-'+this.round+'-'+i,x:Math.max(bounds.left+80,Math.min(bounds.right-80,p.x)),y:Math.min(p.y,ground(p.x,this.world)-65),r:25,type:this.rng()<(this.arena?.supply==='hearts'?.3:.65)?'plus':'heart',used:false};for(const o of this.obs)if(o.state==='standing'&&Math.abs(orb.x-o.x)<o.w/2+orb.r&&orb.y+orb.r>o.y-o.h)orb.y=o.y-o.h-orb.r-12;for(let n=0;n<12&&this.orbs.some(o=>Math.hypot(o.x-orb.x,o.y-orb.y)<58);n++)orb.y-=60;orb.y=Math.max(55,orb.y);this.orbs.push(orb);}}
  nextTurn(){if(this.mode==='target'){if(!this.volleyTargetHits)this.targetMisses++;if(this.targetMisses>=3){this.save.targetBest=Math.max(this.save.targetBest,this.targetScore);this.persist();this.win=false;this.winner=0;this.setPhase('defeat');return;}this.round++;this.active=0;if(this.targets.every(t=>t.used))this.newTargets();this.setPhase('scout');return;}if(this.players[1-this.active].hp<=0){this.complete(this.active===0||this.mode==='local');return;}this.active=1-this.active;this.round++;this.applyArenaRule();this.spawnOrbs();const p=this.players[this.active],source=this.players[1-this.active],poisonActive=p.status.poisonTurns>0,burning=p.status.burnTurns>0;let tick=0;if(p.status.burnTurns>0){tick+=p.status.burn*5;p.status.burnTurns--;if(!p.status.burnTurns)p.status.burn=0;}if(p.status.poisonTurns>0){tick+=p.status.poison*(burning?5:3);p.status.poisonTurns--;if(!p.status.poisonTurns)p.status.poison=0;}if(tick){const dealt=this.damage(p,tick,source,{leech:poisonActive});if(dealt)this.pop(p.x,p.y-145,'持续伤害 −'+dealt,'#c2d784');}if(p.hp<=0){this.beginFinisher(p,{part:'body',element:poisonActive&&burning?'venomfire':poisonActive?'poison':'fire',dir:source.dir,cause:'status',arrows:0});impactBody(p,{point:{x:p.x,y:p.y-60},vx:source.dir*50,vy:20,damage:tick,part:'body',angle:this.angles[this.active]});this.complete(this.active!==0||this.mode==='local');return;}if(p.stats.cleanse){const before=p.status.burn+p.status.poison;for(const key of ['burn','poison'])p.status[key]=Math.ceil(p.status[key]*(1-p.stats.cleanse));if(p.status.burn+p.status.poison<before)this.pop(p.x,p.y-170,'净化 · 保留 '+Math.round((1-p.stats.cleanse)*100)+'% 层数','#b1d2d9');}if(p.stats.regen)this.heal(p,p.stats.regen*5+p.stats.armor*2);if(this.active===1&&this.mode!=='local')this.readyTurn();else this.setPhase('scout');}
  complete(win){this.win=win;this.winner=this.mode==='local'?(this.players[0].hp>0?0:1):win?0:1;if(win&&this.mode==='campaign'){if(this.stage===3){this.save.unlocked=true;this.save.checkpoint=1;}else this.save.checkpoint=Math.max(this.save.checkpoint,this.stage+1);this.persist();}if(this.mode==='rogue'){if(win){this.save.best=Math.max(this.save.best,this.floor);this.save.embers+=this.floor%3===0?3:1;this.persist();}this.emit('run',{floor:this.floor,win});}this.emit(win?'victory':'defeat');this.setPhase(win?'victory':'defeat');}
  resultNext(){if(this.phase==='victory'&&this.mode==='rogue'){this.choices=this.rollUpgrades();this.nextRoutes=encounterRoutes(this.runSeed,this.floor+1,this.encounter?.layoutId);this.selectedRoute=this.nextRoutes[0].id;this.setPhase('upgrade');return;}if(this.phase==='victory'&&this.mode==='campaign'&&this.stage<3){this.stage++;this.stats=baseStats();this.setup();this.setPhase('intro');return;}if(this.phase==='defeat'&&this.mode==='campaign'){this.setup();this.setPhase('scout');return;}this.goHome();}
@@ -1240,7 +1260,7 @@ class Game{
  chooseUpgrade(id){if(this.phase!=='upgrade'||!this.choices.some(c=>c.id===id))return false;applyUpgrade(this.stats,id);this.upgrades.push(id);const p=this.players[0];p.stats=this.stats;this.heal(p,(id==='vital'?25:id==='heal'?20:12)+(this.floor%3===0?25:0));this.pendingEncounter=this.nextRoutes.find(r=>r.id===this.selectedRoute)||this.nextRoutes[0];this.floor++;this.stage=3;this.setup(false);this.setPhase('scout');return true;}
  buy(id){if(!this.save.unlocked||!['bow','life'].includes(id)||this.save[id]>=5)return false;const cost=3+this.save[id]*2;if(this.save.embers<cost)return false;this.save.embers-=cost;this.save[id]++;this.persist();return true;}
  chooseAI(){
-  const p=this.players[1],target=this.players[0],style=(this.encounter||this.arena)?.enemy.id||'steady',powers=[100,90,80,70,60,50,40,30];let hits=[],blocked=[];
+  const p=this.players[1],target=this.players[0],style=(this.encounter||this.arena)?.enemy.id||'steady',powers=Array.from({length:17},(_,i)=>100-i*5);let hits=[],blocked=[];
   for(const power of powers)for(let angle=5;angle<=75;angle++){
    // First reject trajectories that never cross the target's standing height.
    const arrow=launch(p,angle,power),t=(target.x-arrow.x)/arrow.vx;if(t<=0||t>=12)continue;
@@ -1271,7 +1291,7 @@ class Game{
   const chosen=candidates[Math.min(candidates.length-1,Math.floor(this.rng()*candidates.length))],error=chosen.angle>=45?Math.min(2,this.opponent.error):this.opponent.error;
   this.powers[1]=chosen.power;return Math.max(5,Math.min(75,Math.round(chosen.angle+(this.rng()*2-1)*error)));
  }
- update(dt){dt=Math.min(dt,.05);if(this.hitStop>0){this.hitStop=Math.max(0,this.hitStop-dt);dt*=.2;}this.totalTime+=dt;this.phaseTime+=dt;if(this.finisher)this.finisher.age=Math.min(this.finisher.duration+.1,this.finisher.age+dt);for(const f of this.vfx)f.t-=dt;this.vfx=this.vfx.filter(f=>f.t>0);if(this.mode==='target')for(const t of this.targets)t.y=t.baseY+Math.sin(this.totalTime*1.1+t.seed)*24;this.shake=Math.max(0,this.shake-dt);for(const [i,p] of this.players.entries()){p.poseAngle=this.angles[i];updateBody(p,dt,x=>ground(x,this.world),W,{minX:i===0?55:Math.max(55,this.players[0].x+100),maxX:i===0?Math.min(W-55,this.players[1].x-100):W-55,obstacles:this.obs});p.recoil=Math.max(0,p.recoil-dt);if(p.hp<=0)p.deadTime+=dt;}for(const o of this.obs)if(o.state==='falling'){o.rot=Math.min(Math.PI/2,o.rot+dt*3);if(o.rot>=Math.PI/2)o.state='fallen';}for(const e of this.effects){e.t-=dt;e.y-=dt*20;}this.effects=this.effects.filter(e=>e.t>0);for(const t of this.trails)t.t-=dt*.32;this.trails=this.trails.filter(t=>t.t>0).slice(-1500);
+ update(dt){dt=Math.min(dt,.05);if(this.hitStop>0){this.hitStop=Math.max(0,this.hitStop-dt);dt*=.2;}this.totalTime+=dt;this.phaseTime+=dt;if(this.finisher)this.finisher.age=Math.min(this.finisher.duration+.1,this.finisher.age+dt);for(const f of this.vfx)f.t-=dt;this.vfx=this.vfx.filter(f=>f.t>0);if(this.mode==='target')for(const t of this.targets)t.y=t.baseY+Math.sin(this.totalTime*1.1+t.seed)*24;this.shake=Math.max(0,this.shake-dt);const bounds=arenaBounds(this.world);for(const [i,p] of this.players.entries()){p.poseAngle=this.angles[i];updateBody(p,dt,x=>ground(x,this.world),W,{worldMinX:bounds.left,worldMaxX:bounds.right,minX:i===0?bounds.left+55:Math.max(bounds.left+55,this.players[0].x+100),maxX:i===0?Math.min(bounds.right-55,this.players[1].x-100):bounds.right-55,obstacles:this.obs});p.recoil=Math.max(0,p.recoil-dt);if(p.hp<=0)p.deadTime+=dt;}for(const o of this.obs)if(o.state==='falling'){o.rot=Math.min(Math.PI/2,o.rot+dt*3);if(o.rot>=Math.PI/2)o.state='fallen';}for(const e of this.effects){e.t-=dt;e.y-=dt*20;}this.effects=this.effects.filter(e=>e.t>0);for(const t of this.trails)t.t-=dt*.32;this.trails=this.trails.filter(t=>t.t>0).slice(-1500);
  if(this.phase==='intro'&&this.phaseTime>=this.storyBeatDuration*3)this.setPhase('scout');else if(this.phase==='scout'&&this.phaseTime>=this.scoutDuration)this.readyTurn();else if(this.phase==='thinking'){this.angles[1]=this.chooseAI();this.shoot();}else if(this.phase==='flight')this.tickArrows(dt);else if(this.phase==='settle'&&this.phaseTime>=.85&&!this.players.some(p=>p.hp>0&&p.body?.active))this.nextTurn();}
 }
 
@@ -1438,7 +1458,10 @@ class Renderer{
    const layer=this.surfaceFactory?.(1800,1013)??(typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(1800,1013):globalThis.document?.createElement?.('canvas'));
    if(layer?.getContext){layer.width=1800;layer.height=1013;const l=layer.getContext('2d');if(l){l.imageSmoothingEnabled=true;l.imageSmoothingQuality='high';l.drawImage(image,0,0,1800,1013);l.globalCompositeOperation='destination-in';const fade=l.createLinearGradient(0,0,0,1013);fade.addColorStop(0,'#00000000');fade.addColorStop(.13,'#000000');fade.addColorStop(1,'#000000');l.fillStyle=fade;l.fillRect(0,0,1800,1013);l.globalCompositeOperation='source-over';this.backdropLayer=layer;}}
   }
-  c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';const shift=(this.cam.x-W/2)*.12;c.drawImage(this.backdropLayer||image,-100+shift,-220,1800,1013);c.restore();
+  // Follow distant stations and cover a zoomed-out view without exposing the
+  // source image's vertical edges. Keep its base at the same ground horizon.
+  const parallax=(this.cam.x-W/2)*.15,artWidth=Math.max(1800,this.canvas.width/Math.max(.001,this.cam.z)+Math.abs(parallax)*2+160),artHeight=artWidth*1013/1800;
+  c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(this.backdropLayer||image,this.cam.x-parallax-artWidth/2,793-artHeight,artWidth,artHeight);c.restore();
   return true;
  }
  background(map,t,encounter=null){
@@ -1541,47 +1564,51 @@ class Renderer{
   c.restore();
  }
  terrainBase(game){
-  const c=this.c,m=SCENERY_PALETTES[this.sceneryAssetId||sceneryAssetFor(this.sceneryStyle,game.map,game.arena||game.encounter)],pts=[[0,H+700]];
-  for(let x=0;x<=W;x+=2)pts.push([x,ground(x,game.world)]);pts.push([W,H+700]);
+  const c=this.c,m=SCENERY_PALETTES[this.sceneryAssetId||sceneryAssetFor(this.sceneryStyle,game.map,game.arena||game.encounter)],{left,right,width}=arenaBounds(game.world),density=width/W,pts=[[left,H+700]];
+  for(let x=left;x<=right;x+=2)pts.push([x,ground(x,game.world)]);pts.push([right,H+700]);
   c.save();c.beginPath();pts.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();c.clip();
-  let top=H;for(let x=0;x<=W;x+=24)top=Math.min(top,ground(x,game.world));
-  const soil=c.createLinearGradient(0,top,0,top+650);soil.addColorStop(0,m.soil[0]);soil.addColorStop(.3,m.soil[1]);soil.addColorStop(1,m.soil[2]);c.fillStyle=soil;c.fillRect(0,0,W,H+700);
-  if(this.terrainTexture){c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.globalCompositeOperation='soft-light';c.globalAlpha=.92;c.drawImage(this.terrainTexture,0,Math.max(0,top-30),W,1100);c.restore();}
-  for(let x=0;x<W;x+=8){const y=ground(x,game.world),next=ground(x+8,game.world),slope=(next-y)/8;c.globalAlpha=rClamp(Math.abs(slope)*.24,0,.25);this.poly([[x,y+4],[x+8,next+4],[x+8,next+64],[x,y+64]],slope>0?m.shade:m.light);}c.globalAlpha=1;
+  let top=H;for(let x=left;x<=right;x+=24)top=Math.min(top,ground(x,game.world));
+  const soil=c.createLinearGradient(0,top,0,top+650);soil.addColorStop(0,m.soil[0]);soil.addColorStop(.3,m.soil[1]);soil.addColorStop(1,m.soil[2]);c.fillStyle=soil;c.fillRect(left,0,width,H+700);
+  if(this.terrainTexture){c.save();c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.globalCompositeOperation='soft-light';c.globalAlpha=.92;for(let x=left;x<right;x+=W)c.drawImage(this.terrainTexture,x,Math.max(0,top-30),W,1100);c.restore();}
+  for(let x=left;x<right;x+=8){const y=ground(x,game.world),next=ground(x+8,game.world),slope=(next-y)/8;c.globalAlpha=rClamp(Math.abs(slope)*.24,0,.25);this.poly([[x,y+4],[x+8,next+4],[x+8,next+64],[x,y+64]],slope>0?m.shade:m.light);}c.globalAlpha=1;
   // Irregular geological beds follow the actual slope, with shaded crevices.
   for(let band=0;band<6;band++){
-   const upper=[],lower=[];for(let x=0;x<=W;x+=14){const y=ground(x,game.world)+28+band*69+Math.sin(x/(120+band*19)+band*3.8)*(9+band*2)+Math.sin(x/43+band)*3;upper.push([x,y]);lower.unshift([x,y+22+band*5]);}
+   const upper=[],lower=[];for(let x=left;x<=right;x+=14){const y=ground(x,game.world)+28+band*69+Math.sin(x/(120+band*19)+band*3.8)*(9+band*2)+Math.sin(x/43+band)*3;upper.push([x,y]);lower.unshift([x,y+22+band*5]);}
    this.poly([...upper,...lower],band%2?m.rock+'28':m.shade+'38');this.line(upper,band%2?m.light+'30':m.shade+'70',1.5);
   }
   // Large, varied stone faces use curves and facet highlights, not repeated tiles.
-  for(let i=0;i<(this.terrainTexture?14:88);i++){
-   const x=rHash(i*7+63)*W,y=ground(x,game.world)+28+rHash(i*3+81)*330,w=9+rHash(i+11)*70,h=6+rHash(i+53)*31;
+  for(let i=0;i<Math.ceil((this.terrainTexture?14:88)*density);i++){
+   const x=left+rHash(i*7+63)*width,y=ground(x,game.world)+28+rHash(i*3+81)*330,w=9+rHash(i+11)*70,h=6+rHash(i+53)*31;
    c.save();c.translate(x,y);c.rotate((rHash(i+3)-.5)*.35);c.beginPath();c.moveTo(-w/2,1);c.quadraticCurveTo(-w*.65,-h*.7,-w*.23,-h);c.quadraticCurveTo(w*.23,-h*1.18,w*.5,-h*.48);c.lineTo(w*.4,3);c.quadraticCurveTo(-w*.1,h*.2,-w/2,1);c.fillStyle=i%3?m.rock+'55':m.shade+'66';c.fill();
    this.line([[-w*.37,-h*.65],[-w*.16,-h*.9],[w*.2,-h*.82]],m.light+'45',1);this.line([[w*.18,-h*.6],[w*.36,-h*.34],[w*.3,1]],m.shade+'88',1);c.restore();
   }
   // Deterministic grain is baked once into the cached soil surface.
-  for(let i=0;i<(this.terrainTexture?450:3900);i++){const x=rHash(i*5+906)*W,y=ground(x,game.world)+6+rHash(i*11+431)*490;c.globalAlpha=.07+rHash(i+19)*.12;this.rect(x,y,1+rHash(i+7)*2,1,i%3?m.light:m.shade);}c.globalAlpha=1;
+  for(let i=0;i<Math.ceil((this.terrainTexture?450:3900)*density);i++){const x=left+rHash(i*5+906)*width,y=ground(x,game.world)+6+rHash(i*11+431)*490;c.globalAlpha=.07+rHash(i+19)*.12;this.rect(x,y,1+rHash(i+7)*2,1,i%3?m.light:m.shade);}c.globalAlpha=1;
+  const deep=c.createLinearGradient(0,H+500,0,H+700);deep.addColorStop(0,m.soil[2]+'00');deep.addColorStop(1,m.soil[2]);c.fillStyle=deep;c.fillRect(left,H+500,width,200);
   c.restore();
-  const lip=[];for(let x=0;x<=W;x+=2)lip.push([x,ground(x,game.world)+4]);this.line(lip,m.shade,11);this.line(lip,m.grass,7);this.line(lip.map(([x,y])=>[x,y-3]),m.edge,2.4);
-  for(let i=0;i<330;i++){
-   const x=rHash(i*3+61)*W,y=ground(x,game.world),h=3+rHash(i+19)*12,slope=rClamp((ground(x+3,game.world)-ground(x-3,game.world))/6,-1.5,1.5),lean=(rHash(i+31)-.5)*11+slope*h*.38;
+  const lip=[];for(let x=left;x<=right;x+=2)lip.push([x,ground(x,game.world)+4]);this.line(lip,m.shade,11);this.line(lip,m.grass,7);this.line(lip.map(([x,y])=>[x,y-3]),m.edge,2.4);
+  for(let i=0;i<Math.ceil(330*density);i++){
+   const x=left+rHash(i*3+61)*width,y=ground(x,game.world),h=3+rHash(i+19)*12,slope=rClamp((ground(x+3,game.world)-ground(x-3,game.world))/6,-1.5,1.5),lean=(rHash(i+31)-.5)*11+slope*h*.38;
    this.line([[x-2,y+2],[x+lean,y-h]],i%4?m.grass:m.edge,1.1+rHash(i)*1.3);
    if(i%9===0){this.line([[x+2,y],[x+5,y-10],[x+11,y-14]],m.grass,1.4);this.circle(x+11,y-14,1.7,m.light);}
   }
-  for(let i=0;i<22;i++){const x=12+rHash(i+801)*(W-24),y=ground(x,game.world)+1;this.stone(x,y,7+rHash(i)*16,4+rHash(i+13)*7,m.rock,i);}
+  for(let i=0;i<Math.ceil(22*density);i++){const x=left+12+rHash(i+801)*(width-24),y=ground(x,game.world)+1;this.stone(x,y,7+rHash(i)*16,4+rHash(i+13)*7,m.rock,i);}
  }
  terrain(game){
   this.terrainTexture=this.scenery.get('earth');
+  const {left,right,width}=arenaBounds(game.world);
   const artKey=this.sceneryStyle+':'+this.sceneryAssetId+':'+this.scenery.revision;
   if(this.terrainMap!==game.map||this.terrainKey!==game.world||this.terrainArtKey!==artKey){
    this.terrainMap=game.map;this.terrainKey=game.world;this.terrainArtKey=artKey;this.terrainLayer=null;
-   const surface=this.surfaceFactory?.(W,1600)??(typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(W,1600):globalThis.document?.createElement?.('canvas'));
-   if(surface?.getContext){surface.width=W;surface.height=1600;const c=surface.getContext('2d');if(c){const original=this.c;this.c=c;this.terrainBase(game);this.c=original;this.terrainLayer=surface;}}
+   const surface=this.surfaceFactory?.(width,1600)??(typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(width,1600):globalThis.document?.createElement?.('canvas'));
+   if(surface?.getContext){surface.width=width;surface.height=1600;const c=surface.getContext('2d');if(c){const original=this.c;this.c=c;c.save();c.translate(-left,0);this.terrainBase(game);c.restore();this.c=original;this.terrainLayer=surface;}}
   }
-  const edge=SCENERY_PALETTES[this.sceneryAssetId||sceneryAssetFor(this.sceneryStyle,game.map,game.arena||game.encounter)];this.rect(-W,ground(0,game.world),W,H+700,edge.soil[1]);this.rect(W,ground(W,game.world),W,H+700,edge.soil[1]);
-  if(this.terrainLayer)this.c.drawImage(this.terrainLayer,0,0);else this.terrainBase(game);
+  const edge=SCENERY_PALETTES[this.sceneryAssetId||sceneryAssetFor(this.sceneryStyle,game.map,game.arena||game.encounter)];this.rect(left-W,ground(left,game.world),W,H+700,edge.soil[1]);this.rect(right,ground(right,game.world),W,H+700,edge.soil[1]);
+  // Extreme portrait overview can look below the cached 1600px soil layer.
+  if(this.cam.y>H+700)this.rect(left-W,H+700,width+W*2,this.cam.y-(H+700)+2,edge.soil[2]);
+  if(this.terrainLayer)this.c.drawImage(this.terrainLayer,left,0);else this.terrainBase(game);
   for(const mark of this.skidMarks||[]){this.c.save();this.c.globalAlpha=Math.min(.45,mark.t*.45);this.line([[mark.x,ground(mark.x,game.world)+1],[mark.to,ground(mark.to,game.world)+1]],edge.shade,3);this.c.restore();}
-  const stations=(game.arena||game.encounter)?.xs||game.players.map(p=>p.homeX??p.x);for(const [side,station]of stations.entries()){const x=rClamp(station+(side?64:-64),28,W-28);const y=ground(x,game.world);this.line([[x,y],[x,y-111]],'#2a3731',6);this.line([[x-1,y],[x-1,y-111]],'#9b8861',2);const flap=Math.sin(this.time*2.8+x)*6;
+  const stations=(game.arena||game.encounter)?.xs||game.players.map(p=>p.homeX??p.x);for(const [side,station]of stations.entries()){const x=rClamp(station+(side?64:-64),left+28,right-28);const y=ground(x,game.world);this.line([[x,y],[x,y-111]],'#2a3731',6);this.line([[x-1,y],[x-1,y-111]],'#9b8861',2);const flap=Math.sin(this.time*2.8+x)*6;
    this.inkpoly([[x+1,y-110],[x+41,y-104+flap*.2],[x+31,y-91+flap*.4],[x+43,y-79+flap],[x+1,y-84]],game.map===1?'#b76c44':'#376c5a',ART[game.map].ink,2);this.line([[x+6,y-104],[x+28,y-99+flap*.2]],'#f1d49366',2);this.stone(x,y+2,19,7,ART[game.map].rock,x);}
  }
  arrow(x,y,a,color='#e7d5a7',size=1){const c=this.c;c.save();c.translate(x,y);c.rotate(a);c.scale(size,size);this.line([[-30,.5],[8,.5]],'#20323ad9',5);this.rect(-29,-1,37,3,color);this.inkpoly([[8,-5],[17,0],[8,5]],'#e1e7d7','#20323ad9',1);this.poly([[-28,-1],[-36,-7],[-24,-5],[-19,-1]],color);this.poly([[-28,1],[-36,7],[-24,5],[-19,1]],color);c.restore();}
@@ -1846,7 +1873,7 @@ class Renderer{
  }
  overviewCamera(game){
   const viewW=this.canvas.width,viewH=this.canvas.height,players=game.mode==='target'?[game.players[0],...(game.targets||[]).filter(t=>!t.used).map(t=>({x:t.x,y:t.y+55}))]:game.players;
-  const left=Math.max(0,Math.min(...players.map(p=>p.x))-115),right=Math.min(W,Math.max(...players.map(p=>p.x))+115);
+  const bounds=arenaBounds(game.world),left=Math.max(bounds.left,Math.min(...players.map(p=>p.x))-115),right=Math.min(bounds.right,Math.max(...players.map(p=>p.x))+115);
   let top=Math.min(...players.map(p=>p.y-160)),bottom=Math.max(...players.map(p=>p.y+30));
   for(let xx=left;xx<=right;xx+=24){const yy=ground(xx,game.world);top=Math.min(top,yy-35);bottom=Math.max(bottom,yy+50);}
   const z=Math.min(viewW/Math.max(480,right-left),viewH*.6/Math.max(240,bottom-top),1.28*Math.max(1,viewW/W));
@@ -1893,7 +1920,7 @@ class Renderer{
   return self;
  }
  draw(game,dt,{drag=null,paused=false}={}){this.time+=paused?0:dt;this.observeVisuals(game,paused?0:dt);if(this.emote){if(!game.canAim||drag||game.active!==this.emote.side||game.players[this.emote.side].body?.active)this.emote=null;else if(!paused){this.emote.time+=dt;if(this.emote.time>=this.emote.duration)this.emote=null;}}const viewW=this.canvas.width,viewH=this.canvas.height,cinematic=['home','intro','victory','defeat','upgrade','loadout'].includes(game.phase),plan=this.cameraPlan(game),finishing=this.finisherFrame(game);let {x,y,z}=plan;
- z=rClamp(z,.18,2.8);const half=viewW/2/z;x=half>=W/2?W/2:rClamp(x,half,W-half);
+ const bounds=arenaBounds(game.world);z=rClamp(z,Math.min(.18,viewW/bounds.width),2.8);const half=viewW/2/z;x=half>=bounds.width/2?(bounds.left+bounds.right)/2:rClamp(x,bounds.left+half,bounds.right-half);
  const changed=this.lastPhase!==game.phase,snap=this.resized||!this.lastPhase||changed&&(['scout','aim'].includes(game.phase)||this.lastPhase==='home'&&game.phase==='intro')||this.reducedMotion&&game.phase==='scout';this.resized=false;
  const rate=game.phase==='scout'?13:game.phase==='flight'?6.5:game.phase==='settle'?8:7,blend=snap?1:1-Math.exp(-(paused?0:dt)*rate);this.cam.z+=(z-this.cam.z)*blend;this.cam.x+=(x-this.cam.x)*blend;this.cam.y+=(y-this.cam.y)*blend;this.lastPhase=game.phase;const c=this.c;c.save();c.clearRect(0,0,viewW,viewH);const cssH=this.canvas.getBoundingClientRect?.().height||viewH,shake=this.feedback.update(paused?0:dt,{reduced:this.reducedMotion,scale:viewH/cssH});c.translate(viewW/2+shake.x,viewH+shake.y);c.scale(this.cam.z,this.cam.z);c.translate(-this.cam.x,-this.cam.y);this.background(game.map,this.time,game.arena||game.encounter);this.terrain(game);
  if(cinematic){this.cinematic(game);}else{this.objects(game);this.finisherWorld(game);for(const point of game.trails){c.globalAlpha=Math.min(.6,point.t);this.rect(point.x,point.y,3,3,'#efd6a0');}c.globalAlpha=1;for(let i=0;i<(game.mode==='target'?1:2);i++)this.character(game.players[i],i,{time:this.time,angle:game.angles[i],drawn:game.active===i&&['aim','thinking'].includes(game.phase),dead:game.players[i].hp<=0,boss:i===1&&game.mode==='rogue'&&game.floor%3===0,bow:i===0&&game.mode==='rogue'?game.skill:'plain',emote:this.emote?.side===i?this.emote:null});if(game.canAim){const p=game.players[game.active],b=launch(p,game.angles[game.active],game.powers[game.active]);for(let j=1;j<12;j++){const pt=position(b,j*.045);if(pt.y>=ground(pt.x,game.world))break;this.circle(pt.x,pt.y,3.2,'#20323abf');this.circle(pt.x,pt.y,1.9,'#fff0d4');}const strength=game.powers[game.active];this.rect(p.x-41,p.y-157,82,31,'#152d2bdb');this.text(game.angles[game.active]+'°',p.x-12,p.y-134,22,'#edd4a0');this.line([[p.x+10,p.y-151],[p.x+10,p.y-134]],'#8baa8155',1);this.text(strength<=50?'轻':strength<=75?'半':strength<=90?'强':'满',p.x+25,p.y-136,13,'#c6e5cb');this.rect(p.x-37,p.y-129,74,3,'#557267');this.rect(p.x-37,p.y-129,74*strength/100,3,'#e6c98c');this.poly([[p.x-7,p.y-120],[p.x+7,p.y-120],[p.x,p.y-113]],'#edd4a0');}

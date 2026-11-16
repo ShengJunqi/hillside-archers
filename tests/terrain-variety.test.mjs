@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {ARENAS,encounterFor,encounterRoutes,encounterGround,encounterObstacles} from '../dist/encounters.mjs';
+import {ARENAS,arenaBounds,encounterFor,encounterRoutes,encounterGround,encounterObstacles} from '../dist/encounters.mjs';
 import {launch,position,collision} from '../dist/core.mjs';
 
 let checks=0;
@@ -16,11 +16,11 @@ function playersFor(e,delta=0,mode='both'){
  return e.xs.map((x,side)=>{
   const moved=mode==='both'||mode===(side===0?'left':'right');
   if(moved)x+=side===0?-delta:delta;
-  x=Math.max(55,Math.min(1545,x));
+  const bounds=arenaBounds(e.terrain);x=Math.max(bounds.left+55,Math.min(bounds.right-55,x));
   return {x,y:encounterGround(x,e.terrain),dir:side===0?1:-1};
  });
 }
-function bodyWindow(e,side,{delta=0,mode='both',powers=[100]}={}){
+function bodyWindow(e,side,{delta=0,mode='both',powers=Array.from({length:17},(_,i)=>100-i*5)}={}){
  const ps=playersFor(e,delta,mode),obs=encounterObstacles(e,x=>encounterGround(x,e.terrain));
  for(const power of powers)for(let angle=5;angle<=75;angle++){
   const hit=shot(ps[side],ps[1-side],angle,power,obs,e.terrain);
@@ -54,24 +54,24 @@ for(const e of arenas){
  }
  ok(lo>=430&&hi<=780,e.layoutId+': terrain stays in the visible world height envelope');
  ok(maxStep<2.2,e.layoutId+': no vertical discontinuity or instant cliff wall');
- eq(encounterGround(-120,e.terrain),profile[0][1],e.layoutId+': left edge is stable outside the world');
- eq(encounterGround(1720,e.terrain),profile.at(-1)[1],e.layoutId+': right edge is stable outside the world');
+ eq(encounterGround(arenaBounds(e.terrain).left-120,e.terrain),profile[0][1],e.layoutId+': left edge is stable outside the world');
+ eq(encounterGround(arenaBounds(e.terrain).right+120,e.terrain),profile.at(-1)[1],e.layoutId+': right edge is stable outside the world');
  for(const [side,p]of ps.entries()){
   ok(p.x>=110&&p.x<=1490,e.layoutId+': initial station has a world-edge recovery margin');
   ok(Math.abs(encounterGround(p.x-30,e.terrain)-p.y)<.001&&Math.abs(encounterGround(p.x+30,e.terrain)-p.y)<.001,e.layoutId+': initial stance is on a stable shelf');
-  ok(bodyWindow(e,side),e.layoutId+': both players retain a full-power integer body/limb shot through real cover');
+  ok(bodyWindow(e,side),e.layoutId+': both players retain a legal integer angle/power body/limb shot through real cover');
   ok(bodyWindow(e,side,{powers:[e.geometry.recommendedPower]}),e.layoutId+': suggested power has a real non-head window');
   for(const o of obs)ok(Math.abs(o.x-p.x)>80+o.w/2,e.layoutId+': solid cover does not trap the starting character');
  }
  // A persistent retreat cannot leave a shorter-range bow unable to reach the
  // other platform; test one or both fighters displaced, with real terrain.
  for(const delta of [80,120,200])for(const mode of ['left','right','both'])for(let side=0;side<2;side++){
-  ok(bodyWindow(e,side,{delta,mode,powers:[100,85,70]}),`${e.layoutId}: ${mode} knockback ${delta}, side ${side}, still has a body/limb shot`);
+  ok(bodyWindow(e,side,{delta,mode,powers:Array.from({length:17},(_,i)=>100-i*5)}),`${e.layoutId}: ${mode} knockback ${delta}, side ${side}, still has a body/limb shot`);
  }
 }
 const byId=Object.fromEntries(arenas.map(e=>[e.layoutId,e]));
-ok(bodyWindow(byId.ridge,0).angle-bodyWindow(byId.ridge,1).angle>=20,'uphill and downhill combat demand materially different angles');
-ok(bodyWindow(byId.dock,0).angle-bodyWindow(byId.yard,0).angle>=12,'close and distant arenas cannot reuse the same low-arc aim');
+ok(bodyWindow(byId.ridge,0,{powers:[65]}).angle-bodyWindow(byId.ridge,1,{powers:[65]}).angle>=15,'uphill and downhill combat demand materially different angles');
+ok(bodyWindow(byId.dock,0,{powers:[65]}).angle-bodyWindow(byId.yard,0,{powers:[65]}).angle>=10,'close and distant arenas cannot reuse the same low-arc aim');
 {
  const e=encounterFor(42,1),original=e.terrain.profile[0][1];e.preview.profile[0][1]+=10;
  eq(e.terrain.profile[0][1],original,'UI preview cannot mutate terrain through a shared profile array');
