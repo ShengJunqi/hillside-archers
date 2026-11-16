@@ -1073,13 +1073,14 @@ function rewardBounty(state){
 }
 
 const W=1600,H=900,G=155,SPEED=800,MAX_ARROWS=24;
+const DIVE_SCALE=1.45,DIVE_PICKUP_PADDING=40;
 const FINISHER_DURATION=1.35;
 const MAX_ELEMENT_LEVEL=999,MAX_STATUS_STACKS=9999;
 const MAPS=[{name:'青岚古道',sub:'松风起处，第一支箭',sky:['#294c50','#8fb2a1'],far:'#517c76',near:'#345c55',soil:'#324839',grass:'#91a979',accent:'#e9c17b'},{name:'赤砂关隘',sub:'长谷与断墙之间',sky:['#694e59','#ddb386'],far:'#b78373',near:'#805d5b',soil:'#644b40',grass:'#c59c69',accent:'#f5bf75'},{name:'星坠遗迹',sub:'借一束星光，穿过长夜',sky:['#101d3d','#46627d'],far:'#334d6a',near:'#263d58',soil:'#293e4b',grass:'#7a9d9a',accent:'#a4dfd4'}];
 const BOWS=[
 {id:'split',name:'逐风弓',skill:'散羽',icon:'↟',color:'#9ed5b0',desc:'箭飞到合适位置时，分成三支散射箭。每支造成 60% 伤害，可继承元素。',tip:'接近对手时分裂，或提前分裂收集更多小球。'},
-{id:'dive',name:'落星弓',skill:'星坠',icon:'↓',color:'#afc4ed',desc:'让所有飞箭向下俯冲，伤害提高 25%，额外穿过一个障碍。',tip:'高抛到对手头顶，再按空格俯冲。'},
-{id:'burst',name:'焰灯弓',skill:'引爆',icon:'✺',color:'#edb27b',desc:'引爆飞箭，对附近目标和障碍造成范围伤害，可附加元素效果。',tip:'飞到对手附近再引爆；空中炸开也能破坏掩体。'}];
+{id:'dive',name:'落星弓',skill:'星坠',icon:'↓',color:'#afc4ed',desc:'按住进入三分之一速度并预瞄，松开让飞箭俯冲。伤害 +45%，穿障 +1；星引扩大拾球范围，追加箭继承星坠。',tip:'飞行中按住空格／画面／弓术键预瞄，←→或横拖调方向，松开俯冲。下坠箭会吸取沿途附近的小球。'},
+{id:'burst',name:'焰灯弓',skill:'引爆',icon:'✺',color:'#edb27b',desc:'每支箭绑一枚炸弹；引爆清障后箭继续以双倍速度、双倍直接伤害飞行，额外穿障并可跳弹一次。',tip:'接近对手或掩体时引爆；爆风开路，助推箭继续命中。打地面还能跳弹，追加箭继承剩余助推状态。'}];
 const SYNERGIES=[
 {id:'melt',name:'融爆',needs:['fire','ice'],desc:'火 + 冰：直接命中追加融爆，消耗冰霜效果。'},
 {id:'venomfire',name:'毒焰',needs:['fire','poison'],desc:'火 + 毒：灼烧期间，中毒每层每回合从 3 提高到 5 点。'},
@@ -1145,6 +1146,12 @@ function validSave(raw){let a;try{a=typeof raw==='string'?JSON.parse(raw):raw;}c
 function zones(p){return [{part:'head',x:p.x-12,y:p.y-108,w:24,h:25,damage:42},{part:'body',x:p.x-17,y:p.y-83,w:34,h:43,damage:26},{part:'legs',x:p.x-15,y:p.y-40,w:30,h:30,damage:18},{part:'feet',x:p.x-20,y:p.y-10,w:40,h:11,damage:12}];}
 function launch(p,angle,power=100){const a=angle*Math.PI/180;return {x:p.x+p.dir*32,y:p.y-66,vx:p.dir*SPEED*power/100*Math.cos(a),vy:-SPEED*power/100*Math.sin(a)};}
 function position(b,t){return {x:b.x+b.vx*t,y:b.y+b.vy*t+G*t*t/2};}
+// Preview and release share exactly this trajectory, including the current
+// instantaneous velocity and all existing per-arrow modifiers.
+function diveTrajectory(b,tilt=0,dir=1){
+ const p=position(b,b.t),aim=Math.max(-35,Math.min(35,Math.round(Number(tilt)||0))),vy=Math.max(640,Math.min(1000,b.vy+G*b.t));
+ return {...b,x:p.x,y:p.y,vx:Math.tan(aim*Math.PI/180)*vy*dir,vy,t:0,scale:(b.scale??1)*DIVE_SCALE,pierce:(b.pierce||0)+1,ignored:new Set(b.ignored||[]),diving:true,diveTilt:aim};
+}
 function obstaclesFor(map,level,rogue=false){let arr=level===1&&!rogue?[[800,'crate',70,65]]:map===1?[[355,'post',30,145],[525,'crate',68,90],[790,'crate',90,115],[1075,'crate',68,90],[1245,'post',30,145]]:map===2?[[440,'crate',76,85],[800,'post',36,145],[1160,'crate',76,85]]:[[445,'crate',72,90],[810,'post',32,165],[1180,'crate',72,90]];return arr.map(([x,type,w,h],i)=>({id:i,x,y:ground(x,map),w,h,type,hp:type==='crate'?2:1,maxHp:type==='crate'?2:1,state:'standing',rot:0,dir:1}));}
 const STATIC_LIMB_PARTS=new Set(['arms','legs','feet']);
 function collision(p,target,obs,map,ignored=new Set()){
@@ -1188,9 +1195,9 @@ class Game{
   }else{this.encounter=null;this.encounterFloor=0;this.arena=arenaForMode(this.mode,this.stage,this.arenaChoice||this.stage);}
   this.map=this.arena.map;const close=this.mode==='campaign'&&this.stage===1,xs=this.arena.xs;
   let enemyStats=baseStats();this.opponent=opponentProfile(this.mode,this.stage,this.floor,this.stats.maxHp);if(this.mode!=='local')enemyStats.damage=this.opponent.damage;if(this.mode==='rogue')enemyStats=rogueEnemyStats(this.floor,enemyStats);
- const hp=fresh?this.stats.maxHp:Math.min(this.stats.maxHp,this.players?.[0]?.hp??this.stats.maxHp);this.players=xs.map((x,i)=>({x,homeX:x,y:ground(x,this.world),groundSlope:(ground(x+3,this.world)-ground(x-3,this.world))/6,characterId:i===0?this.characterId:'chiyan',skills:{...createSkillState(i===0?this.characterId:'chiyan'),weapon:i===0&&this.mode==='rogue'?this.skill:null,extra:i===0?[...this.upgrades]:[]},body:null,dir:i===0?1:-1,hp:i===0?hp:this.mode==='campaign'&&this.stage===1?50:enemyStats.maxHp,stats:i===0?this.stats:enemyStats,status:{burn:0,burnTurns:0,poison:0,poisonTurns:0,ice:0},stuck:[],recoil:0,deadTime:0}));this.players.forEach(p=>syncGroundContact(p,x=>ground(x,this.world)));this.obs=encounterObstacles(this.arena,x=>ground(x,this.world));this.bounty=this.mode==='rogue'?createBountyState(bountyFor(this.encounter,this.floor)):null;if(this.bounty&&this.floor%2===0)this.bounty.spec.reward={kind:'reroll'};this.bountyPrize=null;this.ruleTriggered=false;this.nextRoutes=[];this.selectedRoute=null;this.orbs=[];this.arrows=[];this.effects=[];this.trails=[];this.active=0;this.round=1;this.angles=close?[19,14]:[31,31];this.powers=[this.arena.geometry.recommendedPower,this.arena.geometry.recommendedPower];this.volleyCount=0;this.phaseTime=0;this.notice='';this.impact=null;this.finisher=null;this.shake=0;this.choices=[];this.lastDamage=0;this.lastHeal=0;this.npcVolleyDamage=0;this.npcHeadHits=0;this.icePenalty=0;this.vfx=[];this.skillUsed=false;this.hitStop=0;this.targets=[];this.targetHits=0;this.targetScore=0;this.targetMisses=0;this.volleyTargetHits=0;if(this.mode==='target'){this.obs=[];this.players[0].x=220;this.players[0].y=ground(220,this.world);this.players[0].homeX=220;syncGroundContact(this.players[0],x=>ground(x,this.world));this.newTargets();}}
+ const hp=fresh?this.stats.maxHp:Math.min(this.stats.maxHp,this.players?.[0]?.hp??this.stats.maxHp);this.players=xs.map((x,i)=>({x,homeX:x,y:ground(x,this.world),groundSlope:(ground(x+3,this.world)-ground(x-3,this.world))/6,characterId:i===0?this.characterId:'chiyan',skills:{...createSkillState(i===0?this.characterId:'chiyan'),weapon:i===0&&this.mode==='rogue'?this.skill:null,extra:i===0?[...this.upgrades]:[]},body:null,dir:i===0?1:-1,hp:i===0?hp:this.mode==='campaign'&&this.stage===1?50:enemyStats.maxHp,stats:i===0?this.stats:enemyStats,status:{burn:0,burnTurns:0,poison:0,poisonTurns:0,ice:0},stuck:[],recoil:0,deadTime:0}));this.players.forEach(p=>syncGroundContact(p,x=>ground(x,this.world)));this.obs=encounterObstacles(this.arena,x=>ground(x,this.world));this.bounty=this.mode==='rogue'?createBountyState(bountyFor(this.encounter,this.floor)):null;if(this.bounty&&this.floor%2===0)this.bounty.spec.reward={kind:'reroll'};this.bountyPrize=null;this.ruleTriggered=false;this.nextRoutes=[];this.selectedRoute=null;this.orbs=[];this.arrows=[];this.effects=[];this.trails=[];this.active=0;this.round=1;this.angles=close?[19,14]:[31,31];this.powers=[this.arena.geometry.recommendedPower,this.arena.geometry.recommendedPower];this.volleyCount=0;this.phaseTime=0;this.notice='';this.impact=null;this.finisher=null;this.shake=0;this.choices=[];this.lastDamage=0;this.lastHeal=0;this.npcVolleyDamage=0;this.npcHeadHits=0;this.icePenalty=0;this.vfx=[];this.skillUsed=false;this.skillAim=null;this.hitStop=0;this.targets=[];this.targetHits=0;this.targetScore=0;this.targetMisses=0;this.volleyTargetHits=0;if(this.mode==='target'){this.obs=[];this.players[0].x=220;this.players[0].y=ground(220,this.world);this.players[0].homeX=220;syncGroundContact(this.players[0],x=>ground(x,this.world));this.newTargets();}}
  start(mode,stage=1,skill='split',characterId='qingsong'){if(mode!=='campaign'&&!this.save.unlocked)return false;this.mode=mode;this.characterId=characterById(characterId).id;this.skill=BOWS.some(b=>b.id===skill)?skill:'split';this.arenaChoice=Math.max(1,Math.min(ARENAS.length,Math.floor(Number(stage))||1));this.stage=mode==='rogue'?1:mode==='campaign'?Math.max(1,Math.min(3,stage)):(this.arenaChoice-1)%3+1;this.floor=1;this.rerolls=0;this.shotSerial=0;this.encounterFloor=0;this.encounter=null;this.pendingEncounter=null;this.runSeed=mode==='rogue'?Math.floor(this.rng()*0x100000000)>>>0:0;this.upgrades=[];this.stats=baseStats(mode==='rogue'?this.save:{});this.setup();this.setPhase(mode==='campaign'?'intro':'scout');this.emit('start');return true;}
- setPhase(p){this.phase=p;this.phaseTime=0;this.emit('phase',{phase:p});}
+ setPhase(p){if(p!=='flight')this.cancelSkillAim();this.phase=p;this.phaseTime=0;this.emit('phase',{phase:p});}
  goHome(){this.arrows=[];this.finisher=null;this.hitStop=0;this.setPhase('home');}
  skipTutorial(){if(!['home','intro'].includes(this.phase))return false;const changed=!this.save.unlocked;this.save.unlocked=true;if(changed)this.persist();this.goHome();return true;}
  get storyBeatDuration(){return this.mode==='campaign'&&this.stage===1?2.5:4.5;}
@@ -1200,10 +1207,57 @@ class Game{
  readyTurn(){const p=this.players[this.active],heal=turnSkillHealing(p);if(heal){this.heal(p,heal);this.pop(p.x,p.y-165,'沉着 · 回息','#b4d8a2');}if(this.active===1&&this.mode!=='local'){this.setPhase('thinking');this.angles[1]=this.chooseAI();this.shoot();}else this.setPhase('aim');}
  get canAim(){return this.phase==='aim';}
  aim(angle,power){if(!this.canAim)return;this.angles[this.active]=Math.max(5,Math.min(75,Math.round(angle)));this.powers[this.active]=Math.max(20,Math.min(100,Math.round(power)));}
- shoot(){if(!this.canAim&&this.phase!=='thinking')return false;const p=this.players[this.active];if(this.active===1){this.npcVolleyDamage=0;this.npcHeadHits=0;}this.shotSerial=(this.shotSerial||0)+1;this.volleyCount=0;this.volleyImpactPeak=0;this.trails=[];this.arrows=[];this.impact=null;this.skillUsed=false;this.volleyTargetHits=0;this.icePenalty=Math.min(.45,p.status.ice*.15);p.status.ice=0;const n=p.stats.multi;for(let i=0;i<n;i++){const b=launch(p,this.angles[this.active]+(i-(n-1)/2)*.65,this.powers[this.active]);this.addArrow(b);}this.emit('shoot');this.setPhase('flight');return true;}
- addArrow(b){if(this.volleyCount>=MAX_ARROWS)return false;this.arrows.push({scale:1,t:0,pierce:this.players[this.active].stats.pierce,ignored:new Set(),...b,dead:false,id:++this.volleyCount});return true;}
- get canSkill(){return this.mode==='rogue'&&this.active===0&&this.phase==='flight'&&!this.skillUsed&&this.arrows.some(b=>b.t>.12);}
- activateSkill(){if(!this.canSkill)return false;this.skillUsed=true;const arrows=[...this.arrows];for(const b of arrows){const p=position(b,b.t),vy=b.vy+G*b.t,scale=b.scale??1;if(this.skill==='split'){b.scale=scale*.6;for(const spread of [-32,32])this.addArrow({x:p.x,y:p.y,vx:b.vx,vy:vy+spread,scale:scale*.6,pierce:b.pierce,ignored:new Set(b.ignored)});this.fx('split',p.x,p.y,'#c5e4b0');}else if(this.skill==='dive'){Object.assign(b,{x:p.x,y:p.y,vx:b.vx*.04,vy:Math.max(520,vy),t:0,scale:scale*1.25,pierce:b.pierce+1});this.fx('split',p.x,p.y,'#adcdee');}else{const target=this.players[1],d=Math.hypot(p.x-target.x,p.y-(target.y-55));if(d<130)this.hitTarget({...b,noStick:true,vx:(target.x-p.x)*4,vy:(target.y-60-p.y)*4-G*b.t},{damage:26*(1-d/180),part:'body'},{x:target.x,y:target.y-60});for(const o of this.obs)if(o.state==='standing'&&Math.hypot(p.x-o.x,p.y-(o.y-o.h/2))<120)this.hitObstacle(o,1);this.fx('burst',p.x,p.y,'#efb26e');b.dead=true;}}this.arrows=this.arrows.filter(b=>!b.dead);this.emit('skill',{skill:this.skill});if(!this.arrows.length)this.setPhase('settle');return true;}
+ shoot(){if(!this.canAim&&this.phase!=='thinking')return false;const p=this.players[this.active];if(this.active===1){this.npcVolleyDamage=0;this.npcHeadHits=0;}this.shotSerial=(this.shotSerial||0)+1;this.volleyCount=0;this.volleyImpactPeak=0;this.trails=[];this.arrows=[];this.impact=null;this.skillUsed=false;this.skillAim=null;this.volleyTargetHits=0;this.icePenalty=Math.min(.45,p.status.ice*.15);p.status.ice=0;const n=p.stats.multi;for(let i=0;i<n;i++){const b=launch(p,this.angles[this.active]+(i-(n-1)/2)*.65,this.powers[this.active]);this.addArrow(b);}this.emit('shoot');this.setPhase('flight');return true;}
+ addArrow(b){if(this.volleyCount>=MAX_ARROWS)return false;this.arrows.push({scale:1,t:0,pierce:this.players[this.active].stats.pierce,ignored:new Set(),bomb:this.mode==='rogue'&&this.active===0&&this.skill==='burst',...b,dead:false,id:++this.volleyCount});return true;}
+ get canSkill(){return this.mode==='rogue'&&this.active===0&&this.phase==='flight'&&!this.skillUsed&&this.arrows.some(b=>!b.dead&&(this.skillAim||b.t>.12));}
+ get timeScale(){return this.skillAim&&this.phase==='flight'?1/3:1;}
+ beginSkillAim(){if(!this.canSkill||this.skill!=='dive'||this.skillAim)return false;this.skillAim={tilt:0};return true;}
+ aimSkill(tilt){if(!this.skillAim||!Number.isFinite(tilt))return false;this.skillAim.tilt=Math.max(-35,Math.min(35,Math.round(tilt)));return true;}
+ cancelSkillAim(){const aiming=Boolean(this.skillAim);this.skillAim=null;return aiming;}
+ releaseSkillAim(){if(!this.skillAim)return false;const released=this.activateSkill(this.skillAim.tilt);if(!released)this.cancelSkillAim();return released;}
+ previewSkill(){
+  if(!this.skillAim||!this.canSkill||this.skill!=='dive')return [];
+  return this.arrows.filter(b=>!b.dead).slice(0,8).map(b=>{
+   const flight=diveTrajectory(b,this.skillAim.tilt,this.players[this.active].dir),points=[{x:flight.x,y:flight.y}],ignored=new Set(flight.ignored);let pierce=flight.pierce,hit=null,end=points[0];
+   for(let step=1;step<=720;step++){
+    end=position(flight,step/120);hit=collision(end,this.players[1-this.active],this.obs,this.world,ignored);
+    if(step%4===0||hit)points.push(end);
+    if(hit?.kind==='obstacle'&&pierce>0){pierce--;ignored.add(hit.o.id);hit=null;}
+    if(hit)break;
+   }
+   return {arrowId:b.id,points,end,hit};
+  });
+ }
+ activateSkill(tilt=0){
+  if(!this.canSkill)return false;
+  this.skillAim=null;this.skillUsed=true;
+  for(const b of [...this.arrows]){
+   const p=position(b,b.t),vy=b.vy+G*b.t,scale=b.scale??1;
+   if(this.skill==='split'){
+    b.scale=scale*.6;
+    for(const spread of [-32,32])this.addArrow({x:p.x,y:p.y,vx:b.vx,vy:vy+spread,scale:scale*.6,pierce:b.pierce,ignored:new Set(b.ignored)});
+    this.fx('split',p.x,p.y,'#c5e4b0');
+   }else if(this.skill==='dive'){
+    Object.assign(b,diveTrajectory(b,tilt,this.players[this.active].dir));this.fx('dive',p.x,p.y,'#adcdee');
+   }else{
+    // The blast uses the original arrow scale; the subsequent physical hit
+    // gets the boost. Only the temporary blast carries noStick.
+    const target=this.players[1],d=Math.hypot(p.x-target.x,p.y-(target.y-55));
+    if(d<130)this.hitTarget({...b,noStick:true,vx:(target.x-p.x)*4,vy:(target.y-60-p.y)*4-G*b.t},{damage:26*(1-d/180),part:'body'},{x:target.x,y:target.y-60});
+    for(const o of this.obs)if(o.state==='standing'&&Math.hypot(p.x-o.x,p.y-(o.y-o.h/2))<120)this.hitObstacle(o,1);
+    Object.assign(b,{x:p.x,y:p.y,vx:b.vx*2,vy:vy*2,t:0,scale:scale*2,pierce:b.pierce+1,bomb:false,boosted:true,bounces:1});
+    this.fx('burst',p.x,p.y,'#efb26e');
+   }
+  }
+  this.emit('skill',{skill:this.skill});return true;
+ }
+ ricochet(b,p){
+  if(!b.boosted||!(b.bounces>0))return false;
+  const slope=(ground(p.x+3,this.world)-ground(p.x-3,this.world))/6,norm=Math.hypot(slope,1),nx=-slope/norm,ny=1/norm,vy=b.vy+G*b.t,dot=b.vx*nx+vy*ny;
+  const vx=(b.vx-2*dot*nx)*.8,reflected=(vy-2*dot*ny)*.8;
+  Object.assign(b,{x:p.x,y:ground(p.x,this.world)-7,vx,vy:Math.min(-140,reflected),t:0,bounces:b.bounces-1});
+  this.fx('ricochet',b.x,b.y,'#ffd08a');return true;
+ }
  beginFinisher(target,{part='body',element='plain',x=target.x,y=target.y-60,dir=1,cause='arrow',arrows=this.volleyCount||1}={}){
   if(target.hp>0||this.finisher)return false;
   const side=this.players.indexOf(target);if(side<0)return false;
@@ -1245,10 +1299,10 @@ class Game{
   this.pop(p.x,p.y-30,(repeatHead?'擦伤 ':melt?'融爆 ':crit?'暴击 ':r.part==='head'?'爆头 ':'')+'−'+dealt,melt?'#f6b97e':'#f3d093');
   const impactStrength=r.part==='head'&&!repeatHead?2:1;if(impactStrength>(this.volleyImpactPeak||0)){this.shake=impactStrength===2?.22:.12;this.hitStop=impactStrength===2?.055:.022;this.volleyImpactPeak=impactStrength;}
   if(target.hp<=0)this.beginFinisher(target,{part:r.part,element:melt?'melt':st.fire&&st.poison?'venomfire':st.fire?'fire':st.ice?'ice':st.poison?'poison':'plain',x:p.x,y:p.y,dir:shooter.dir});
-  this.fx('impact',p.x,p.y,melt?'#ffd260':'#f4ecdd',{head:r.part==='head'&&!repeatHead,part:r.part,dir:shooter.dir,damage:dealt});this.emit('hit',{x:p.x,y:p.y,head:r.part==='head'&&!repeatHead,part:r.part,damage:dealt,arrowId:b.id});
+  this.fx('impact',p.x,p.y,melt?'#ffd260':'#f4ecdd',{head:r.part==='head'&&!repeatHead,part:r.part,dir:shooter.dir,damage:dealt,blast:Boolean(b.noStick)});this.emit('hit',{x:p.x,y:p.y,head:r.part==='head'&&!repeatHead,part:r.part,damage:dealt,arrowId:b.id});
  }
- pickup(orb,b,p){if(orb.used)return;orb.used=true;const shooter=this.players[this.active];if(orb.type==='heart'){this.lastHeal=this.heal(shooter,20+shooter.stats.heal*15,orb.x,orb.y-25);}else{const currentVy=b.vy+G*b.t;const extra={x:p.x,y:p.y,vx:b.vx,vy:currentVy+(this.volleyCount%2?1:-1)*(this.active===1&&this.mode!=='local'?Math.min(48,22+this.volleyCount*6):8),scale:b.scale??1,pierce:b.pierce,ignored:new Set(b.ignored)};if(this.addArrow(extra))this.pop(orb.x,orb.y-35,'+1  共 '+this.volleyCount+' 箭','#f6dc85');else this.pop(orb.x,orb.y-35,'箭雨已满','#f6dc85');}this.fx('pickup',orb.x,orb.y,orb.type==='heart'?'#eaa1a0':'#f2d080');const bonus=pickupSkillHealing(shooter);if(bonus){this.heal(shooter,bonus);this.pop(shooter.x,shooter.y-165,'拾光 · 回血'+bonus,'#b6e7c0');}this.emit('pickup',{kind:orb.type,x:orb.x,y:orb.y,orbId:orb.id});}
- tickArrows(dt){let left=dt;while(left>0&&this.arrows.length){const h=Math.min(left,1/300);for(const b of [...this.arrows]){b.t+=h;const p=position(b,b.t);if(Math.floor(b.t*40)!==b.lastTrail){this.trails.push({x:p.x,y:p.y,t:1});b.lastTrail=Math.floor(b.t*40);}for(const orb of this.orbs)if(!orb.used&&Math.hypot(p.x-orb.x,p.y-orb.y)<=orb.r)this.pickup(orb,b,p);if(this.mode==='target')for(const target of this.targets)if(!target.used&&Math.hypot(p.x-target.x,p.y-target.y)<=target.r){this.hitTargetBoard(target);b.dead=true;break;}if(b.dead)continue;const r=collision(p,this.mode==='target'?{x:-500,y:0}:this.players[1-this.active],this.obs,this.world,b.ignored);if(r){this.impact=p;if(r.kind==='obstacle'){this.hitObstacle(r.o,this.players[this.active].dir);if(b.pierce>0){b.pierce--;b.ignored.add(r.o.id);}else b.dead=true;}else{if(r.kind==='hit')this.hitTarget(b,r,p);b.dead=true;}}if(b.t>14)b.dead=true;}this.arrows=this.arrows.filter(b=>!b.dead);left-=h;}if(!this.arrows.length)this.setPhase('settle');}
+ pickup(orb,b,p){if(orb.used)return;orb.used=true;const shooter=this.players[this.active];if(orb.type==='heart'){this.lastHeal=this.heal(shooter,20+shooter.stats.heal*15,orb.x,orb.y-25);}else{const currentVy=b.vy+G*b.t;const extra={x:p.x,y:p.y,vx:b.vx,vy:currentVy+(this.volleyCount%2?1:-1)*(this.active===1&&this.mode!=='local'?Math.min(48,22+this.volleyCount*6):8),scale:b.scale??1,pierce:b.pierce,ignored:new Set(b.ignored),diving:Boolean(b.diving),diveTilt:b.diveTilt||0,bomb:Boolean(b.bomb),boosted:Boolean(b.boosted),bounces:b.bounces||0};if(this.addArrow(extra))this.pop(orb.x,orb.y-35,'+1  共 '+this.volleyCount+' 箭','#f6dc85');else this.pop(orb.x,orb.y-35,'箭雨已满','#f6dc85');}this.fx('pickup',orb.x,orb.y,orb.type==='heart'?'#eaa1a0':'#f2d080');const bonus=pickupSkillHealing(shooter);if(bonus){this.heal(shooter,bonus);this.pop(shooter.x,shooter.y-165,'拾光 · 回血'+bonus,'#b6e7c0');}this.emit('pickup',{kind:orb.type,x:orb.x,y:orb.y,orbId:orb.id});}
+ tickArrows(dt){let left=dt;while(left>0&&this.arrows.length){const h=Math.min(left,1/300);for(const b of [...this.arrows]){b.t+=h;const p=position(b,b.t);if(Math.floor(b.t*40)!==b.lastTrail){this.trails.push({x:p.x,y:p.y,t:1});b.lastTrail=Math.floor(b.t*40);}for(const orb of this.orbs)if(!orb.used&&Math.hypot(p.x-orb.x,p.y-orb.y)<=orb.r+(b.diving?DIVE_PICKUP_PADDING:0))this.pickup(orb,b,p);if(this.mode==='target')for(const target of this.targets)if(!target.used&&Math.hypot(p.x-target.x,p.y-target.y)<=target.r){this.hitTargetBoard(target);b.dead=true;break;}if(b.dead)continue;const r=collision(p,this.mode==='target'?{x:-500,y:0}:this.players[1-this.active],this.obs,this.world,b.ignored);if(r){this.impact=p;if(r.kind==='obstacle'){this.hitObstacle(r.o,this.players[this.active].dir);if(b.pierce>0){b.pierce--;b.ignored.add(r.o.id);}else b.dead=true;}else if(r.kind==='ground'&&this.ricochet(b,p)){}else{if(r.kind==='hit')this.hitTarget(b,r,p);b.dead=true;}}if(b.t>14)b.dead=true;}this.arrows=this.arrows.filter(b=>!b.dead);left-=h;}if(!this.arrows.length)this.setPhase('settle');}
  spawnOrbs(){if(this.mode==='target'||this.mode==='campaign'&&this.stage<3)return;this.orbs=this.orbs.filter(o=>!o.used);const bounds=arenaBounds(this.world);for(let i=0;i<2&&this.orbs.length<12;i++){const shooter=this.players[i];const offset=220+this.rng()*270;const a=24+this.rng()*13;const b=launch(shooter,a,this.arena?.geometry.recommendedPower||100);const p=position(b,offset/Math.abs(b.vx));const orb={id:'orb-'+this.round+'-'+i,x:Math.max(bounds.left+80,Math.min(bounds.right-80,p.x)),y:Math.min(p.y,ground(p.x,this.world)-65),r:25,type:this.rng()<(this.arena?.supply==='hearts'?.3:.65)?'plus':'heart',used:false};for(const o of this.obs)if(o.state==='standing'&&Math.abs(orb.x-o.x)<o.w/2+orb.r&&orb.y+orb.r>o.y-o.h)orb.y=o.y-o.h-orb.r-12;for(let n=0;n<12&&this.orbs.some(o=>Math.hypot(o.x-orb.x,o.y-orb.y)<58);n++)orb.y-=60;orb.y=Math.max(55,orb.y);this.orbs.push(orb);}}
  nextTurn(){if(this.mode==='target'){if(!this.volleyTargetHits)this.targetMisses++;if(this.targetMisses>=3){this.save.targetBest=Math.max(this.save.targetBest,this.targetScore);this.persist();this.win=false;this.winner=0;this.setPhase('defeat');return;}this.round++;this.active=0;if(this.targets.every(t=>t.used))this.newTargets();this.setPhase('scout');return;}if(this.players[1-this.active].hp<=0){this.complete(this.active===0||this.mode==='local');return;}this.active=1-this.active;this.round++;this.applyArenaRule();this.spawnOrbs();const p=this.players[this.active],source=this.players[1-this.active],poisonActive=p.status.poisonTurns>0,burning=p.status.burnTurns>0;let tick=0;if(p.status.burnTurns>0){tick+=p.status.burn*5;p.status.burnTurns--;if(!p.status.burnTurns)p.status.burn=0;}if(p.status.poisonTurns>0){tick+=p.status.poison*(burning?5:3);p.status.poisonTurns--;if(!p.status.poisonTurns)p.status.poison=0;}if(tick){const dealt=this.damage(p,tick,source,{leech:poisonActive});if(dealt)this.pop(p.x,p.y-145,'持续伤害 −'+dealt,'#c2d784');}if(p.hp<=0){this.beginFinisher(p,{part:'body',element:poisonActive&&burning?'venomfire':poisonActive?'poison':'fire',dir:source.dir,cause:'status',arrows:0});impactBody(p,{point:{x:p.x,y:p.y-60},vx:source.dir*50,vy:20,damage:tick,part:'body',angle:this.angles[this.active]});this.complete(this.active!==0||this.mode==='local');return;}if(p.stats.cleanse){const before=p.status.burn+p.status.poison;for(const key of ['burn','poison'])p.status[key]=Math.ceil(p.status[key]*(1-p.stats.cleanse));if(p.status.burn+p.status.poison<before)this.pop(p.x,p.y-170,'净化 · 保留 '+Math.round((1-p.stats.cleanse)*100)+'% 层数','#b1d2d9');}if(p.stats.regen)this.heal(p,p.stats.regen*5+p.stats.armor*2);if(this.active===1&&this.mode!=='local')this.readyTurn();else this.setPhase('scout');}
  complete(win){this.win=win;this.winner=this.mode==='local'?(this.players[0].hp>0?0:1):win?0:1;if(win&&this.mode==='campaign'){if(this.stage===3){this.save.unlocked=true;this.save.checkpoint=1;}else this.save.checkpoint=Math.max(this.save.checkpoint,this.stage+1);this.persist();}if(this.mode==='rogue'){if(win){this.save.best=Math.max(this.save.best,this.floor);this.save.embers+=this.floor%3===0?3:1;this.persist();}this.emit('run',{floor:this.floor,win});}this.emit(win?'victory':'defeat');this.setPhase(win?'victory':'defeat');}
@@ -1291,7 +1345,7 @@ class Game{
   const chosen=candidates[Math.min(candidates.length-1,Math.floor(this.rng()*candidates.length))],error=chosen.angle>=45?Math.min(2,this.opponent.error):this.opponent.error;
   this.powers[1]=chosen.power;return Math.max(5,Math.min(75,Math.round(chosen.angle+(this.rng()*2-1)*error)));
  }
- update(dt){dt=Math.min(dt,.05);if(this.hitStop>0){this.hitStop=Math.max(0,this.hitStop-dt);dt*=.2;}this.totalTime+=dt;this.phaseTime+=dt;if(this.finisher)this.finisher.age=Math.min(this.finisher.duration+.1,this.finisher.age+dt);for(const f of this.vfx)f.t-=dt;this.vfx=this.vfx.filter(f=>f.t>0);if(this.mode==='target')for(const t of this.targets)t.y=t.baseY+Math.sin(this.totalTime*1.1+t.seed)*24;this.shake=Math.max(0,this.shake-dt);const bounds=arenaBounds(this.world);for(const [i,p] of this.players.entries()){p.poseAngle=this.angles[i];updateBody(p,dt,x=>ground(x,this.world),W,{worldMinX:bounds.left,worldMaxX:bounds.right,minX:i===0?bounds.left+55:Math.max(bounds.left+55,this.players[0].x+100),maxX:i===0?Math.min(bounds.right-55,this.players[1].x-100):bounds.right-55,obstacles:this.obs});p.recoil=Math.max(0,p.recoil-dt);if(p.hp<=0)p.deadTime+=dt;}for(const o of this.obs)if(o.state==='falling'){o.rot=Math.min(Math.PI/2,o.rot+dt*3);if(o.rot>=Math.PI/2)o.state='fallen';}for(const e of this.effects){e.t-=dt;e.y-=dt*20;}this.effects=this.effects.filter(e=>e.t>0);for(const t of this.trails)t.t-=dt*.32;this.trails=this.trails.filter(t=>t.t>0).slice(-1500);
+ update(dt){dt=Math.min(dt,.05)*this.timeScale;if(this.hitStop>0){this.hitStop=Math.max(0,this.hitStop-dt);dt*=.2;}this.totalTime+=dt;this.phaseTime+=dt;if(this.finisher)this.finisher.age=Math.min(this.finisher.duration+.1,this.finisher.age+dt);for(const f of this.vfx)f.t-=dt;this.vfx=this.vfx.filter(f=>f.t>0);if(this.mode==='target')for(const t of this.targets)t.y=t.baseY+Math.sin(this.totalTime*1.1+t.seed)*24;this.shake=Math.max(0,this.shake-dt);const bounds=arenaBounds(this.world);for(const [i,p] of this.players.entries()){p.poseAngle=this.angles[i];updateBody(p,dt,x=>ground(x,this.world),W,{worldMinX:bounds.left,worldMaxX:bounds.right,minX:i===0?bounds.left+55:Math.max(bounds.left+55,this.players[0].x+100),maxX:i===0?Math.min(bounds.right-55,this.players[1].x-100):bounds.right-55,obstacles:this.obs});p.recoil=Math.max(0,p.recoil-dt);if(p.hp<=0)p.deadTime+=dt;}for(const o of this.obs)if(o.state==='falling'){o.rot=Math.min(Math.PI/2,o.rot+dt*3);if(o.rot>=Math.PI/2)o.state='fallen';}for(const e of this.effects){e.t-=dt;e.y-=dt*20;}this.effects=this.effects.filter(e=>e.t>0);for(const t of this.trails)t.t-=dt*.32;this.trails=this.trails.filter(t=>t.t>0).slice(-1500);
  if(this.phase==='intro'&&this.phaseTime>=this.storyBeatDuration*3)this.setPhase('scout');else if(this.phase==='scout'&&this.phaseTime>=this.scoutDuration)this.readyTurn();else if(this.phase==='thinking'){this.angles[1]=this.chooseAI();this.shoot();}else if(this.phase==='flight')this.tickArrows(dt);else if(this.phase==='settle'&&this.phaseTime>=.85&&!this.players.some(p=>p.hp>0&&p.body?.active))this.nextTurn();}
 }
 
@@ -1722,7 +1776,7 @@ class Renderer{
   for(const f of game.vfx||[])if(!this.seenFX.has(f)){
    this.seenFX.add(f);
    if(f.kind==='impact'){
-    const strongest=this.feedback.hit(f);if(!this.hitFocus)this.hitFocus={x:f.x,y:f.y,side:1-game.active};
+    const strongest=this.feedback.hit(f);if(!this.hitFocus&&!f.blast)this.hitFocus={x:f.x,y:f.y,side:1-game.active};
     if(strongest)this.comicLabel={x:f.x-(f.dir||1)*38,y:f.y-55,text:f.head?'好头！':'啪！',head:f.head,age:0};
    }else if(f.kind==='burst')this.feedback.hit({burst:true});
   }
@@ -1732,17 +1786,43 @@ class Renderer{
   if(this.comicLabel){this.comicLabel.age+=dt;if(this.comicLabel.age>.5)this.comicLabel=null;}
   this.wasFlying=game.phase==='flight';if(this.release){this.release.age+=dt;if(this.release.age>.23)this.release=null;}
  }
+ skillPreview(game){
+  if(game.phase!=='flight'||game.skill!=='dive'||!game.skillAim||typeof game.previewSkill!=='function')return [];
+  const preview=game.previewSkill();if(!Array.isArray(preview))return [];
+  return preview.slice(0,8).filter(path=>path&&Array.isArray(path.points)&&path.points.length&&Number.isFinite(path.end?.x)&&Number.isFinite(path.end?.y));
+ }
+ skillAimPreview(game,preview=this.skillPreview(game)){
+  if(!game.skillAim||game.phase!=='flight'||game.skill!=='dive'||!preview.length)return 0;
+  const c=this.c,unit=1/Math.max(.08,this.cam.z),main='#a9eaff',ink='#163b53';let painted=0;
+  for(const [i,path]of preview.slice(0,8).entries()){
+   const stride=Math.max(1,Math.ceil(path.points.length/120)),points=path.points.filter((p,j)=>j%stride===0&&Number.isFinite(p.x)&&Number.isFinite(p.y)).map(p=>[p.x,p.y]);
+   if(!points.length)continue;const end=path.end,last=points[points.length-1];if(last[0]!==end.x||last[1]!==end.y)points.push([end.x,end.y]);
+   c.save();c.globalAlpha=i ? .3 : .92;c.setLineDash([]);c.lineDashOffset=0;this.line(points,ink,5.5*unit);c.setLineDash([8*unit,7*unit]);c.lineDashOffset=this.reducedMotion?0:-this.time*28*unit;this.line(points,main,2.3*unit);c.setLineDash([]);
+   const start=points[0],next=points[1]||[start[0]+Math.sin((game.skillAim.tilt||0)*Math.PI/180),start[1]+1],angle=Math.atan2(next[1]-start[1],next[0]-start[0]);
+   c.save();c.translate(start[0],start[1]);c.rotate(angle);c.scale(unit,unit);this.inkpoly([[15,-6],[32,0],[15,6],[20,0]],main,ink,1.5);c.restore();
+   c.lineWidth=2*unit;c.strokeStyle=main;c.beginPath();c.arc(end.x,end.y,(i?7:12)*unit,0,Math.PI*2);c.stroke();
+   this.line([[end.x-17*unit,end.y],[end.x-7*unit,end.y]],main,1.5*unit);this.line([[end.x+7*unit,end.y],[end.x+17*unit,end.y]],main,1.5*unit);
+   if(!i){const part=path.hit?.part,label=path.hit?.kind==='hit'?({head:'头部',body:'身体',arms:'手臂',legs:'腿部',feet:'脚部'}[part]||'命中'):path.hit?.kind==='obstacle'?'掩体':path.hit?.kind==='miss'?'越界':'落点';
+    const side=this.canvas.width/2+(end.x-this.cam.x)*this.cam.z>this.canvas.width*.72?-1:1,labelX=end.x+side*44*unit;
+    this.circle(end.x,end.y,3*unit,main);this.rect(labelX-24*unit,end.y-11*unit,48*unit,23*unit,ink+'ec');this.text(label,labelX,end.y+6*unit,14*unit,main);
+   }c.restore();painted++;
+  }return painted;
+ }
  arrowEffects(game){const c=this.c,stats=game.players[game.active].stats;for(let i=0;i<game.arrows.length;i++){
   const b=game.arrows[i],p=position(b,b.t),a=Math.atan2(b.vy+G*b.t,b.vx),n=this.reducedMotion?3:this.canvas.width<900||i>8?5:9;
-  const colors=[...(stats.fire?['#f5b16b']:[]),...(stats.poison?['#a8c481']:[]),...(stats.ice?['#a8dce6']:[])];if(!colors.length)colors.push('#e4ce99');
+  const colors=[...(b.diving?['#9ce8ff']:b.boosted?['#ffd185']:[]),...(stats.fire?['#f5b16b']:[]),...(stats.poison?['#a8c481']:[]),...(stats.ice?['#a8dce6']:[])];if(!colors.length)colors.push('#e4ce99');
   const points=[];for(let j=n;j>=0;j--){const q=position(b,Math.max(0,b.t-j*.014));points.push([q.x,q.y]);}
-  c.save();c.globalAlpha=.18;this.line(points,'#233b35',7);c.globalAlpha=.62;this.line(points,colors[0],2.3);
-  for(let k=1;k<colors.length;k++){c.globalAlpha=.45;this.line(points.map(([x,y],j)=>[x,y+Math.sin(j*.8+this.time*15+k)*3]),colors[k],1.8);}c.restore();
+  c.save();c.globalAlpha=.18;this.line(points,'#233b35',b.boosted?11:7);c.globalAlpha=(b.boosted||b.diving) ? .88 : .62;this.line(points,colors[0],b.boosted?4:b.diving?3.1:2.3);
+  for(let k=1;k<colors.length;k++){c.globalAlpha=.45;this.line(points.map(([x,y],j)=>[x,y+(this.reducedMotion?0:Math.sin(j*.8+this.time*15+k)*3)]),colors[k],1.8);}c.restore();
   if(stats.fire&&!this.reducedMotion)for(let j=0;j<3;j++){const q=position(b,Math.max(0,b.t-(j+1)*.024));this.poly([[q.x-3,q.y+2],[q.x-8,q.y-3-j],[q.x+3,q.y-1]],j%2?'#dc6e3b':'#f5cc85');}
-  if(stats.ice){c.save();c.translate(p.x-17*Math.cos(a),p.y-17*Math.sin(a));c.rotate(this.time*3);this.line([[-5,0],[5,0]],'#c7e7e6',1.3);this.line([[0,-5],[0,5]],'#c7e7e6',1.3);c.restore();}
+  if(stats.ice){c.save();c.translate(p.x-17*Math.cos(a),p.y-17*Math.sin(a));c.rotate(this.reducedMotion?0:this.time*3);this.line([[-5,0],[5,0]],'#c7e7e6',1.3);this.line([[0,-5],[0,5]],'#c7e7e6',1.3);c.restore();}
+  if(b.boosted){c.save();c.translate(p.x,p.y);c.rotate(a);const pulse=this.reducedMotion?0:Math.sin(this.time*32+i)*4;this.poly([[-29,-7],[-64-pulse,0],[-29,7]],'#f28e46bb');this.poly([[-29,-3],[-51-pulse,0],[-29,3]],'#fff4c5');c.restore();}
+  if(b.diving){c.save();c.translate(p.x-15*Math.cos(a),p.y-15*Math.sin(a));c.rotate(a);this.line([[-38,0],[-8,0]],'#a9eaff88',5);this.inkpoly([[0,-8],[3,-3],[8,0],[3,3],[0,8],[-3,3],[-8,0],[-3,-3]],'#e3faff','#578cba',1);c.restore();}
   this.arrow(p.x,p.y,a,colors[0]);
+  if(b.bomb){c.save();c.translate(p.x,p.y);c.rotate(a);this.circle(-11,7,8,'#233338');this.circle(-12,6,5.7,'#9e673d');this.line([[-17,1],[-6,12]],'#e3c18a',2);this.line([[-6,1],[-16,12]],'#cda86e',1.4);this.line([[-13,-1],[-16,-8],[-22,-10]],'#e2c27f',2);const spark=this.reducedMotion?1.5:2+Math.sin(this.time*26+i)*.6;this.circle(-22,-10,spark,'#ffd68b');c.restore();}
  }
  }
+
  statusFX(game){
   const c=this.c;for(const p of game.players){if(p.hp<=0)continue;const s=p.status;if(!s)continue;const anchor=bodyPose(p).chest;
    if(s.burnTurns>0&&s.burn>0)for(let i=0;i<(this.reducedMotion?3:6);i++){const t=(this.time*1.4+i*.17)%1,x=anchor.x-18+i*7,y=anchor.y+30-t*40;c.save();c.globalAlpha=(1-t)*.65;this.poly([[x-4,y+6],[x-2,y-7-Math.sin(this.time*7+i)*3],[x+1,y-2],[x+4,y+5]],i%2?'#e29b55':'#f4cf82');c.restore();}
@@ -1756,6 +1836,7 @@ class Renderer{
    c.save();c.translate(f.x,f.y);c.globalAlpha=1-age;
    if(burst){this.circle(0,0,15+age*90,'#dc794b22');c.lineWidth=4*(1-age)+1;c.strokeStyle=f.color;c.beginPath();c.arc(0,0,12+age*115,0,Math.PI*2);c.stroke();}
    if(hit&&age<.48){const r=10+age*(f.head?74:52),pts=[];for(let i=0;i<16;i++){const a=i*Math.PI/8,rr=i%2?r*.32:r;pts.push([Math.cos(a)*rr,Math.sin(a)*rr]);}this.inkpoly(pts,age<.15?'#fff9e9':'#ffd260','#192a32',2.4);}
+   if(f.kind==='ricochet'){const r=7+age*35;c.strokeStyle=f.color||'#ffcd84';c.lineWidth=2*(1-age)+1;c.beginPath();c.arc(0,0,r,-Math.PI*.9,-Math.PI*.1);c.stroke();for(let i=0;i<(reduced?2:5);i++){const a=-Math.PI*.85+i*Math.PI*.17;this.line([[Math.cos(a)*r,Math.sin(a)*r],[Math.cos(a)*(r+10*(1-age)),Math.sin(a)*(r+10*(1-age))]],f.color||'#ffcd84',2);}c.restore();continue;}
    if(f.kind==='pickup'||f.kind==='split'){c.strokeStyle=f.color;c.lineWidth=2;c.beginPath();c.arc(0,0,10+age*65,-age,Math.PI*2-age);c.stroke();for(let i=0;i<4;i++){const a=i*Math.PI/2+age,r=18+age*45;this.line([[Math.cos(a)*r,Math.sin(a)*r],[Math.cos(a)*(r+9),Math.sin(a)*(r+9)]],f.color,2);}}
    for(let i=0;i<count;i++){const a=i*2.399+.23,rr=(.4+rHash(i+f.x)*.7)*age*reach,x=Math.cos(a)*rr,y=Math.sin(a)*rr+age*age*48;
     if(wood){c.save();c.translate(x,y);c.rotate(a+age*3);this.inkpoly([[-5,-2],[5,-3],[8,1],[-4,3]],i%2?'#bc9664':'#795239','#3a352a88',1);c.restore();}
@@ -1885,7 +1966,15 @@ class Renderer{
   const z=Math.min(1.48*Math.max(1,this.canvas.width/W),this.canvas.height*.61/(maxY-minY),2.45);
   return {x:(Math.min(...xs)+Math.max(...xs))/2,y:(minY+maxY)/2+this.canvas.height*.53/z,z};
  }
- cameraPlan(game){
+ skillAimCamera(game,preview){
+  if(!preview.length||!game.arrows.length)return null;
+  const representative=preview[0],arrow=game.arrows.find(b=>b.id===representative.arrowId)||game.arrows[0],from=position(arrow,arrow.t),to=representative.end;
+  if(!Number.isFinite(from.x)||!Number.isFinite(from.y))return null;
+  const viewW=this.canvas.width,viewH=this.canvas.height,left=Math.min(from.x,to.x)-90,right=Math.max(from.x,to.x)+90,top=Math.min(from.y,to.y)-80,bottom=Math.max(from.y,to.y)+80;
+  const z=Math.min(viewW*.82/Math.max(220,right-left),viewH*.56/Math.max(220,bottom-top),1.35*Math.max(1,viewW/W));
+  return {x:(left+right)/2,y:(top+bottom)/2+viewH*.52/z,z};
+ }
+ cameraPlan(game,preview=this.skillPreview(game)){
   const viewW=this.canvas.width,viewH=this.canvas.height,portrait=viewW<viewH,wide=Math.max(1,viewW/W),phase=game.phase;
   const current=game.players[game.active],self=this.actorCamera(current,{look:Math.min(42,viewW/(1.6*wide)*.055)}),overview=this.overviewCamera(game);
   if(phase==='home'||phase==='upgrade'||phase==='loadout'){const x=phase==='home'?1050:1000,z=Math.min((phase==='home'?1.12:1.22)*wide,2.15);return {x,y:ground(x,game.world)+viewH*.32/z,z};}
@@ -1910,6 +1999,7 @@ class Renderer{
    return rBlendCamera(overview,self,rEase(rClamp((progress-.55)/.33,0,1)));
   }
   if(phase==='flight'){
+   if(game.skillAim){const aim=this.skillAimCamera(game,preview);if(aim)return aim;}
    if(this.hitFocus)return this.reactionCamera(game);
    if(game.arrows.length){const b=game.arrows[0],p=position(b,b.t),z=Math.min(1.35*wide,2.35);return {x:p.x+rClamp(b.vx*.075,-65,65),y:p.y+viewH*.53/z,z};}
   }
@@ -1919,12 +2009,12 @@ class Renderer{
   }
   return self;
  }
- draw(game,dt,{drag=null,paused=false}={}){this.time+=paused?0:dt;this.observeVisuals(game,paused?0:dt);if(this.emote){if(!game.canAim||drag||game.active!==this.emote.side||game.players[this.emote.side].body?.active)this.emote=null;else if(!paused){this.emote.time+=dt;if(this.emote.time>=this.emote.duration)this.emote=null;}}const viewW=this.canvas.width,viewH=this.canvas.height,cinematic=['home','intro','victory','defeat','upgrade','loadout'].includes(game.phase),plan=this.cameraPlan(game),finishing=this.finisherFrame(game);let {x,y,z}=plan;
+ draw(game,dt,{drag=null,paused=false}={}){const visualDt=paused?0:dt*(game.skillAim?rClamp(Number(game.timeScale)||1,0,1):1),preview=this.skillPreview(game);this.time+=visualDt;this.observeVisuals(game,visualDt);if(this.emote){if(!game.canAim||drag||game.active!==this.emote.side||game.players[this.emote.side].body?.active)this.emote=null;else if(!paused){this.emote.time+=visualDt;if(this.emote.time>=this.emote.duration)this.emote=null;}}const viewW=this.canvas.width,viewH=this.canvas.height,cinematic=['home','intro','victory','defeat','upgrade','loadout'].includes(game.phase),plan=this.cameraPlan(game,preview),finishing=this.finisherFrame(game);let {x,y,z}=plan;
  const bounds=arenaBounds(game.world);z=rClamp(z,Math.min(.18,viewW/bounds.width),2.8);const half=viewW/2/z;x=half>=bounds.width/2?(bounds.left+bounds.right)/2:rClamp(x,bounds.left+half,bounds.right-half);
  const changed=this.lastPhase!==game.phase,snap=this.resized||!this.lastPhase||changed&&(['scout','aim'].includes(game.phase)||this.lastPhase==='home'&&game.phase==='intro')||this.reducedMotion&&game.phase==='scout';this.resized=false;
  const rate=game.phase==='scout'?13:game.phase==='flight'?6.5:game.phase==='settle'?8:7,blend=snap?1:1-Math.exp(-(paused?0:dt)*rate);this.cam.z+=(z-this.cam.z)*blend;this.cam.x+=(x-this.cam.x)*blend;this.cam.y+=(y-this.cam.y)*blend;this.lastPhase=game.phase;const c=this.c;c.save();c.clearRect(0,0,viewW,viewH);const cssH=this.canvas.getBoundingClientRect?.().height||viewH,shake=this.feedback.update(paused?0:dt,{reduced:this.reducedMotion,scale:viewH/cssH});c.translate(viewW/2+shake.x,viewH+shake.y);c.scale(this.cam.z,this.cam.z);c.translate(-this.cam.x,-this.cam.y);this.background(game.map,this.time,game.arena||game.encounter);this.terrain(game);
  if(cinematic){this.cinematic(game);}else{this.objects(game);this.finisherWorld(game);for(const point of game.trails){c.globalAlpha=Math.min(.6,point.t);this.rect(point.x,point.y,3,3,'#efd6a0');}c.globalAlpha=1;for(let i=0;i<(game.mode==='target'?1:2);i++)this.character(game.players[i],i,{time:this.time,angle:game.angles[i],drawn:game.active===i&&['aim','thinking'].includes(game.phase),dead:game.players[i].hp<=0,boss:i===1&&game.mode==='rogue'&&game.floor%3===0,bow:i===0&&game.mode==='rogue'?game.skill:'plain',emote:this.emote?.side===i?this.emote:null});if(game.canAim){const p=game.players[game.active],b=launch(p,game.angles[game.active],game.powers[game.active]);for(let j=1;j<12;j++){const pt=position(b,j*.045);if(pt.y>=ground(pt.x,game.world))break;this.circle(pt.x,pt.y,3.2,'#20323abf');this.circle(pt.x,pt.y,1.9,'#fff0d4');}const strength=game.powers[game.active];this.rect(p.x-41,p.y-157,82,31,'#152d2bdb');this.text(game.angles[game.active]+'°',p.x-12,p.y-134,22,'#edd4a0');this.line([[p.x+10,p.y-151],[p.x+10,p.y-134]],'#8baa8155',1);this.text(strength<=50?'轻':strength<=75?'半':strength<=90?'强':'满',p.x+25,p.y-136,13,'#c6e5cb');this.rect(p.x-37,p.y-129,74,3,'#557267');this.rect(p.x-37,p.y-129,74*strength/100,3,'#e6c98c');this.poly([[p.x-7,p.y-120],[p.x+7,p.y-120],[p.x,p.y-113]],'#edd4a0');}
- this.arrowEffects(game);this.statusFX(game);for(const e of game.effects){if(finishing&&/−[0-9]/.test(e.text)&&Math.hypot(e.x-finishing.f.x,e.y-finishing.f.y)<180)continue;c.globalAlpha=Math.min(1,e.t);c.font='oblique 400 23px "Smiley Sans", sans-serif';c.textAlign='center';c.strokeStyle='#20322ee0';c.lineWidth=4;c.lineJoin='round';c.strokeText(e.text,e.x,e.y);this.text(e.text,e.x,e.y,23,e.color);}c.globalAlpha=1;this.particles(game);}
+ this.skillAimPreview(game,preview);this.arrowEffects(game);this.statusFX(game);for(const e of game.effects){if(finishing&&/−[0-9]/.test(e.text)&&Math.hypot(e.x-finishing.f.x,e.y-finishing.f.y)<180)continue;c.globalAlpha=Math.min(1,e.t);c.font='oblique 400 23px "Smiley Sans", sans-serif';c.textAlign='center';c.strokeStyle='#20322ee0';c.lineWidth=4;c.lineJoin='round';c.strokeText(e.text,e.x,e.y);this.text(e.text,e.x,e.y,23,e.color);}c.globalAlpha=1;this.particles(game);}
  this.weather(game.map);c.restore();
  this.finisherScreen(game);
  // Letterbox bars frame the animated story beats.
@@ -1942,6 +2032,93 @@ function pullGeometry(rect, pointerType = 'mouse') {
   return {fullPull: 145 * rect.width / 960, cancelRadius: 48 * rect.width / 960};
 }
 
+// One owner for a held flight skill, shared by the canvas, keyboard and HUD.
+// Cancelling restores normal flight without spending the once-per-volley skill.
+class FlightSkillInput {
+  constructor(game, {isPaused = () => false, onChange = () => {}} = {}) {
+    this.game = game; this.isPaused = isPaused; this.onChange = onChange; this.hold = null;
+  }
+  get canHold() {return !this.isPaused() && this.game.skill === 'dive' && this.game.canSkill && typeof this.game.beginSkillAim === 'function';}
+  clearHold() {
+    const old = this.hold; this.hold = null;
+    if (old?.kind === 'pointer') try {if (old.element.hasPointerCapture?.(old.id)) old.element.releasePointerCapture(old.id);} catch {}
+    return old;
+  }
+  cancel() {
+    if (this.hold?.kind === 'key') this.cancelledKey = this.hold.key;
+    const held = this.clearHold(), aiming = Boolean(this.game.skillAim);
+    if (aiming) this.game.cancelSkillAim?.();
+    if (held || aiming) this.onChange();
+    return Boolean(held || aiming);
+  }
+  release() {
+    this.clearHold();
+    if (this.isPaused()) {this.game.cancelSkillAim?.(); this.onChange(); return false;}
+    const fired = this.game.skillAim ? Boolean(this.game.releaseSkillAim?.()) : false;
+    this.onChange(); return fired;
+  }
+  startPointer(element, event) {
+    if (!this.canHold || this.hold || event.isPrimary === false || (event.button !== undefined && event.button !== 0)) return false;
+    event.preventDefault();
+    if (!this.game.skillAim && !this.game.beginSkillAim()) return false;
+    const rect = element.getBoundingClientRect();
+    this.hold = {kind: 'pointer', element, id: event.pointerId, x: event.clientX, tilt: this.game.skillAim?.tilt || 0, span: Math.max(120, Math.min(rect.width, rect.height) * .6)};
+    try {element.setPointerCapture(event.pointerId);} catch {this.cancel(); return false;}
+    this.onChange(); return true;
+  }
+  ownsPointer(element, event) {return this.hold?.kind === 'pointer' && this.hold.element === element && this.hold.id === event.pointerId;}
+  movePointer(element, event) {
+    if (!this.ownsPointer(element, event)) return false;
+    if (this.isPaused() || !this.game.skillAim || event.buttons !== undefined && (event.buttons & 2)) {this.cancel(); return true;}
+    if (Number.isFinite(event.clientX)) {event.preventDefault(); this.game.aimSkill?.(this.hold.tilt + (event.clientX - this.hold.x) * 70 / this.hold.span); this.onChange();}
+    return true;
+  }
+  endPointer(element, event, cancelled = false) {
+    if (!this.ownsPointer(element, event)) return false;
+    event.preventDefault();
+    if (cancelled || this.isPaused()) this.cancel();
+    else {this.movePointer(element, event); if (this.ownsPointer(element, event)) this.release();}
+    return true;
+  }
+  keyDown(event, fromButton = false) {
+    if (!this.canHold || ![' ', ...(fromButton ? ['Enter'] : [])].includes(event.key)) return false;
+    if (event.repeat) {event.preventDefault(); return true;}
+    event.preventDefault();
+    if (this.hold || !this.game.skillAim && !this.game.beginSkillAim()) return true;
+    if (this.cancelledKey === event.key) this.cancelledKey = null;
+    this.hold = {kind: 'key', key: event.key, element: event.target}; this.onChange(); return true;
+  }
+  keyUp(event) {
+    if (this.cancelledKey === event.key) {this.cancelledKey = null; event.preventDefault(); return true;}
+    if (this.hold?.kind !== 'key' || this.hold.key !== event.key) return false;
+    event.preventDefault();
+    const tag = event.target?.tagName;
+    if (['INPUT', 'SELECT', 'TEXTAREA', 'A', 'SUMMARY'].includes(tag) || tag === 'BUTTON' && event.target !== this.hold.element) this.cancel();
+    else this.release();
+    return true;
+  }
+  bindButton(button) {
+    button.style.touchAction = 'none';
+    button.addEventListener('pointerdown', event => {if (event.button === 2) {event.preventDefault(); this.cancel(); return;} if (this.game.skill === 'dive') this.startPointer(button, event);});
+    button.addEventListener('pointermove', event => this.movePointer(button, event));
+    button.addEventListener('pointerup', event => this.endPointer(button, event));
+    button.addEventListener('pointercancel', event => this.endPointer(button, event, true));
+    button.addEventListener('lostpointercapture', event => {if (this.ownsPointer(button, event)) this.cancel();});
+    button.addEventListener('contextmenu', event => {event.preventDefault(); this.cancel();});
+    button.addEventListener('keydown', event => this.keyDown(event, true));
+    button.addEventListener('keyup', event => this.keyUp(event));
+    button.onclick = event => {
+      if (this.isPaused()) return;
+      if (this.game.skill !== 'dive' || typeof this.game.beginSkillAim !== 'function') {this.game.activateSkill(); return;}
+      // A real pointer is handled on down/up, including a cancelled gesture.
+      // Accessibility's click-only activation can enter, then confirm preview.
+      event?.preventDefault?.();
+      if (event?.pointerType || event?.detail > 0 || this.hold) return;
+      if (this.game.skillAim) this.release(); else if (this.canHold) {this.game.beginSkillAim(); this.onChange();}
+    };
+  }
+}
+
 class AimInput {
   constructor(canvas, game, {isPaused = () => false, onChange = () => {}, onTouch = () => {}, onTap = () => {}} = {}) {
     this.canvas = canvas;
@@ -1951,12 +2128,13 @@ class AimInput {
     this.onTouch = onTouch;
     this.onTap = onTap;
     this.drag = null;
+    this.skill = new FlightSkillInput(game, {isPaused, onChange});
     canvas.addEventListener('pointerdown', event => this.start(event));
     canvas.addEventListener('pointermove', event => this.move(event));
     canvas.addEventListener('pointerup', event => this.end(event));
     canvas.addEventListener('pointercancel', event => this.end(event, true));
     canvas.addEventListener('lostpointercapture', event => {
-      if (this.drag?.id === event.pointerId) this.cancel();
+      if (this.drag?.id === event.pointerId || this.skill.ownsPointer(canvas, event)) this.cancel();
     });
     canvas.addEventListener('contextmenu', event => {event.preventDefault(); this.cancel();});
   }
@@ -1967,7 +2145,12 @@ class AimInput {
     if (event.pointerType === 'touch' || event.pointerType === 'pen') this.onTouch();
     const rect = this.canvas.getBoundingClientRect();
     if (!rect.width || !rect.height || event.clientX < rect.left || event.clientX > rect.left + rect.width || event.clientY < rect.top || event.clientY > rect.top + rect.height) return;
-    if (this.game.canSkill) {event.preventDefault(); this.game.activateSkill(); return;}
+    if (this.game.canSkill) {
+      event.preventDefault();
+      if (this.game.skill === 'dive' && typeof this.game.beginSkillAim === 'function') this.skill.startPointer(this.canvas, event);
+      else this.game.activateSkill();
+      return;
+    }
     if (!this.game.canAim) return;
     event.preventDefault();
     this.canvas.focus({preventScroll: true});
@@ -1986,6 +2169,7 @@ class AimInput {
   }
 
   move(event) {
+    if (this.skill.movePointer(this.canvas, event)) return;
     const drag = this.drag;
     if (!drag || event.pointerId !== drag.id) return;
     if (event.buttons !== undefined && (event.buttons & 2)) {this.cancel(); return;}
@@ -2009,7 +2193,8 @@ class AimInput {
   }
 
   cancel() {
-    if (!this.drag) return false;
+    const skillCancelled = this.skill.cancel();
+    if (!this.drag) return skillCancelled;
     const old = this.drag;
     this.release(old);
     if (this.game.canAim) this.game.aim(old.angle, old.power);
@@ -2017,6 +2202,7 @@ class AimInput {
   }
 
   end(event, cancelled = false) {
+    if (this.skill.endPointer(this.canvas, event, cancelled)) return;
     if (!this.drag || this.drag.id !== event.pointerId) return;
     if (cancelled || this.isPaused() || !this.game.canAim) {this.cancel(); return;}
     this.move(event);
@@ -2518,7 +2704,7 @@ function applyDisplayMode(){
  }
  document.body.classList.toggle('touch-ui',touchMode);
  $('footerHint').textContent=touchMode?'横屏视野更开阔 · 支持双人轮流操作':desktopFooter;
- $('controlHelp').innerHTML=touchMode?'按住画面向弓手身后拉，松开射箭。<br>拉回圆圈，或点“取消拉弓”撤销。<br>用 − / ＋ 微调角度；“弓力”切换轻／半／强／满，再点射箭。<br>远征中，箭飞行时再次点击画面或弓术按钮。':desktopHelp;
+ $('controlHelp').innerHTML=touchMode?'按住画面向弓手身后拉，松开射箭。<br>拉回圆圈，或点“取消拉弓”撤销。<br>用 − / ＋ 微调角度；“弓力”切换轻／半／强／满，再点射箭。<br>远征中，箭飞行时施展弓术；星坠按住预瞄，左右拖动调整，松手落箭。':desktopHelp;
  $('viewMode').textContent=(viewPreference==='auto'?'自动':touchMode?'手机':'电脑')+' ▾';
  $('autoViewHint').textContent='当前设备：'+(resolveView('auto',env).layout==='mobile'?'手机版':'电脑版');
  for(const [id,value] of [['chooseAuto','auto'],['chooseDesktop','desktop'],['chooseMobile','mobile']])$(id).setAttribute('aria-pressed',viewPreference===value);
@@ -2575,7 +2761,7 @@ function renderUI(){const phase=game.phase;if(lastPhase!==phase){lastPhase=phase
  const gameplay=['scout','thinking','aim','flight','settle'].includes(phase);show('hud',gameplay);$('storageNote').textContent=stored?'本机自动存档':'当前浏览器无法保存进度';show('build',gameplay&&game.mode==='rogue'&&game.upgrades.length>0);show('sceneHint',gameplay&&!['scout','thinking'].includes(phase));$('chapterSub').textContent=modeName();$('chapterName').textContent=game.arena?.name||MAPS[game.map].name;$('turn').textContent='第 '+game.round+' 回合';const enemyRole=game.mode==='rogue'&&game.encounter?(game.encounter.boss?'擂主 · ':'')+game.encounter.enemy.name:'';$('name1').textContent=archerName(1)+(game.mode==='local'?' · 玩家二':enemyRole?' · '+enemyRole:'');$('name0').textContent=archerName(0)+(game.mode==='local'?' · 玩家一':'');$('portrait0').textContent=Array.from(archerName(0))[0];$('portrait1').textContent=Array.from(archerName(1))[0];$('loadoutName').textContent=archerName(0);
  for(let i=0;i<2;i++){const p=game.players[i];$('hp'+i).textContent=Math.ceil(p.hp)+' / '+p.stats.maxHp;$('bar'+i).style.width=clamp(p.hp/p.stats.maxHp*100,0,100)+'%';const summary=statusSummary(p.status);$('status'+i).textContent=summary.replace(/ · 基础[0-9]+\/轮/g,'');$('status'+i).title=summary;}
  const threat=game.mode!=='local'&&game.mode!=='target'?enemySummary(game.players[1]):'';$('enemyTraits').textContent=(game.arena?.enemy.name||'对手能力')+' · '+enemyIntentShort(game.arena?.enemy.id)+'\n'+threat+(game.arena?.rule==='collapse'?' · 第5回合中央路障倒下':'');$('enemyTraits').title=(game.arena?.enemy.tip||'')+' · '+threat;show('enemyTraits',!!threat&&['scout','thinking'].includes(phase));show('bountyInfo',game.mode==='rogue'&&phase==='scout'&&Boolean(game.bounty));$('bountyInfo').textContent=game.bounty?'观众悬赏 · '+bountyProgressText(game.bounty):'';
- show('challengeInfo',gameplay&&game.mode==='target');$('challengeInfo').textContent='得分 '+game.targetScore+' · 落空 '+game.targetMisses+' / 3';document.querySelector('.health.right').hidden=game.mode==='target';show('skillButton',gameplay&&game.mode==='rogue'&&game.active===0&&(!touchMode||phase==='flight'));const bow=BOWS.find(b=>b.id===game.skill)||BOWS[0];$('skillName').textContent=bow.skill+ (game.skillUsed?' · 已施展':'');$('skillButton').disabled=!game.canSkill;$('skillHint').textContent=game.phase==='flight'?(touchMode?'点击施展':'空格 / 点击施展'):'射箭后，在飞行中施展';$('skillButton').title=bow.tip;let banner='';if(phase==='scout'){const progress=game.phaseTime/game.scoutDuration;banner=game.mode==='target'?(progress<.3?'观察靶标的位置':'回到弓手'):game.round===1&&progress>=.18&&progress<.55?geometryLabel(game.arena):progress<(game.round===1?.18:.2)?'观察对手的位置':'镜头回到 '+archerName(game.active);}else if(phase==='thinking')banner=game.mode==='rogue'&&game.opponent.boss?'擂主 · '+game.players[1].stats.multi+'箭蓄力':$('name1').textContent+'正在寻找角度';show('turnBanner',!!banner);$('turnBanner').textContent=banner;$('sceneHint').textContent=phase==='scout'?(touchMode?'点击下方按钮可跳过观察':'空格跳过观察镜头'):phase==='aim'?archerName(game.active)+(touchMode?'的回合 · 看高低差，试试收力':'的回合 · ←→调角度 · ↑↓调弓力 · 拖拽或空格出箭'):phase==='flight'?(game.volleyCount>1?'箭雨 ×'+game.volleyCount:'一箭已出'):'等待箭落';
+ show('challengeInfo',gameplay&&game.mode==='target');$('challengeInfo').textContent='得分 '+game.targetScore+' · 落空 '+game.targetMisses+' / 3';document.querySelector('.health.right').hidden=game.mode==='target';show('skillButton',gameplay&&game.mode==='rogue'&&game.active===0&&(!touchMode||phase==='flight'));const bow=BOWS.find(b=>b.id===game.skill)||BOWS[0];$('skillName').textContent=bow.skill+(game.skillAim?' · 预瞄':game.skillUsed?' · 已施展':'');$('skillButton').disabled=!game.canSkill;$('skillHint').textContent=game.phase==='flight'?(game.skill==='dive'?(game.skillAim?(!input.skill.hold?'再次点击落箭 · Esc 取消':touchMode?'左右拖动调整 · 松手落箭':'←→ 调整落线 · 松开空格落箭'):(touchMode?'按住预瞄 · 松手星坠':'按住空格预瞄 · 松开星坠')):(touchMode?'点击施展':'空格 / 点击施展')):'射箭后，在飞行中施展';$('skillButton').setAttribute('aria-pressed',Boolean(game.skillAim));$('skillButton').title=bow.tip;let banner='';if(phase==='scout'){const progress=game.phaseTime/game.scoutDuration;banner=game.mode==='target'?(progress<.3?'观察靶标的位置':'回到弓手'):game.round===1&&progress>=.18&&progress<.55?geometryLabel(game.arena):progress<(game.round===1?.18:.2)?'观察对手的位置':'镜头回到 '+archerName(game.active);}else if(phase==='thinking')banner=game.mode==='rogue'&&game.opponent.boss?'擂主 · '+game.players[1].stats.multi+'箭蓄力':$('name1').textContent+'正在寻找角度';show('turnBanner',!!banner);$('turnBanner').textContent=banner;$('sceneHint').textContent=phase==='scout'?(touchMode?'点击下方按钮可跳过观察':'空格跳过观察镜头'):phase==='aim'?archerName(game.active)+(touchMode?'的回合 · 看高低差，试试收力':'的回合 · ←→调角度 · ↑↓调弓力 · 拖拽或空格出箭'):phase==='flight'?(game.skillAim?(touchMode?'星坠预瞄 · 左右拖动 · 松手落箭':'星坠预瞄 · ←→调整 · 松开空格落箭'):game.volleyCount>1?'箭雨 ×'+game.volleyCount:'一箭已出'):'等待箭落';
  if(phase==='intro'){$('skipStory').textContent=game.save.unlocked?'跳过剧情，开始对决 ↗':'跳过新手教程，解锁玩法 ↗';$('skipStory').title=game.save.unlocked?'只跳过本段剧情':'永久解锁无尽、切磋、双人和射靶，不额外发放奖励';const beat=Math.min(2,Math.floor(game.phaseTime/game.storyBeatDuration));if(beat!==lastBeat){lastBeat=beat;const [speaker,line]=STORIES[game.stage-1][beat];$('storyChapter').textContent='第 '+game.stage+' 章 / '+MAPS[game.map].name;$('speaker').textContent=namedText(speaker);$('storyLine').dataset.full=namedText(line);$('storyDots').innerHTML=[0,1,2].map(i=>'<i class="'+(i===beat?'active':'')+'"></i>').join('');$('nextLine').textContent=beat===2?'开始试炼 ➜':'下一幕 ➜';}$('storyLine').textContent=($('storyLine').dataset.full||'');}
  $('pause').disabled=phase==='home';updateTouchControls();}
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -2647,9 +2833,32 @@ function sceneryKey(e){
 
 function renderFeedbackSetting(){const label={light:'轻',standard:'标准',off:'关'}[renderer.feedback.mode];$('feedbackMode').textContent='画面震动：'+label+(renderer.reducedMotion?'（跟随系统减少动态）':'');}
 $('feedbackMode').onclick=()=>{const f=renderer.feedback;f.mode=FEEDBACK_MODES[(FEEDBACK_MODES.indexOf(f.mode)+1)%FEEDBACK_MODES.length];f.reset();try{localStorage.setItem(FEEDBACK_KEY,f.mode);}catch{}renderFeedbackSetting();};renderFeedbackSetting();
-$('brand').onclick=e=>{e.preventDefault();if(game.phase==='home')return;setPaused(true);};$('campaignStart').onclick=()=>{setPaused(false);game.start('campaign',game.save.checkpoint);};$('campaignQuick').onclick=skipTutorial;$('rogueStart').onclick=()=>{if(game.save.unlocked){setPaused(false);game.setPhase('loadout');}};$('loadoutHome').onclick=home;$('targetStart').onclick=()=>{if(game.start('target',Number($('mapChoice').value)))setPaused(false);};$('skillButton').onclick=()=>{if(!paused)game.activateSkill();};$('duelStart').onclick=()=>{if(game.start('duel',Number($('mapChoice').value)))setPaused(false);};$('localStart').onclick=()=>{if(game.start('local',Number($('mapChoice').value)))setPaused(false);};$('buyBow').onclick=()=>{if(game.buy('bow'))toast('练弓完成：下次远征初始箭伤害提高。');};$('buyLife').onclick=()=>{if(game.buy('life'))toast('强身完成：下次远征初始生命提高。');};$('sound').onclick=()=>{soundOn=!soundOn;$('sound').textContent='声音：'+(soundOn?'开':'关');$('sound').setAttribute('aria-pressed',soundOn);tone(600,.1,'sine');};$('view').onclick=()=>{renderer.allView=!renderer.allView;$('view').setAttribute('aria-pressed',renderer.allView);$('view').textContent=renderer.allView?'跟随镜头':'全景';};$('pause').onclick=()=>setPaused(!paused);$('resume').onclick=()=>setPaused(false);$('pauseHome').onclick=home;$('restart').onclick=()=>{const mode=game.mode,stage=game.mode==='campaign'||game.mode==='rogue'?game.stage:game.arenaChoice;setPaused(false);game.start(mode,stage,game.skill,game.characterId);};$('resultHome').onclick=home;$('resultNext').onclick=()=>game.resultNext();$('skipStory').onclick=()=>game.save.unlocked?game.skip():skipTutorial();$('nextLine').onclick=()=>game.introNext();$('fullscreen').onclick=toggleFullscreen;
-function onKey(e){if(sceneryKey(e))return;if(cloudAccount?.key(e))return;if(e.repeat)return;if(!paused&&!['BUTTON','A','INPUT','SELECT','TEXTAREA','SUMMARY'].includes(e.target?.tagName)&&['victory','defeat'].includes(game.phase)&&game.phaseTime>=.4&&[' ','Enter'].includes(e.key)){e.preventDefault();game.resultNext();return;}if(e.key==='Escape'&&!$('namesPanel').hidden){e.preventDefault();closeNames();return;}if(e.key==='Escape'&&!$('transferPanel').hidden){e.preventDefault();closeTransfer();return;}if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if(e.key==='Escape'){e.preventDefault();if(!$('viewMenu').hidden){closeViewMenu(true);return;}if(input.drag)cancelDrag();else if(paused)setPaused(false);else if(game.phase!=='home')setPaused(true);return;}if(paused||e.target.tagName==='BUTTON')return;if((e.key==='ArrowUp'||e.key==='ArrowDown')&&!game.canAim)return;if([' ','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();if(input.drag)return;if(e.key===' '){if(game.phase==='intro'&&!game.save.unlocked)skipTutorial();else if(['scout','intro'].includes(game.phase))game.skip();else if(game.canAim)game.shoot();else if(game.canSkill)game.activateSkill();}else if(e.key==='ArrowUp'||e.key==='ArrowDown')adjustPower(e.key==='ArrowUp'?5:-5);else if(game.canAim)game.aim(game.angles[game.active]+(e.key==='ArrowRight'?1:-1),game.powers[game.active]);}}
-window.addEventListener('keydown',onKey);window.addEventListener('blur',()=>{cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);}});
+$('brand').onclick=e=>{e.preventDefault();if(game.phase==='home')return;setPaused(true);};$('campaignStart').onclick=()=>{setPaused(false);game.start('campaign',game.save.checkpoint);};$('campaignQuick').onclick=skipTutorial;$('rogueStart').onclick=()=>{if(game.save.unlocked){setPaused(false);game.setPhase('loadout');}};$('loadoutHome').onclick=home;$('targetStart').onclick=()=>{if(game.start('target',Number($('mapChoice').value)))setPaused(false);};input.skill.bindButton($('skillButton'));$('duelStart').onclick=()=>{if(game.start('duel',Number($('mapChoice').value)))setPaused(false);};$('localStart').onclick=()=>{if(game.start('local',Number($('mapChoice').value)))setPaused(false);};$('buyBow').onclick=()=>{if(game.buy('bow'))toast('练弓完成：下次远征初始箭伤害提高。');};$('buyLife').onclick=()=>{if(game.buy('life'))toast('强身完成：下次远征初始生命提高。');};$('sound').onclick=()=>{soundOn=!soundOn;$('sound').textContent='声音：'+(soundOn?'开':'关');$('sound').setAttribute('aria-pressed',soundOn);tone(600,.1,'sine');};$('view').onclick=()=>{renderer.allView=!renderer.allView;$('view').setAttribute('aria-pressed',renderer.allView);$('view').textContent=renderer.allView?'跟随镜头':'全景';};$('pause').onclick=()=>setPaused(!paused);$('resume').onclick=()=>setPaused(false);$('pauseHome').onclick=home;$('restart').onclick=()=>{const mode=game.mode,stage=game.mode==='campaign'||game.mode==='rogue'?game.stage:game.arenaChoice;setPaused(false);game.start(mode,stage,game.skill,game.characterId);};$('resultHome').onclick=home;$('resultNext').onclick=()=>game.resultNext();$('skipStory').onclick=()=>game.save.unlocked?game.skip():skipTutorial();$('nextLine').onclick=()=>game.introNext();$('fullscreen').onclick=toggleFullscreen;
+function onKey(e){
+ if(sceneryKey(e))return;if(cloudAccount?.key(e))return;if(e.repeat){if(game.skillAim&&[' ','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();return;}
+ const tag=e.target?.tagName;
+ if(!paused&&!['BUTTON','A','INPUT','SELECT','TEXTAREA','SUMMARY'].includes(tag)&&['victory','defeat'].includes(game.phase)&&game.phaseTime>=.4&&[' ','Enter'].includes(e.key)){e.preventDefault();game.resultNext();return;}
+ if(e.key==='Escape'&&!$('namesPanel').hidden){e.preventDefault();closeNames();return;}
+ if(e.key==='Escape'&&!$('transferPanel').hidden){e.preventDefault();closeTransfer();return;}
+ if(e.key==='Tab'&&game.skillAim)cancelDrag();
+ if(['INPUT','SELECT','TEXTAREA','A','SUMMARY'].includes(tag))return;
+ if(e.key==='Escape'){
+  e.preventDefault();if(!$('viewMenu').hidden){closeViewMenu(true);return;}
+  if(input.drag||game.skillAim)cancelDrag();else if(paused)setPaused(false);else if(game.phase!=='home')setPaused(true);return;
+ }
+ if(paused)return;
+ if(game.skillAim&&(tag!=='BUTTON'||e.target===$('skillButton'))&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();game.aimSkill?.(game.skillAim.tilt+(e.key==='ArrowRight'?3:-3));return;}
+ if(tag==='BUTTON')return;
+ if((e.key==='ArrowUp'||e.key==='ArrowDown')&&!game.canAim)return;
+ if([' ','ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){
+  e.preventDefault();if(input.drag)return;
+  if(e.key===' '){
+   if(game.phase==='intro'&&!game.save.unlocked)skipTutorial();else if(['scout','intro'].includes(game.phase))game.skip();else if(game.canAim)game.shoot();else if(game.canSkill){if(!input.skill.keyDown(e))game.activateSkill();}
+  }else if(e.key==='ArrowUp'||e.key==='ArrowDown')adjustPower(e.key==='ArrowUp'?5:-5);
+  else if(game.canAim)game.aim(game.angles[game.active]+(e.key==='ArrowRight'?1:-1),game.powers[game.active]);
+ }
+}
+window.addEventListener('keydown',onKey);window.addEventListener('keyup',e=>input.skill.keyUp(e));window.addEventListener('blur',()=>{cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);});document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelDrag();if(!['home','victory','defeat','upgrade','loadout'].includes(game.phase))setPaused(true);}});
 cloudAccount=setupCloudAccount({storage:viewStorage,getSave:()=>game.save,applySave:progress=>{game.save=progress;game.persist();lastPhase='';lastBeat=-1;renderDirty=true;renderHome();},atCamp:()=>game.phase==='home',beforeOpen:()=>{closeScenery(false);cancelDrag();closeViewMenu();closeNames(false);closeTransfer(false);if(game.phase!=='home')setPaused(true);}});
 function frame(now){const dt=Math.min((now-lastNow)/1000||0,.05);lastNow=now;if(!paused)game.update(dt);renderer.draw(game,dt,{drag:input.drag,paused});renderUI();if(toastUntil&&now>toastUntil){show('toast',false);toastUntil=0;}requestAnimationFrame(frame);}renderUI();requestAnimationFrame(frame);
 
