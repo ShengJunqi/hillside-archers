@@ -57,6 +57,6 @@ for(const seed of [0,42,9173]){
  ok(collected,'injured heart-seeker takes a reachable heart instead of guaranteed player damage');
 }
 {
- const g=make();g.encounter.supply='hearts';g.round=2;g.spawnOrbs();ok(g.orbs.every(o=>o.type==='heart'),'heart venue actually changes supply distribution');
+ const g=make();g.encounter.supply='hearts';g.round=2;g.spawnOrbs();eq(g.orbs.length,1,'heart venue still produces one actual pickup under the lean expedition policy');ok(g.orbs.every(o=>o.type==='heart'),'heart venue actually changes supply distribution');
 }
 console.log(checks+' procedural-encounter, trajectory-fairness, route and AI checks passed.');

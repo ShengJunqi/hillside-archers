@@ -55,3 +55,5 @@ CloudBase 管理连接已配置：国内站、上海，已有环境见 `.cloudba
 0.16.1起W1600仅是画面／原交战区基准；真实世界边界用encounters.arenaBounds(game.world)，当前为−1000..2600。人物、关节、箭、补给、镜头与地表缓存需共用此范围。扩展两侧空间时不增加人物初始距离，中央profile采样不变；不要重新硬编码0..W为物理限位。updateBody通过worldMinX/worldMaxX接收真实边界，minX/maxX仍用于对手安全间距。
 
 0.17起星坠通过beginSkillAim/aimSkill/releaseSkillAim/cancelSkillAim管理按住预瞄，timeScale=1/3；previewSkill与实际释放共用diveTrajectory，不改随机数／生命。空格发射的第一次松开不得施展，暂停／失焦／指针取消要恢复正常时间。追加箭继承diving/bomb/boosted/bounces和剩余pierce，不重乘技能倍率。爆炸保留原箭，范围副本才有noStick；真实箭继续正常命中。助推地面跳弹仅一次，不能无限续飞。skillAim与箭状态均不进入永久存档，详见docs/ACTIVE_BOW_SKILLS.md。
+
+0.17.1的少补给／快节奏仅用于rogue：每次行动最多1球，场上4球、每种2球，expiresRound为生成回合+4，lastSupplyRound防同回合重复生成并在setup清空。首次观察1.8秒、后续1秒，settleDuration=.5；仍须等存活body起身，不得通过强制清除飞箭／跳过恢复来加速。其他模式的双球、观察及等待保持原值。
