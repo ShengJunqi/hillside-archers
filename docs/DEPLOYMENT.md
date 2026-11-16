@@ -106,3 +106,13 @@ GitHub 集成可能缺少开启 Pages 所需的管理权限。此仓库首次创
 - 存档格式、原始站距、扩展地图与NPC预算保留，没有新增后端资源或运行时模型请求。当前没有浏览器控制工具，未宣称真实浏览器操作或手机GPU帧率已验收。原站以官方部署成功确认，HTTP文件核验在备用站完成。
 
 技能操作、具体继承规则与公开参考来源：https://shengjunqi.github.io/hillside-archers/active-bow-skills-notes.txt 。
+
+## 0.17.1 无尽少补给与快节奏
+
+- 游戏源码及源码 ZIP：`785727cb1b73fe78aae5a50d12d9ded75f67bd43`，PR：https://github.com/ShengJunqi/hillside-archers/pull/15 ，基于 `feat/active-bow-skills`，未合并 main。[源码 CI](https://github.com/ShengJunqi/hillside-archers/actions/runs/43793011093)成功。
+- 原站发布 Sites 第22版，原生工具返回 `succeeded`；静态源码提交 `20de650fc33c096c9dbe4e4e5b32925ceb128c5c`。保留原公开入口、账号配置与协作下载。
+- 备用站 `gh-pages` 提交 `89d5917bd3027c8c2bdfeda64da3bd594add486d`，通过 [Pages 构建](https://github.com/ShengJunqi/hillside-archers/actions/runs/43793006545)。
+- 只调整无尽：每次行动最多补1球，场上最多4球，+1和爱心各最多2球；旧球4次行动后退场，防同回合重复生成。首次观察1.8秒、后续1秒，落箭后最短等待0.5秒，仍须等存活角色起身。单球回血、技能、悬赏、NPC预算及其他模式规则保持原值。
+- 完整 `npm test`、`npm run build`、`git diff --check`通过；新增336项补给密度、过期／去重、真实节奏／恢复和模式隔离检查。离线 HTML 为4,257,095字节，最终内联脚本编译通过。
+- 当前没有浏览器控制工具，未做真实浏览器／手机GPU验收；原站由官方成功部署状态确认。保留v2存档，没有新增后端资源或运行时模型请求。
+- 备用站全部49个跟踪发布文件均 HTTP 200且SHA-256与发布文件一致，包括core、离线版、公开云配置、技能说明、源码ZIP及协作提示词。
